@@ -103,6 +103,14 @@ export const api = {
     adminUpdateRecruiter: (id, status) => request('PATCH', `/admin/recruiters/${id}`, { status }),
     adminRunScraper: (type, params) => request('POST', '/admin/scraper/run', { type, params }),
     adminScraperRuns: () => request('GET', '/admin/scraper/runs'),
+    adminJobs: (params = {}) => {
+        const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+        return request('GET', `/admin/jobs${qs ? `?${qs}` : ''}`);
+    },
+    adminRaw: (status) => request('GET', `/admin/raw${status ? `?status=${status}` : ''}`),
+    adminRawStatus: (id, status) => request('PATCH', `/admin/raw/${id}`, { status }),
+    adminReprocess: (id) => request('POST', `/admin/raw/${id}/reprocess`),
+    adminAiStats: () => request('GET', '/admin/ai-stats'),
 
     // billing / planos
     getPlans: () => request('GET', '/billing/plans'),

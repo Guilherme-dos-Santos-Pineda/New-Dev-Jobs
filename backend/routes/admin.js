@@ -4,6 +4,8 @@ import sql from '../lib/sql.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
+import { reprocessPost } from '../services/scraper.js';
+import { aiState } from '../services/ai.js';
 
 const router = Router();
 
@@ -126,6 +128,82 @@ router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) 
     const queue = type === 'discovery' ? SCRAPER_DISCOVERY : SCRAPER_MONITORING;
     await boss.send(queue, { runId: Number(run.Id), params }, { retryLimit: 0, expireInSeconds: 600 });
     res.status(201).json({ run: shapeRun(run) });
+});
+
+// ---------- Vagas (com filtros) ----------
+const parseArr = (v) => (Array.isArray(v) ? v : []);
+function shapeJob(j) {
+    return {
+        id: j.Id, company: j.Company, title: j.JobTitle, email: j.Email, skills: parseArr(j.Skills),
+        aiScore: j.AiScore, classification: j.AiClassification, seniority: j.Seniority,
+        modality: j.Modality, location: j.Location, postedAt: j.PostedAt, createdAt: j.CreatedAt,
+    };
+}
+
+// GET /api/admin/jobs?q=&seniority=&minScore=&tech=
+router.get('/jobs', requireAdmin, async (req, res) => {
+    const q = req.query.q ? `%${req.query.q}%` : null;
+    const seniority = req.query.seniority || null;
+    const minScore = req.query.minScore ? Number(req.query.minScore) : null;
+    const techLike = req.query.tech ? `%${req.query.tech}%` : null;
+    const rows = await sql`
+        select "Id","Company","JobTitle","Email","Skills","AiScore","AiClassification","Seniority","Modality","Location","PostedAt","CreatedAt"
+        from "Jobs"
+        where (${q}::text is null or "JobTitle" ilike ${q} or "Company" ilike ${q})
+          and (${seniority}::text is null or lower(coalesce("Seniority",'')) = lower(${seniority}))
+          and (${minScore}::int is null or coalesce("AiScore",0) >= ${minScore})
+          and (${techLike}::text is null or "Skills"::text ilike ${techLike})
+        order by "CreatedAt" desc, "Id" desc limit 200`;
+    res.json({ jobs: rows.map(shapeJob) });
+});
+
+// ---------- Conteúdo bruto (ScrapedPosts) ----------
+function shapeRaw(p) {
+    return {
+        id: p.Id, source: p.Source, author: p.Author, authorUrl: p.AuthorUrl, url: p.Url,
+        content: p.Content, postedAt: p.PostedAt, status: p.Status, ai: p.AiResult, createdAt: p.CreatedAt,
+    };
+}
+
+// GET /api/admin/raw?status=
+router.get('/raw', requireAdmin, async (req, res) => {
+    const status = req.query.status || null;
+    const rows = status
+        ? await sql`select * from "ScrapedPosts" where "Status" = ${status} order by "CreatedAt" desc limit 100`
+        : await sql`select * from "ScrapedPosts" order by "CreatedAt" desc limit 100`;
+    res.json({ posts: rows.map(shapeRaw) });
+});
+
+// PATCH /api/admin/raw/:id  { status }
+const rawPatchSchema = z.object({ status: z.enum(['pending', 'approved', 'rejected']) });
+router.patch('/raw/:id', requireAdmin, validate(rawPatchSchema), async (req, res) => {
+    const [row] = await sql`update "ScrapedPosts" set "Status" = ${req.body.status} where "Id" = ${Number(req.params.id)} returning *`;
+    if (!row) return res.status(404).json({ error: 'Post não encontrado' });
+    res.json({ post: shapeRaw(row) });
+});
+
+// POST /api/admin/raw/:id/reprocess — re-roda a IA no post
+router.post('/raw/:id/reprocess', requireAdmin, async (req, res) => {
+    try {
+        const ai = await reprocessPost(Number(req.params.id));
+        res.json({ ai });
+    } catch (e) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
+// GET /api/admin/ai-stats — estatísticas de IA/scraper + observabilidade
+router.get('/ai-stats', requireAdmin, async (_req, res) => {
+    const [raw] = await sql`
+        select count(*)::int as total,
+               count(*) filter (where "Status"='approved')::int as approved,
+               count(*) filter (where "Status"='rejected')::int as rejected,
+               count(*) filter (where "Status"='pending')::int as pending,
+               count(*) filter (where ("AiResult"->>'isJob')::boolean)::int as classified_jobs
+        from "ScrapedPosts"`;
+    const [jobs] = await sql`select count(*)::int as total, coalesce(round(avg("AiScore")),0)::int as avgscore, count(*) filter (where "AiScore" is not null)::int as withai from "Jobs"`;
+    const runs = await sql`select * from "ScraperRuns" order by "CreatedAt" desc limit 10`;
+    res.json({ raw, jobs, ai: aiState(), runs: runs.map(shapeRun) });
 });
 
 export default router;

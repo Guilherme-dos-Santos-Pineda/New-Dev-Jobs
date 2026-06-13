@@ -5,6 +5,9 @@ import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtDate } from '../utils.js';
 import BotsPanel from '../components/BotsPanel.jsx';
+import AdminJobs from '../components/AdminJobs.jsx';
+import AdminRawContent from '../components/AdminRawContent.jsx';
+import AdminStats from '../components/AdminStats.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 
@@ -70,12 +73,24 @@ export default function Admin() {
                 <p>Controle da plataforma, planos e bots do scraper.</p>
             </div>
 
-            <div className="row" style={{ gap: 8, marginBottom: 18 }}>
-                <button className={`btn sm ${tab === 'geral' ? 'primary' : 'ghost'}`} onClick={() => setTab('geral')}><i className="ti ti-layout-dashboard" /> Visão geral</button>
-                <button className={`btn sm ${tab === 'bots' ? 'primary' : 'ghost'}`} onClick={() => setTab('bots')}><i className="ti ti-robot" /> Bots &amp; Scraper</button>
+            <div className="segmented" style={{ marginBottom: 18 }}>
+                {[
+                    ['geral', 'Visão geral', 'ti-layout-dashboard'],
+                    ['vagas', 'Vagas', 'ti-briefcase'],
+                    ['bots', 'Recrutadores & Bots', 'ti-robot'],
+                    ['raw', 'Conteúdo bruto', 'ti-file-text'],
+                    ['stats', 'Estatísticas', 'ti-chart-bar'],
+                ].map(([id, label, icon]) => (
+                    <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+                        <i className={`ti ${icon}`} /> {label}
+                    </button>
+                ))}
             </div>
 
             {tab === 'bots' && <BotsPanel />}
+            {tab === 'vagas' && <AdminJobs />}
+            {tab === 'raw' && <AdminRawContent />}
+            {tab === 'stats' && <AdminStats />}
 
             {tab === 'geral' && (<>
             {/* ---- Números da plataforma ---- */}

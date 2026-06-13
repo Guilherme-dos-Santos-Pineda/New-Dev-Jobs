@@ -17,6 +17,13 @@ const {
     STRIPE_WEBHOOK_SECRET = '',
     STRIPE_PRICE_STARTER = '',
     STRIPE_PRICE_PRO = '',
+    // IA (Groq)
+    GROQ_API_KEY = '',
+    GROQ_MODEL = 'llama-3.3-70b-versatile',
+    AI_ENABLED = 'true',
+    AI_MIN_CONFIDENCE = '70',
+    AI_MAX_CALLS_PER_RUN = '40',
+    AI_TIMEOUT_MS = '15000',
 } = process.env;
 
 const adminEmails = ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
@@ -55,6 +62,14 @@ export const config = {
         webhookSecret: STRIPE_WEBHOOK_SECRET,
         prices: { starter: STRIPE_PRICE_STARTER, pro: STRIPE_PRICE_PRO },
         configured: Boolean(STRIPE_SECRET_KEY),
+    },
+    ai: {
+        apiKey: GROQ_API_KEY,
+        model: GROQ_MODEL,
+        enabled: AI_ENABLED !== 'false' && Boolean(GROQ_API_KEY),
+        minConfidence: Number(AI_MIN_CONFIDENCE) || 70,
+        maxCallsPerRun: Number(AI_MAX_CALLS_PER_RUN) || 40,
+        timeoutMs: Number(AI_TIMEOUT_MS) || 15000,
     },
     adminEmails,
     // Se nenhum ADMIN_EMAILS configurado, libera admin em dev (auth é mock).

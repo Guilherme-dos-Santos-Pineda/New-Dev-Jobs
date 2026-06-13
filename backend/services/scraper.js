@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { ApifyClient } from 'apify-client';
 import sql from '../lib/sql.js';
 import { config } from '../config.js';
+import { analyzeContent } from './ai.js';
 
 // =========================
 // Scraper DevScout (Apify) — escreve no Postgres
@@ -137,38 +138,83 @@ export async function runMonitoring({ queries, maxPosts = 10, runId } = {}) {
     const run = await client.actor(config.apify.postActorId).call(input);
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
-    let inserted = 0, withEmail = 0, skipped = 0;
+    let inserted = 0, withEmail = 0, skipped = 0, aiUsed = 0, aiCalls = 0;
     for (const item of items) {
         const content = item.content || '';
-        const email = extractEmail(content);
-        if (!email) { skipped++; continue; } // sem email a vaga não é acionável
-        withEmail++;
-
-        const title = extractTitle(content) || 'Vaga';
-        const company = (item.author?.type === 'company' ? item.author?.name : item.author?.companyName) || item.author?.name || '';
-        const skills = extractSkills(content);
-        const hash = jobHash(company, title, email);
-        const postedAt = item.postedAt?.date ? new Date(item.postedAt.date) : null;
+        const postId = String(item.id);
+        const authorName = item.author?.name || null;
         const authorUrl = cleanLinkedinUrl(item.author?.linkedinUrl || '');
+        const postedAt = item.postedAt?.date ? new Date(item.postedAt.date) : null;
 
-        const [rec] = authorUrl
-            ? await sql`select "Id" from "Recruiters" where "LinkedinUrl" = ${authorUrl} limit 1`
-            : [];
+        // Pré-análise com IA (respeita o teto de chamadas por run)
+        let ai = null;
+        if (aiCalls < config.ai.maxCallsPerRun) {
+            aiCalls += 1;
+            ai = await analyzeContent(content); // null se IA off / circuito aberto / erro
+            if (ai) aiUsed += 1;
+        }
+
+        const regexEmail = extractEmail(content);
+        const email = ai?.email || regexEmail;
+
+        // Campos da vaga: da IA quando disponível, senão regex (fallback)
+        let isJob, confidence, classification, title, company, skills, seniority, modality, location, salary;
+        if (ai) {
+            isJob = ai.isJob;
+            confidence = ai.confidence;
+            classification = ai.isJob ? 'job' : ai.isAd ? 'ad' : ai.isGeneric ? 'generic' : ai.isRecruiter ? 'recruiter' : 'other';
+            title = ai.cargo || extractTitle(content) || 'Vaga';
+            company = ai.empresa || authorName || '';
+            skills = ai.tecnologias?.length ? ai.tecnologias : extractSkills(content);
+            seniority = ai.senioridade; modality = ai.modalidade; location = ai.localizacao; salary = ai.salario;
+        } else {
+            isJob = !!regexEmail; // sem IA: heurística antiga (tem email = candidatável)
+            confidence = null; classification = 'fallback';
+            title = extractTitle(content) || 'Vaga';
+            company = (item.author?.type === 'company' ? authorName : item.author?.companyName) || authorName || '';
+            skills = extractSkills(content);
+            seniority = modality = location = salary = null;
+        }
+
+        // Salva o conteúdo bruto sempre (tela "Conteúdo Bruto")
+        await sql`
+            insert into "ScrapedPosts" ("Source", "Author", "AuthorUrl", "Url", "LinkedinId", "Content", "PostedAt", "AiResult", "Status")
+            values ('monitoring', ${authorName}, ${authorUrl || null}, ${item.linkedinUrl || null}, ${postId}, ${content}, ${postedAt}, ${ai ? sql.json(ai) : null}, 'pending')
+            on conflict ("LinkedinId") do update set "AiResult" = excluded."AiResult", "PostedAt" = excluded."PostedAt"`;
+
+        // Só vira vaga se: é vaga + tem email + (sem IA OU confiança >= limite)
+        const qualifies = isJob && email && (confidence == null || confidence >= config.ai.minConfidence);
+        if (!qualifies) { skipped += 1; continue; }
+        withEmail += 1;
+
+        const hash = jobHash(company, title, email);
+        const [rec] = authorUrl ? await sql`select "Id" from "Recruiters" where "LinkedinUrl" = ${authorUrl} limit 1` : [];
         const recId = rec?.Id || null;
 
         const res = await sql`
-            insert into "Jobs" ("Company", "JobTitle", "Email", "Skills", "Description", "LinkedinId", "JobHash", "PostedAt", "RecruiterId")
-            values (${company}, ${title}, ${email}, ${sql.json(skills)}, ${content}, ${String(item.id)}, ${hash}, ${postedAt}, ${recId})
+            insert into "Jobs" ("Company", "JobTitle", "Email", "Skills", "Description", "LinkedinId", "JobHash", "PostedAt", "RecruiterId",
+                "AiScore", "AiClassification", "Seniority", "Modality", "Location", "Salary")
+            values (${company}, ${title}, ${email}, ${sql.json(skills)}, ${content}, ${postId}, ${hash}, ${postedAt}, ${recId},
+                ${confidence}, ${classification}, ${seniority}, ${modality}, ${location}, ${salary})
             on conflict do nothing
             returning "Id"`;
-        if (res.length) inserted++;
+        if (res.length) inserted += 1;
 
         if (recId && postedAt) {
             await sql`update "Recruiters" set "LastPostDate" = greatest(coalesce("LastPostDate", to_timestamp(0)), ${postedAt}), "UpdatedAt" = now() where "Id" = ${recId}`;
         }
     }
 
-    const stats = { posts: items.length, withEmail, inserted, skipped, recruiters: authorUrls.length };
+    const stats = { posts: items.length, withEmail, inserted, skipped, aiUsed, recruiters: authorUrls.length };
     await setRunStats(runId, stats);
     return stats;
+}
+
+// Reprocessa um post bruto com a IA (usado pelo admin "reprocessar IA").
+export async function reprocessPost(postId) {
+    const [post] = await sql`select * from "ScrapedPosts" where "Id" = ${postId}`;
+    if (!post) throw new Error('Post não encontrado');
+    const ai = await analyzeContent(post.Content || '');
+    await sql`update "ScrapedPosts" set "AiResult" = ${ai ? sql.json(ai) : null} where "Id" = ${postId}`;
+    return ai;
 }

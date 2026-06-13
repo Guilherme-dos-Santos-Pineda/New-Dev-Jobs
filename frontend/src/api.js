@@ -109,6 +109,8 @@ export const api = {
     getUsage: () => request('GET', '/billing/me'),
     setPlan: (plan, userId) => request('POST', '/billing/set-plan', { plan, userId }),
     checkout: (plan) => request('POST', '/billing/checkout', { plan }),
+    billingHistory: () => request('GET', '/billing/history'),
+    billingPortal: () => request('POST', '/billing/portal'),
 
     // stats
     getStats: () => request('GET', '/stats'),

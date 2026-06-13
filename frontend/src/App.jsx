@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Applications from './pages/Applications.jsx';
 import Profile from './pages/Profile.jsx';
 import Feedback from './pages/Feedback.jsx';
+import Subscription from './pages/Subscription.jsx';
 import Admin from './pages/Admin.jsx';
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
                 <Route path="candidaturas" element={<Applications />} />
                 <Route path="feedback" element={<Feedback />} />
                 <Route path="perfil" element={<Profile />} />
+                <Route path="assinatura" element={<Subscription />} />
                 <Route path="admin" element={<Admin />} />
                 {/* compat: rotas antigas */}
                 <Route path="vagas" element={<Navigate to="/app" replace />} />

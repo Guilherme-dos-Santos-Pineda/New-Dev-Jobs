@@ -6,7 +6,6 @@ import { useAuth } from '../auth.jsx';
 import { MODALITY_OPTIONS, LEVEL_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
 import TagInput from '../components/TagInput.jsx';
 import EmailSettings from './Settings.jsx';
-import PlanSection from '../components/PlanSection.jsx';
 
 const SUGGESTED = ['JavaScript', 'TypeScript', 'Node.js', 'React', 'Python', 'C#', '.NET', 'Java', 'SQL', 'AWS', 'Docker', 'Git'];
 const POSTING_OPTIONS = [
@@ -24,8 +23,7 @@ export default function Profile() {
     const toast = useToast();
     const { user, refreshUser } = useAuth();
     const [params] = useSearchParams();
-    const initialSection = params.get('checkout') ? 'plano'
-        : (params.get('google') || params.get('tab') === 'email') ? 'email'
+    const initialSection = (params.get('google') || params.get('tab') === 'email') ? 'email'
         : (params.get('section') || 'skills');
     const [section, setSection] = useState(initialSection);
 
@@ -61,13 +59,6 @@ export default function Profile() {
             setLoading(false);
         })();
     }, []);
-
-    // Retorno do Stripe Checkout
-    useEffect(() => {
-        const c = params.get('checkout');
-        if (c === 'success') { toast.show('Pagamento concluído! Atualizando seu plano…'); refreshUser(); }
-        else if (c === 'cancel') { toast.show('Checkout cancelado.', 'error'); }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -140,12 +131,11 @@ export default function Profile() {
         { id: 'filters', label: 'Filtros', icon: 'ti-filter', optional: true, complete: !!hasFilters },
         { id: 'contact', label: 'Contato & Currículo', icon: 'ti-address-book', complete: !!cvName },
         { id: 'email', label: 'Email & Templates', icon: 'ti-mail-cog', complete: !!user.googleConnected },
-        { id: 'plano', label: 'Plano & Cobrança', icon: 'ti-crown', optional: true, complete: (user.plan || 'free') !== 'free' },
     ];
     const required = sections.filter((s) => !s.optional);
     const pct = Math.round((required.filter((s) => s.complete).length / required.length) * 100);
 
-    const showSave = section !== 'email' && section !== 'plano';
+    const showSave = section !== 'email';
 
     return (
         <div className="page" style={{ maxWidth: 1080 }}>
@@ -381,8 +371,6 @@ export default function Profile() {
                     )}
 
                     {section === 'email' && <EmailSettings />}
-
-                    {section === 'plano' && <PlanSection />}
 
                     {showSave && (
                         <div className="row" style={{ marginTop: 20, justifyContent: 'flex-end' }}>

@@ -57,6 +57,42 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
     }
 });
 
+// GET /api/billing/history — faturas do Stripe do usuário
+router.get('/history', requireAuth, async (req, res) => {
+    if (!stripeConfigured) return res.json({ invoices: [] });
+    const [u] = await sql`select "StripeCustomerId" from "Users" where "Id" = ${req.user.Id}`;
+    if (!u?.StripeCustomerId) return res.json({ invoices: [] });
+    try {
+        const list = await stripe.invoices.list({ customer: u.StripeCustomerId, limit: 12 });
+        res.json({
+            invoices: list.data.map((i) => ({
+                id: i.id, amount: i.amount_paid, currency: i.currency, status: i.status,
+                date: i.created * 1000, url: i.hosted_invoice_url, pdf: i.invoice_pdf,
+            })),
+        });
+    } catch (e) {
+        console.error('Erro ao listar faturas:', e.message);
+        res.json({ invoices: [] });
+    }
+});
+
+// POST /api/billing/portal — sessão do Stripe Billing Portal (gerenciar/cancelar)
+router.post('/portal', requireAuth, async (req, res) => {
+    if (!stripeConfigured) return res.status(503).json({ error: 'Pagamentos indisponíveis no momento.' });
+    const [u] = await sql`select "StripeCustomerId" from "Users" where "Id" = ${req.user.Id}`;
+    if (!u?.StripeCustomerId) return res.status(400).json({ error: 'Nenhuma assinatura ativa para gerenciar.' });
+    try {
+        const session = await stripe.billingPortal.sessions.create({
+            customer: u.StripeCustomerId,
+            return_url: `${config.frontendUrl}/app/assinatura`,
+        });
+        res.json({ url: session.url });
+    } catch (e) {
+        console.error('Erro no billing portal:', e.message);
+        res.status(502).json({ error: 'Portal de cobrança indisponível (configure-o no Stripe).' });
+    }
+});
+
 // POST /api/billing/set-plan  { plan, userId? } — troca de plano manual (ADMIN/suporte)
 const setPlanSchema = z.object({ plan: z.enum(['free', 'starter', 'pro']), userId: z.string().uuid().optional() });
 router.post('/set-plan', requireAdmin, validate(setPlanSchema), async (req, res) => {

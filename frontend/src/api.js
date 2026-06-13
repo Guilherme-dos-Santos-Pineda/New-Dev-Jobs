@@ -112,8 +112,9 @@ export const api = {
     billingHistory: () => request('GET', '/billing/history'),
     billingPortal: () => request('POST', '/billing/portal'),
 
-    // stats
+    // stats / dashboard
     getStats: () => request('GET', '/stats'),
+    getDashboard: () => request('GET', '/dashboard'),
 
     // ranking
     getRanking: () => request('GET', '/ranking'),

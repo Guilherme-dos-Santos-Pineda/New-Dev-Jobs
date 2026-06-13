@@ -39,8 +39,8 @@
 
 html.dark {
     --color-bg: #0A0E14;
-    --color-bg-secondary: #11161F;
-    --color-surface: #11161F;
+    --color-bg-secondary: #0E141D;
+    --color-surface: #161C26;
     --color-text: #F0F6FC;
     --color-text-secondary: #9DA7B3;
     --color-text-tertiary: #6E7681;
@@ -592,7 +592,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 @media (prefers-reduced-motion: reduce) { .fade-in { animation: none; } }
 
 /* Skeleton loading */
-.skeleton { position: relative; overflow: hidden; background: var(--color-bg-secondary); border-radius: 8px; }
+.skeleton { position: relative; overflow: hidden; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: 8px; }
 .skeleton::after {
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-text) 7%, transparent), transparent);

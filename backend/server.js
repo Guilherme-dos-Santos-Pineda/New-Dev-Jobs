@@ -18,6 +18,7 @@ import queueRoutes from './routes/queue.js';
 import emailRoutes from './routes/email.js';
 import adminRoutes from './routes/admin.js';
 import billingRoutes from './routes/billing.js';
+import dashboardRoutes from './routes/dashboard.js';
 import { getBoss } from './lib/boss.js';
 
 const app = express();
@@ -65,6 +66,7 @@ app.use('/api/queue', queueRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 para rotas /api desconhecidas
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota não encontrada' }));

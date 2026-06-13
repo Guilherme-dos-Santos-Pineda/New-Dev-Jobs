@@ -5,27 +5,41 @@ import { useAuth } from '../auth.jsx';
 import { scoreClass, fmtDate } from '../utils.js';
 import FeedbackSection from '../components/FeedbackSection.jsx';
 import SearchSendModal from '../components/SearchSendModal.jsx';
+import Sparkline from '../components/Sparkline.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
+const fmtSaved = (min) => {
+    if (!min) return '0 min';
+    const h = Math.floor(min / 60);
+    return h >= 1 ? `${h}h${min % 60 ? ` ${min % 60}m` : ''}` : `${min} min`;
+};
+const timeAgo = (d) => {
+    const s = (Date.now() - new Date(d)) / 1000;
+    if (s < 60) return 'agora';
+    if (s < 3600) return `há ${Math.floor(s / 60)} min`;
+    if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
+    return `há ${Math.floor(s / 86400)} d`;
+};
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const [stats, setStats] = useState(null);
+    const [data, setData] = useState(null);
     const [profile, setProfile] = useState(null);
     const [ranking, setRanking] = useState([]);
     const [rankMetric, setRankMetric] = useState('');
     const [loading, setLoading] = useState(true);
 
-    // Procurar vagas + fila de envio
     const [searchOpen, setSearchOpen] = useState(false);
     const [queue, setQueue] = useState(null);
     const pollRef = useRef(null);
 
     async function loadAll() {
-        const [s, { profile }, r] = await Promise.all([api.getStats(), api.getProfile(), api.getRanking()]);
-        setStats(s); setProfile(profile);
-        setRanking(r.ranking); setRankMetric(r.metric);
-        setLoading(false);
+        try {
+            const [d, { profile }, r] = await Promise.all([api.getDashboard(), api.getProfile(), api.getRanking()]);
+            setData(d); setProfile(profile);
+            setRanking(r.ranking); setRankMetric(r.metric);
+        } catch { /* mantém dados anteriores */ }
+        finally { setLoading(false); }
     }
 
     function stopPolling() { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } }
@@ -41,7 +55,18 @@ export default function Dashboard() {
     useEffect(() => { loadAll(); refreshQueue(); return stopPolling; // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    if (loading) return <div className="page center"><div className="spinner" /></div>;
+    const m = data?.metrics;
+
+    const kpis = m ? [
+        { label: 'Vagas hoje', icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} no total`, spark: data.sparkJobs },
+        { label: 'Vagas compatíveis', icon: 'ti-sparkles', value: nf(m.compatible), sub: 'prontas para enviar' },
+        { label: 'Recrutadores', icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} aprovados` },
+        { label: 'Empresas monitoradas', icon: 'ti-building', value: nf(m.companies), sub: 'com vagas coletadas' },
+        { label: 'Currículos enviados', icon: 'ti-send', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} na semana`, spark: data.sparkSent, color: 'var(--color-success)' },
+        { label: 'Match acima de 90%', icon: 'ti-target', value: nf(m.matchesAbove90), sub: `match médio ${m.avgMatch}%` },
+        { label: 'Tempo economizado', icon: 'ti-clock-bolt', value: fmtSaved(m.timeSavedMin), sub: 'pela automação' },
+        { label: 'Envios restantes hoje', icon: 'ti-gauge', value: nf(m.remainingToday), sub: `de ${nf(m.dailyLimit)} do plano` },
+    ] : [];
 
     const steps = [
         { done: !!profile, label: 'Monte seu perfil técnico', to: '/app/perfil', cta: 'Completar perfil' },
@@ -49,7 +74,6 @@ export default function Dashboard() {
         { done: user?.googleConnected, label: 'Conecte sua conta Google', to: '/app/perfil?tab=email', cta: 'Conectar Google' },
     ];
     const pending = steps.filter((s) => !s.done);
-
     const q = queue;
     const qActive = q && (q.active || q.pending > 0);
 
@@ -58,7 +82,7 @@ export default function Dashboard() {
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
                     <h1>Olá, {user?.name?.split(' ')[0] || 'dev'} 👋</h1>
-                    <p>Acompanhe suas candidaturas automáticas.</p>
+                    <p>Seu radar de oportunidades, em tempo real.</p>
                 </div>
                 <div className="spacer" />
                 <button className="btn primary" onClick={() => setSearchOpen(true)}>
@@ -66,9 +90,9 @@ export default function Dashboard() {
                 </button>
             </div>
 
-            {/* Banner de progresso da fila de envio */}
+            {/* Banner da fila de envio */}
             {q && q.total > 0 && (
-                <div className="card queue-banner" style={{ marginBottom: 24 }}>
+                <div className="card queue-banner fade-in" style={{ marginBottom: 20 }}>
                     <div className="qb-ico"><i className={`ti ${qActive ? 'ti-send' : 'ti-circle-check'}`} /></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600 }}>
@@ -78,7 +102,7 @@ export default function Dashboard() {
                         <div className="progress" style={{ marginTop: 8 }}><span style={{ width: `${Math.round((q.sent + q.failed + q.skipped) / q.total * 100)}%` }} /></div>
                         <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                             {qActive
-                                ? <>próximo envio em ~{q.nextInSeconds ?? '…'}s · espaçamento anti-bloqueio (60–120s){q.failed ? ` · ${q.failed} falhou` : ''}</>
+                                ? <>próximo envio em ~{q.nextInSeconds ?? '…'}s · espaçamento anti-bloqueio{q.failed ? ` · ${q.failed} falhou` : ''}</>
                                 : <>{q.sent} enviadas{q.skipped ? `, ${q.skipped} já feitas` : ''}{q.failed ? `, ${q.failed} falharam` : ''}</>}
                         </div>
                     </div>
@@ -88,14 +112,14 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {pending.length > 0 && (
-                <div className="card" style={{ marginBottom: 28 }}>
+            {/* Onboarding */}
+            {!loading && pending.length > 0 && (
+                <div className="card fade-in" style={{ marginBottom: 22 }}>
                     <div className="section-title">Conclua sua configuração ({steps.length - pending.length}/{steps.length})</div>
                     <div className="job-list">
                         {steps.map((s, i) => (
                             <div key={i} className="row" style={{ alignItems: 'center' }}>
-                                <i className={`ti ${s.done ? 'ti-circle-check-filled' : 'ti-circle'}`}
-                                    style={{ fontSize: 20, color: s.done ? 'var(--color-success)' : 'var(--color-text-tertiary)' }} />
+                                <i className={`ti ${s.done ? 'ti-circle-check-filled' : 'ti-circle'}`} style={{ fontSize: 20, color: s.done ? 'var(--color-success)' : 'var(--color-text-tertiary)' }} />
                                 <span style={{ textDecoration: s.done ? 'line-through' : 'none', color: s.done ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{s.label}</span>
                                 <div className="spacer" />
                                 {!s.done && <Link to={s.to} className="btn sm">{s.cta}</Link>}
@@ -105,73 +129,106 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* ---- Stats ---- */}
-            <div className="stats-grid">
-                <div className="card stat">
-                    <div className="stat-l"><i className="ti ti-briefcase" /> vagas coletadas</div>
-                    <div className="stat-n">{nf(stats.jobs.total)}</div>
-                    <div className="stat-delta">+{nf(stats.jobs.today)} hoje</div>
-                </div>
-                <div className="card stat">
-                    <div className="stat-l"><i className="ti ti-send" /> suas candidaturas</div>
-                    <div className="stat-n">{nf(stats.applications.total)}</div>
-                    <div className="stat-delta">+{nf(stats.applications.week)} na semana</div>
-                </div>
-                <div className="card stat">
-                    <div className="stat-l"><i className="ti ti-world" /> candidaturas gerais</div>
-                    <div className="stat-n">{nf(stats.general.total)}</div>
-                    <div className="stat-delta">+{nf(stats.general.today)} hoje</div>
-                </div>
-                <div className="card stat">
-                    <div className="stat-l"><i className="ti ti-target" /> match médio</div>
-                    <div className="stat-n">{stats.applications.avgMatch}%</div>
-                    <div className="stat-sub">{stats.applications.remainingToday} envios restantes hoje</div>
-                </div>
-            </div>
-
-            {/* ---- Ranking + Recentes ---- */}
-            <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
-                <div className="card" style={{ flex: 1, minWidth: 300 }}>
-                    <div className="section-title"><i className="ti ti-trophy" /> Ranking de usuários</div>
-                    <p className="muted" style={{ fontSize: 12, marginTop: -8, marginBottom: 12 }}>Top 10 por {rankMetric}</p>
-                    {ranking.length === 0 ? (
-                        <div className="empty" style={{ padding: 20 }}><i className="ti ti-trophy-off" />Ninguém enviou e-mails hoje ainda.</div>
-                    ) : ranking.map((r) => (
-                        <div key={r.position} className="rank-row">
-                            <span className={`rank-pos ${r.position <= 3 ? 'top' : ''}`}>{r.position}</span>
-                            <span className="rank-name">{r.name}{r.me && <span className="badge ok" style={{ marginLeft: 8 }}>você</span>}</span>
-                            <span className="rank-sent">{r.sent} e-mails</span>
+            {/* KPIs */}
+            <div className="cards-grid" style={{ marginBottom: 20 }}>
+                {loading
+                    ? [0, 1, 2, 3, 4, 5, 6, 7].map((i) => <div key={i} className="skeleton sk-card" />)
+                    : kpis.map((k, i) => (
+                        <div key={k.label} className={`card kpi fade-in d${(i % 6) + 1}`}>
+                            <div className="kpi-top"><span className="kpi-ico"><i className={`ti ${k.icon}`} /></span><span className="kpi-label">{k.label}</span></div>
+                            <div className="kpi-num">{k.value}</div>
+                            {k.spark ? <div className="spark"><Sparkline data={k.spark} color={k.color} /></div> : null}
+                            <div className="kpi-foot"><span className="muted">{k.sub}</span></div>
                         </div>
                     ))}
-                </div>
+            </div>
 
-                <div className="card" style={{ flex: 1, minWidth: 300 }}>
-                    <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
-                        <div className="section-title" style={{ margin: 0 }}><i className="ti ti-history" /> Candidaturas recentes</div>
-                        <div className="spacer" />
-                        <Link to="/app/candidaturas" className="btn sm ghost">ver todas <i className="ti ti-arrow-right" /></Link>
+            {/* Próxima melhor oportunidade + Central de atividades */}
+            {!loading && data && (
+                <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
+                    <div className="card feature-card fade-in" style={{ flex: 1.1, minWidth: 300, display: 'flex', flexDirection: 'column' }}>
+                        <div className="kpi-label" style={{ fontSize: 12.5 }}><i className="ti ti-bolt" /> Próxima melhor oportunidade</div>
+                        {data.nextBest ? (
+                            <>
+                                <div style={{ fontSize: 19, fontWeight: 700, marginTop: 10, lineHeight: 1.25 }}>{data.nextBest.title || 'Vaga'}</div>
+                                <div style={{ opacity: 0.9, marginTop: 4 }}>{data.nextBest.company || '—'}</div>
+                                <div className="row" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                    <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}><i className="ti ti-target" /> {data.nextBest.matchScore}% match</span>
+                                    {(data.nextBest.skills || []).map((s) => <span key={s} className="badge" style={{ background: 'rgba(255,255,255,.14)', color: '#fff' }}>{s}</span>)}
+                                </div>
+                                <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+                                    <button className="btn" onClick={() => setSearchOpen(true)}><i className="ti ti-send" /> Candidatar agora</button>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ marginTop: 16, opacity: 0.9 }}>Sem vagas compatíveis no momento. Rode "Procurar Vagas" ou ajuste seu perfil.</div>
+                        )}
                     </div>
-                    {stats.recent.length === 0 ? (
-                        <div className="empty" style={{ padding: 20 }}>
-                            <i className="ti ti-inbox" />Nenhuma candidatura ainda.
-                            <div style={{ marginTop: 12 }}>
-                                <button className="btn primary sm" onClick={() => setSearchOpen(true)}><i className="ti ti-radar-2" /> Procurar vagas</button>
-                            </div>
-                        </div>
-                    ) : stats.recent.map((r) => (
-                        <div key={r.id} className="rank-row">
-                            <div className="job-logo" style={{ width: 32, height: 32, fontSize: 15 }}><i className="ti ti-building" /></div>
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title || 'Vaga'}</div>
-                                <div className="muted" style={{ fontSize: 12 }}>{r.company} · {fmtDate(r.createdAt)}</div>
-                            </div>
-                            <span className={`score ${scoreClass(r.matchScore)}`} style={{ marginLeft: 'auto' }}>{r.matchScore}%</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
 
-            {/* ---- Feedback (5 últimos, compacto) ---- */}
+                    <div className="card fade-in d2" style={{ flex: 1, minWidth: 300 }}>
+                        <div className="section-title"><i className="ti ti-activity" /> Central de atividades</div>
+                        {(!data.activities || data.activities.length === 0) ? (
+                            <div className="empty" style={{ padding: 22 }}><i className="ti ti-activity-heartbeat" />Sem atividade ainda.</div>
+                        ) : (
+                            <div className="timeline">
+                                {data.activities.map((a, i) => (
+                                    <div key={i} className="tl-item">
+                                        <div className={`tl-dot ${a.type}`}><i className={`ti ${a.icon}`} /></div>
+                                        <div className="tl-body">
+                                            <div className="tl-title">{a.text}</div>
+                                            <div className="tl-time">{timeAgo(a.at)}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Ranking + Candidaturas recentes */}
+            {!loading && data && (
+                <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
+                    <div className="card fade-in" style={{ flex: 1, minWidth: 300 }}>
+                        <div className="section-title"><i className="ti ti-trophy" /> Ranking de usuários</div>
+                        <p className="muted" style={{ fontSize: 12, marginTop: -8, marginBottom: 12 }}>Top 10 por {rankMetric}</p>
+                        {ranking.length === 0 ? (
+                            <div className="empty" style={{ padding: 20 }}><i className="ti ti-trophy-off" />Ninguém enviou e-mails hoje ainda.</div>
+                        ) : ranking.map((r) => (
+                            <div key={r.position} className="rank-row">
+                                <span className={`rank-pos ${r.position <= 3 ? 'top' : ''}`}>{r.position}</span>
+                                <span className="rank-name">{r.name}{r.me && <span className="badge ok" style={{ marginLeft: 8 }}>você</span>}</span>
+                                <span className="rank-sent">{r.sent} e-mails</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="card fade-in d2" style={{ flex: 1, minWidth: 300 }}>
+                        <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
+                            <div className="section-title" style={{ margin: 0 }}><i className="ti ti-history" /> Candidaturas recentes</div>
+                            <div className="spacer" />
+                            <Link to="/app/candidaturas" className="btn sm ghost">ver todas <i className="ti ti-arrow-right" /></Link>
+                        </div>
+                        {(!data.recent || data.recent.length === 0) ? (
+                            <div className="empty" style={{ padding: 20 }}>
+                                <i className="ti ti-inbox" />Nenhuma candidatura ainda.
+                                <div style={{ marginTop: 12 }}><button className="btn primary sm" onClick={() => setSearchOpen(true)}><i className="ti ti-radar-2" /> Procurar vagas</button></div>
+                            </div>
+                        ) : data.recent.map((r) => (
+                            <div key={r.id} className="rank-row">
+                                <div className="job-logo" style={{ width: 32, height: 32, fontSize: 15 }}><i className="ti ti-building" /></div>
+                                <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title || 'Vaga'}</div>
+                                    <div className="muted" style={{ fontSize: 12 }}>{r.company} · {fmtDate(r.createdAt)}</div>
+                                </div>
+                                <span className={`score ${scoreClass(r.matchScore)}`} style={{ marginLeft: 'auto' }}>{r.matchScore}%</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback */}
             <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
                 <div className="section-title" style={{ margin: 0 }}><i className="ti ti-message-2" /> Últimos feedbacks</div>
                 <div className="spacer" />

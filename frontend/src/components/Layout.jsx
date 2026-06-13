@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import Logo from './Logo.jsx';
@@ -28,6 +29,13 @@ function ThemeButton() {
 export default function Layout() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar') === 'collapsed');
+
+    const toggleCollapsed = () => setCollapsed((c) => {
+        const next = !c;
+        localStorage.setItem('sidebar', next ? 'collapsed' : 'expanded');
+        return next;
+    });
 
     const initials = (user?.name || user?.email || '?')
         .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('');
@@ -39,13 +47,18 @@ export default function Layout() {
     const doLogout = () => { logout(); navigate('/login'); };
 
     return (
-        <div className="app-shell">
+        <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
             {/* Sidebar (desktop) */}
             <aside className="sidebar">
-                <NavLink to="/app" end className="brand sidebar-brand"><Logo /></NavLink>
+                <div className="sidebar-head">
+                    <NavLink to="/app" end className="brand sidebar-brand"><Logo /></NavLink>
+                    <button className="sidebar-collapse" onClick={toggleCollapsed} title={collapsed ? 'Expandir' : 'Recolher'} aria-label="Recolher menu">
+                        <i className={`ti ${collapsed ? 'ti-chevron-right' : 'ti-chevron-left'}`} />
+                    </button>
+                </div>
                 <nav className="sidebar-nav">
                     {tabs.map((t) => (
-                        <NavLink key={t.to} to={t.to} end={t.end}
+                        <NavLink key={t.to} to={t.to} end={t.end} title={t.label}
                             className={({ isActive }) => (isActive ? 'active' : '')}>
                             <i className={`ti ${t.icon}`} />
                             <span>{t.label}</span>

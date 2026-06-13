@@ -12,8 +12,8 @@ if (!stripeConfigured) {
     process.exit(1);
 }
 
-// Preços mensais em centavos (ajuste à vontade).
-const PRICING = { starter: 2900, pro: 9900 };
+// Preços mensais em centavos (alinhados com a landing).
+const PRICING = { starter: 8000, pro: 18900 };
 const CURRENCY = process.env.STRIPE_CURRENCY || 'brl';
 
 async function findProduct(plan) {
@@ -23,7 +23,8 @@ async function findProduct(plan) {
 
 async function findPrice(productId, plan) {
     const list = await stripe.prices.list({ product: productId, active: true, limit: 100 });
-    return list.data.find((p) => p.recurring && p.metadata?.plan === plan) || null;
+    // casa pelo valor atual: se o preço mudou, cria um novo (preços do Stripe são imutáveis)
+    return list.data.find((p) => p.recurring && p.metadata?.plan === plan && p.unit_amount === PRICING[plan]) || null;
 }
 
 for (const plan of ['starter', 'pro']) {

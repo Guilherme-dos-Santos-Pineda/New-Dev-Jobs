@@ -22,6 +22,7 @@ router.get('/plans', (_req, res) => {
         stripeEnabled: stripeConfigured,
         plans: Object.entries(PLANS).map(([id, p]) => ({
             id, label: p.label, dailyLimit: p.dailyLimit, allowManual: p.allowManual, priority: p.priority,
+            price: p.price, period: p.period, popular: p.popular, features: p.features,
             purchasable: id !== 'free' && Boolean(priceIdForPlan(id)),
         })),
     });

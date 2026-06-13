@@ -90,28 +90,30 @@ export default function Subscription() {
                     ? [0, 1, 2].map((i) => <div key={i} className="skeleton sk-card" />)
                     : plans.map((p, i) => {
                         const isCurrent = p.id === current;
-                        const featured = p.id === 'pro';
+                        const featured = !!p.popular;
                         return (
-                            <div key={p.id} className={`card fade-in d${i + 1} ${featured ? 'feature-card' : ''}`}
+                            <div key={p.id} className={`card plan-card fade-in d${i + 1} ${featured ? 'plan-featured' : ''}`}
                                 style={!featured && isCurrent ? { borderColor: 'var(--color-accent)' } : undefined}>
                                 <div className="row" style={{ alignItems: 'center' }}>
-                                    <strong style={{ fontSize: 16 }}>{p.label}</strong>
+                                    <span className="plan-tag">{p.label}</span>
                                     {isCurrent && <span className="badge ok" style={{ marginLeft: 'auto' }}>atual</span>}
-                                    {!isCurrent && featured && <span className="badge" style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.2)', color: '#fff' }}>popular</span>}
+                                    {!isCurrent && featured && <span className="badge info" style={{ marginLeft: 'auto' }}>mais popular</span>}
                                 </div>
-                                <ul style={{ margin: '12px 0 16px', paddingLeft: 18, fontSize: 13.5, lineHeight: 1.9 }}>
-                                    <li><b>{p.dailyLimit}</b> envios por dia</li>
-                                    <li>{p.allowManual ? 'Seleção manual de vagas' : 'Envio automático'}</li>
-                                    <li>{p.id === 'free' ? 'Para começar' : 'Suporte prioritário'}</li>
+                                <div className="plan-price-row">
+                                    <span className="plan-price-v">{p.price ? `R$${p.price}` : 'R$0'}</span>
+                                    <span className="plan-price-p">{p.period}</span>
+                                </div>
+                                <ul className="plan-feat-list">
+                                    {(p.features || []).map((f) => <li key={f}><i className="ti ti-check" />{f}</li>)}
                                 </ul>
                                 {isCurrent ? (
                                     <button className="btn block sm" disabled>Plano atual</button>
                                 ) : p.purchasable ? (
-                                    <button className={`btn block sm ${featured ? '' : 'primary'}`} disabled={!!busy || !stripeEnabled} onClick={() => upgrade(p.id)}>
+                                    <button className="btn primary block sm" disabled={!!busy || !stripeEnabled} onClick={() => upgrade(p.id)}>
                                         {busy === p.id ? 'Redirecionando…' : (<><i className="ti ti-arrow-up-circle" /> Assinar {p.label}</>)}
                                     </button>
                                 ) : (
-                                    <button className="btn block sm" disabled>{p.id === 'free' ? 'Grátis' : 'Indisponível'}</button>
+                                    <button className="btn block sm" disabled>{p.id === 'free' ? 'Plano grátis' : 'Indisponível'}</button>
                                 )}
                             </div>
                         );

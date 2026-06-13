@@ -62,15 +62,18 @@ async function setRunStats(runId, stats) {
 // =========================
 export async function runDiscovery({ queries, location = 'Brazil', maxResults = 5, runId } = {}) {
     if (!config.apify.profileActorId) throw new Error('APIFY_PROFILE_ACTOR_ID não configurado (actor de perfis)');
-    const searchQueries = (queries && queries.length ? queries : ['Tech Recruiter', 'Talent Acquisition']);
+    const titles = (queries && queries.length ? queries : ['Tech Recruiter', 'Talent Acquisition']);
     const client = apifyClient();
 
-    // Campos defensivos: o schema exato varia conforme o actor; mandamos aliases comuns.
+    // Input do actor harvestapi/linkedin-profile-search:
+    // searchQuery (string), currentJobTitles (array), maxItems, locations, profileScraperMode.
+    // "Full + email search" é o modo que retorna email.
     const input = {
-        searchQueries, queries: searchQueries,
-        location, locations: [location],
-        maxResults, maxItems: maxResults,
-        profileScraperMode: 'full',
+        searchQuery: titles[0],
+        currentJobTitles: titles,
+        maxItems: maxResults,
+        profileScraperMode: 'Full + email search',
+        ...(location ? { locations: [location] } : {}),
     };
 
     const run = await client.actor(config.apify.profileActorId).call(input);
@@ -81,9 +84,12 @@ export async function runDiscovery({ queries, location = 'Brazil', maxResults = 
         const url = cleanLinkedinUrl(it.linkedinUrl || it.profileUrl || it.url || it.publicProfileUrl || '');
         if (!url) continue;
         const name = it.name || it.fullName || [it.firstName, it.lastName].filter(Boolean).join(' ').trim() || null;
-        const email = it.email || it.emailAddress || (Array.isArray(it.emails) ? it.emails[0] : '') || null;
+        // emails pode ser array de objetos [{email,status}], array de strings, ou string
+        const emailsArr = Array.isArray(it.emails) ? it.emails : [];
+        const emailFromArr = emailsArr.map((e) => (typeof e === 'string' ? e : e?.email)).filter(Boolean)[0];
+        const email = it.email || it.emailAddress || emailFromArr || null;
         const title = it.headline || it.occupation || it.title || it.position || null;
-        const company = it.companyName || it.company || it.currentCompany?.name || null;
+        const company = it.companyName || it.company || it.currentPosition?.companyName || it.currentPosition?.company || it.currentCompany?.name || null;
         const linkedinId = it.publicIdentifier || it.universalName || null;
         if (email) withEmail++;
         await sql`

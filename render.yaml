@@ -77,7 +77,7 @@ services:
   - type: web
     name: newdevjobs-frontend
     runtime: static
-    buildCommand: npm install && npm run build --prefix frontend
+    buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     routes:
       - type: rewrite

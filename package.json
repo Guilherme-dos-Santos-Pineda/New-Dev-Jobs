@@ -1,0 +1,39 @@
+{
+  "name": "teste",
+  "version": "1.0.0",
+  "description": "",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "worker": "node backend/worker.js",
+    "worker:dev": "node --watch backend/worker.js",
+    "scrape": "node scraper.js --mode=monitoring",
+    "scrape:discovery": "node scraper.js --mode=discovery"
+  },
+  "keywords": [],
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.1",
+    "apify-client": "^2.23.4",
+    "better-sqlite3": "^12.10.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "googleapis": "^173.0.0",
+    "helmet": "^8.2.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.10",
+    "pg-boss": "^12.18.3",
+    "pino": "^10.3.1",
+    "postgres": "^3.4.9",
+    "stripe": "^22.2.1",
+    "unpdf": "^1.6.2",
+    "ws": "^8.21.0",
+    "zod": "^4.4.3"
+  }
+}

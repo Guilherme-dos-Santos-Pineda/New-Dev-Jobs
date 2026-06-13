@@ -1,0 +1,30 @@
+# deps
+node_modules/
+
+# segredos / ambiente
+.env
+.env.local
+*.env.local
+
+# uploads de currículo (disco local — legado)
+uploads/
+
+# bancos locais (SQLite legado)
+*.db
+*.db-wal
+*.db-shm
+
+# saída do scraper (contém dados/emails)
+resultado.json
+
+# build do frontend
+frontend/dist/
+dist/
+
+# logs / SO
+*.log
+.DS_Store
+Thumbs.db
+
+# notas internas de sessão (contém credenciais de teste)
+HANDOFF.md

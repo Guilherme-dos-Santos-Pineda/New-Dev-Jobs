@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>newdevjobs — candidaturas automáticas</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<style>
+    /* ============================================
+       VARIÁVEIS – LIGHT MODE (padrão)
+       ============================================ */
+    :root {
+        --color-bg: #FFFFFF;
+        --color-bg-secondary: #F6F8FB;
+        --color-surface: #FFFFFF;
+        --color-text: #0D1117;
+        --color-text-secondary: #4A5568;
+        --color-text-tertiary: #8B9CB0;
+        --color-border: #D1D9E6;
+        --color-border-light: #ECF0F5;
+        --color-border-medium: #E2E8F0;
+
+        --color-accent: #185FA5;
+        --color-accent-dark: #0C447C;
+        --color-accent-darker: #042C53;
+        --color-accent-light: #E6F1FB;
+        --color-accent-muted: #85B7EB;
+        --color-on-accent: #FFFFFF;
+
+        --color-featured-bg: #F0F7FF;
+        --color-featured-text: #0C447C;
+        --color-featured-price: #042C53;
+        --color-featured-muted: #185FA5;
+
+        --color-cta-bar-text: #FFFFFF;
+        --color-cta-bar-sub: #BBD4F0;
+
+        --color-btn-white-bg: #FFFFFF;
+        --color-btn-white-text: #042C53;
+
+        --color-logo-mark-icon: #FFFFFF;
+        --color-pop-badge-text: #FFFFFF;
+
+        --color-hero-tag: #185FA5;
+        --color-feat-icon: #185FA5;
+        --color-step-number: #FFFFFF;
+        --color-check: #185FA5;
+
+        /* Gradientes / brand */
+        --grad-accent: linear-gradient(135deg, #1F6FEB 0%, #0C447C 100%);
+        --grad-cta: linear-gradient(135deg, #0C447C 0%, #042C53 60%, #021d38 100%);
+        --grad-text: linear-gradient(135deg, #2B8AF0 0%, #0C447C 100%);
+        --glow-accent: 0 18px 40px -16px rgba(31,111,235,0.55);
+
+        /* Sombras / radius */
+        --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
+        --shadow-md: 0 4px 16px -4px rgba(15,23,42,0.10);
+        --shadow-lg: 0 24px 60px -24px rgba(15,23,42,0.22);
+        --radius-sm: 8px;
+        --radius: 14px;
+        --radius-lg: 20px;
+        --radius-xl: 28px;
+
+        --hero-glow: radial-gradient(60% 60% at 75% 25%, rgba(31,111,235,0.10) 0%, rgba(31,111,235,0) 70%);
+        --transition-theme: 0.25s ease;
+    }
+
+    /* ============================================
+       DARK MODE
+       ============================================ */
+    html.dark {
+        --color-bg: #0A0E14;
+        --color-bg-secondary: #11161F;
+        --color-surface: #11161F;
+        --color-text: #F0F6FC;
+        --color-text-secondary: #9DA7B3;
+        --color-text-tertiary: #6E7681;
+        --color-border: #2A3240;
+        --color-border-light: #20262F;
+        --color-border-medium: #30363D;
+
+        --color-accent: #58A6FF;
+        --color-accent-dark: #1F6FEB;
+        --color-accent-darker: #0A1929;
+        --color-accent-light: #0D2137;
+        --color-accent-muted: #8BC4FF;
+        --color-on-accent: #FFFFFF;
+
+        --color-featured-bg: #0E1B2E;
+        --color-featured-text: #C9D6E5;
+        --color-featured-price: #58A6FF;
+        --color-featured-muted: #8BC4FF;
+
+        --color-cta-bar-text: #F0F6FC;
+        --color-cta-bar-sub: #8BC4FF;
+
+        --color-btn-white-bg: #F0F6FC;
+        --color-btn-white-text: #0A1929;
+
+        --color-logo-mark-icon: #FFFFFF;
+        --color-pop-badge-text: #FFFFFF;
+
+        --color-hero-tag: #58A6FF;
+        --color-feat-icon: #58A6FF;
+        --color-step-number: #FFFFFF;
+        --color-check: #58A6FF;
+
+        --grad-accent: linear-gradient(135deg, #2B8AF0 0%, #1F6FEB 100%);
+        --grad-cta: linear-gradient(135deg, #0E1B2E 0%, #0A1320 60%, #05080f 100%);
+        --grad-text: linear-gradient(135deg, #8BC4FF 0%, #2B8AF0 100%);
+        --glow-accent: 0 18px 40px -16px rgba(43,138,240,0.5);
+
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+        --shadow-md: 0 4px 18px -4px rgba(0,0,0,0.5);
+        --shadow-lg: 0 24px 60px -24px rgba(0,0,0,0.7);
+
+        --hero-glow: radial-gradient(60% 60% at 75% 25%, rgba(43,138,240,0.16) 0%, rgba(43,138,240,0) 70%);
+    }
+
+    /* Transição suave de tema */
+    body, nav, section, .feat, .step-n, .plan, .privacy, .cta-bar, footer,
+    .ticker, .hero-visual, .nav-cta, .btn-p, .btn-s, .plan-btn {
+        transition: background-color var(--transition-theme),
+                    color var(--transition-theme),
+                    border-color var(--transition-theme),
+                    box-shadow var(--transition-theme);
+    }
+
+    /* ============================================
+       RESET & BASE
+       ============================================ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: 'Inter', sans-serif;
+        color: var(--color-text);
+        background: var(--color-bg);
+        background-image: var(--hero-glow);
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+    }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+
+    .lp { max-width: 1200px; margin: 0 auto; }
+
+    /* ============================================
+       NAV
+       ============================================ */
+    nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+        backdrop-filter: saturate(160%) blur(12px);
+        -webkit-backdrop-filter: saturate(160%) blur(12px);
+        border-bottom: 1px solid var(--color-border-light);
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; z-index: 11; }
+    .logo-mark {
+        width: 30px; height: 30px;
+        background: var(--grad-accent);
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--glow-accent);
+    }
+    .logo-mark i { font-size: 15px; color: var(--color-logo-mark-icon); }
+    .logo-name {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--color-text);
+        letter-spacing: -0.3px;
+    }
+
+    /* Menu hamburger */
+    .menu-toggle-input { display: none; }
+    .menu-toggle-label {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+        cursor: pointer;
+        z-index: 11;
+        padding: 8px;
+    }
+    .menu-toggle-label span {
+        display: block; width: 22px; height: 2px;
+        background: var(--color-text);
+        transition: 0.3s ease; border-radius: 2px;
+    }
+    .menu-toggle-input:checked + .menu-toggle-label span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .menu-toggle-input:checked + .menu-toggle-label span:nth-child(2) { opacity: 0; }
+    .menu-toggle-input:checked + .menu-toggle-label span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a {
+        font-size: 13.5px;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        font-weight: 400;
+        white-space: nowrap;
+        position: relative;
+    }
+    .nav-links a::after {
+        content: ''; position: absolute; left: 0; bottom: -4px;
+        width: 0; height: 1.5px; background: var(--color-accent);
+        transition: width 0.25s ease;
+    }
+    .nav-links a:hover { color: var(--color-text); }
+    .nav-links a:hover::after { width: 100%; }
+
+    .nav-actions { display: flex; align-items: center; gap: 10px; z-index: 11; }
+    .theme-toggle {
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        cursor: pointer;
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        font-size: 16px;
+        display: flex; align-items: center; justify-content: center;
+        line-height: 1;
+    }
+    .theme-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    html .theme-toggle .icon-sun { display: none; }
+    html .theme-toggle .icon-moon { display: inline; }
+    html.dark .theme-toggle .icon-sun { display: inline; }
+    html.dark .theme-toggle .icon-moon { display: none; }
+
+    .nav-cta {
+        background: var(--grad-accent);
+        color: var(--color-on-accent);
+        padding: 9px 18px;
+        font-size: 13.5px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        border-radius: 10px;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+        box-shadow: var(--glow-accent);
+    }
+    .nav-cta:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+    /* ============================================
+       HERO
+       ============================================ */
+    .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        align-items: center;
+        gap: 48px;
+        padding: 72px 24px 56px;
+        max-width: 1120px;
+        margin: 0 auto;
+    }
+    .hero-copy { text-align: left; }
+    .hero-tag {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 11px;
+        color: var(--color-hero-tag);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .hero-tag::before { content: ''; width: 26px; height: 1.5px; background: var(--color-hero-tag); }
+    .hero h1 {
+        font-size: clamp(34px, 5vw, 56px);
+        font-weight: 300;
+        line-height: 1.06;
+        letter-spacing: -2.5px;
+        color: var(--color-text);
+        margin-bottom: 24px;
+    }
+    .hero h1 strong { font-weight: 600; }
+    .hero h1 .accent {
+        font-weight: 600;
+        background: var(--grad-text);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+        font-size: 15.5px;
+        color: var(--color-text-secondary);
+        line-height: 1.7;
+        font-weight: 400;
+        max-width: 480px;
+        margin-bottom: 34px;
+    }
+    .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .btn-p {
+        background: var(--grad-accent);
+        color: var(--color-on-accent);
+        padding: 13px 26px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        display: inline-flex; align-items: center; gap: 8px;
+        white-space: nowrap;
+        box-shadow: var(--glow-accent);
+    }
+    .btn-p:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .btn-s {
+        background: var(--color-surface);
+        color: var(--color-text);
+        padding: 13px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        white-space: nowrap;
+    }
+    .btn-s:hover { border-color: var(--color-accent); color: var(--color-accent); transform: translateY(-2px); }
+    .hero-note {
+        font-size: 12.5px;
+        color: var(--color-text-tertiary);
+        font-weight: 400;
+        margin-top: 16px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .hero-note i { color: var(--color-check); font-size: 14px; }
+
+    /* Hero visual / mockup */
+    .hero-visual {
+        position: relative;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-xl);
+        padding: 18px;
+        box-shadow: var(--shadow-lg);
+    }
+    .hv-bar { display: flex; align-items: center; gap: 6px; padding: 4px 4px 14px; }
+    .hv-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--color-border); }
+    .hv-dot:nth-child(1){ background:#ff5f57; } .hv-dot:nth-child(2){ background:#febc2e; } .hv-dot:nth-child(3){ background:#28c840; }
+    .hv-title { margin-left: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--color-text-tertiary); }
+    .hv-card {
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        background: var(--color-bg);
+    }
+    .hv-card:last-child { margin-bottom: 0; }
+    .hv-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .hv-company { display: flex; align-items: center; gap: 10px; }
+    .hv-avatar {
+        width: 34px; height: 34px; border-radius: 9px;
+        background: var(--grad-accent);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 16px;
+    }
+    .hv-role { font-size: 13px; font-weight: 600; color: var(--color-text); }
+    .hv-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+    .hv-score {
+        font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
+        color: var(--color-check);
+        background: var(--color-accent-light);
+        padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+    }
+    .hv-status {
+        display: flex; align-items: center; gap: 7px;
+        font-size: 12px; color: var(--color-text-secondary); margin-top: 10px;
+    }
+    .hv-status i { color: var(--color-check); font-size: 15px; }
+    .hv-sent {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+        color: #28c840;
+    }
+    .hv-float {
+        position: absolute;
+        right: -14px; bottom: -16px;
+        background: var(--grad-accent);
+        color: #fff;
+        border-radius: var(--radius);
+        padding: 12px 16px;
+        box-shadow: var(--glow-accent);
+        display: flex; align-items: center; gap: 10px;
+    }
+    .hv-float i { font-size: 20px; }
+    .hv-float-n { font-size: 17px; font-weight: 700; line-height: 1; }
+    .hv-float-l { font-size: 10px; opacity: 0.85; }
+
+    /* ============================================
+       TICKER / STATS
+       ============================================ */
+    .ticker {
+        border: 1px solid var(--color-border-light);
+        background: var(--color-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: 22px 28px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        max-width: 980px;
+        margin: 0 auto;
+    }
+    .tick-item { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+    .tick-n {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: clamp(22px, 3vw, 28px);
+        font-weight: 500;
+        background: var(--grad-text);
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        letter-spacing: -1px;
+    }
+    .tick-l { font-size: 12px; color: var(--color-text-secondary); font-weight: 400; }
+
+    /* ============================================
+       SECTIONS GENÉRICAS
+       ============================================ */
+    .section { padding: 64px 24px; max-width: 980px; margin: 0 auto; }
+    .sec-eyebrow {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+        color: var(--color-accent); margin-bottom: 14px;
+    }
+    .sec-h {
+        font-size: clamp(26px, 4.5vw, 36px);
+        font-weight: 300; letter-spacing: -1.5px; line-height: 1.15;
+        color: var(--color-text); margin-bottom: 10px;
+    }
+    .sec-h strong { font-weight: 600; }
+    .sec-sub {
+        font-size: 14.5px; color: var(--color-text-secondary);
+        line-height: 1.7; font-weight: 400; max-width: 440px; margin-bottom: 40px;
+    }
+
+    /* ============================================
+       STEPS
+       ============================================ */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .step {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-lg);
+        padding: 26px 22px;
+        box-shadow: var(--shadow-sm);
+    }
+    .step:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); transition: transform .2s ease, box-shadow .2s ease; }
+    .step-n {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 13px; font-weight: 500;
+        color: var(--color-step-number);
+        background: var(--grad-accent);
+        width: 36px; height: 36px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 18px;
+        box-shadow: var(--glow-accent);
+    }
+    .step-body h3 { font-size: 16px; font-weight: 600; color: var(--color-text); margin-bottom: 7px; letter-spacing: -0.3px; }
+    .step-body p { font-size: 13.5px; color: var(--color-text-secondary); line-height: 1.65; font-weight: 400; }
+
+    /* ============================================
+       FEATURE GRID
+       ============================================ */
+    .feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .feat {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-lg);
+        padding: 26px 22px;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+    .feat::before {
+        content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+        background: var(--grad-accent); transform: scaleX(0); transform-origin: left;
+        transition: transform .25s ease;
+    }
+    .feat:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--color-border-medium); transition: transform .2s ease, box-shadow .2s ease; }
+    .feat:hover::before { transform: scaleX(1); }
+    .feat-ico {
+        width: 42px; height: 42px; border-radius: 12px;
+        background: var(--color-accent-light);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 16px;
+    }
+    .feat-ico i { font-size: 20px; color: var(--color-feat-icon); }
+    .feat h3 { font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 7px; }
+    .feat p { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.6; font-weight: 400; }
+
+    /* ============================================
+       PLANS
+       ============================================ */
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+    .plan {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-lg);
+        padding: 30px 26px;
+        display: flex; flex-direction: column;
+        box-shadow: var(--shadow-sm);
+    }
+    .plan:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); transition: transform .2s ease, box-shadow .2s ease; }
+    .plan.featured {
+        background: var(--color-featured-bg);
+        border: 1.5px solid var(--color-accent-dark);
+        box-shadow: var(--glow-accent), var(--shadow-lg);
+        transform: scale(1.03);
+    }
+    .plan.featured:hover { transform: scale(1.03) translateY(-3px); }
+    .plan-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+        color: var(--color-text-secondary); margin-bottom: 14px;
+    }
+    .plan.featured .plan-label { color: var(--color-featured-text); }
+    .plan-price { font-size: 34px; font-weight: 300; letter-spacing: -1.5px; color: var(--color-text); line-height: 1; }
+    .plan.featured .plan-price { color: var(--color-featured-price); }
+    .plan-per { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 400; margin-top: 5px; margin-bottom: 22px; }
+    .plan.featured .plan-per { color: var(--color-featured-muted); }
+    .plan-feats { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; flex: 1; }
+    .plan-feats li {
+        font-size: 12.5px; color: var(--color-text-secondary);
+        display: flex; align-items: flex-start; gap: 8px; font-weight: 400; line-height: 1.45;
+    }
+    .plan-feats li i { font-size: 14px; color: var(--color-check); margin-top: 1px; flex-shrink: 0; }
+    .plan.featured .plan-feats li { color: var(--color-featured-text); }
+    .plan.featured .plan-feats li i { color: var(--color-accent-dark); }
+    .plan-btn {
+        width: 100%; padding: 12px;
+        font-size: 13.5px; font-weight: 600; cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        background: var(--color-surface);
+        color: var(--color-text);
+        margin-top: auto;
+    }
+    .plan-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .plan.featured .plan-btn {
+        background: var(--grad-accent); color: var(--color-on-accent);
+        border-color: transparent; box-shadow: var(--glow-accent);
+    }
+    .plan.featured .plan-btn:hover { color: var(--color-on-accent); filter: brightness(1.06); transform: translateY(-1px); }
+    .pop-badge {
+        display: inline-block;
+        background: var(--grad-accent);
+        color: var(--color-pop-badge-text);
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 9px; letter-spacing: 1px;
+        padding: 4px 10px; border-radius: 999px;
+        margin-bottom: 14px; align-self: flex-start;
+        box-shadow: var(--glow-accent);
+    }
+
+    /* ============================================
+       PRIVACY
+       ============================================ */
+    .privacy {
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-lg);
+        padding: 30px; margin-top: 40px;
+        display: flex; gap: 18px; align-items: flex-start;
+    }
+    .privacy > i {
+        font-size: 22px; color: var(--color-check); flex-shrink: 0; margin-top: 2px;
+        background: var(--color-accent-light); width: 44px; height: 44px;
+        border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    }
+    .privacy h3 { font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 12px; }
+    .privacy ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    .privacy ul li { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 400; display: flex; align-items: center; gap: 9px; }
+    .privacy ul li::before { content: ''; width: 5px; height: 5px; background: var(--color-check); border-radius: 50%; flex-shrink: 0; }
+
+    /* ============================================
+       CTA BAR
+       ============================================ */
+    .cta-bar {
+        background: var(--grad-cta);
+        border-radius: var(--radius-xl);
+        padding: 56px 24px; text-align: center;
+        max-width: 980px; margin: 24px auto 56px;
+        position: relative; overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+    .cta-bar::after {
+        content: ''; position: absolute; inset: 0;
+        background: radial-gradient(50% 80% at 50% 0%, rgba(88,166,255,0.22) 0%, rgba(88,166,255,0) 70%);
+        pointer-events: none;
+    }
+    .cta-bar > * { position: relative; z-index: 1; }
+    .cta-bar h2 { font-size: clamp(24px, 4vw, 32px); font-weight: 300; letter-spacing: -1.2px; color: var(--color-cta-bar-text); margin-bottom: 10px; }
+    .cta-bar h2 strong { font-weight: 600; }
+    .cta-bar p { font-size: 14.5px; color: var(--color-cta-bar-sub); font-weight: 400; margin-bottom: 26px; }
+    .btn-white {
+        background: var(--color-btn-white-bg);
+        color: var(--color-btn-white-text);
+        padding: 13px 30px; font-size: 14.5px; font-weight: 600;
+        cursor: pointer; border: none; border-radius: 12px;
+        font-family: 'Inter', sans-serif; box-shadow: var(--shadow-md);
+    }
+    .btn-white:hover { transform: translateY(-2px); }
+
+    /* ============================================
+       FOOTER
+       ============================================ */
+    footer {
+        border-top: 1px solid var(--color-border-light);
+        padding: 26px 24px;
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 10px;
+        max-width: 1120px; margin: 0 auto;
+    }
+    .footer-logo { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--color-text-secondary); }
+    .footer-note { font-size: 11.5px; color: var(--color-text-tertiary); font-weight: 400; }
+
+    /* ============================================
+       RESPONSIVIDADE – TABLET (≤900px)
+       ============================================ */
+    @media (max-width: 900px) {
+        .hero { grid-template-columns: 1fr; gap: 40px; padding: 52px 20px 44px; max-width: 640px; }
+        .hero-visual { max-width: 460px; }
+        .feat-grid { grid-template-columns: repeat(2, 1fr); }
+        .steps { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+        nav { padding: 12px 16px; }
+        .menu-toggle-label { display: flex; }
+        .nav-links {
+            display: none;
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: var(--color-bg);
+            flex-direction: column; padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border-light);
+            z-index: 10; gap: 16px; box-shadow: var(--shadow-md);
+        }
+        .menu-toggle-input:checked ~ .nav-links { display: flex; }
+        .nav-cta { padding: 8px 14px; font-size: 12.5px; }
+        .ticker { grid-template-columns: repeat(2, 1fr); gap: 20px 16px; }
+        .plans { grid-template-columns: 1fr; }
+        .plan.featured { transform: none; }
+        .plan.featured:hover { transform: translateY(-3px); }
+        .section { padding: 48px 16px; }
+        .cta-bar { margin: 16px 16px 40px; padding: 44px 20px; }
+        footer { padding: 20px 16px; flex-direction: column; text-align: center; }
+    }
+
+    /* ============================================
+       MOBILE PEQUENO (≤480px)
+       ============================================ */
+    @media (max-width: 480px) {
+        .hero h1 { font-size: 30px; letter-spacing: -1px; }
+        .hero-actions { flex-direction: column; align-items: stretch; }
+        .btn-p, .btn-s { text-align: center; justify-content: center; }
+        .feat-grid { grid-template-columns: 1fr; }
+        .ticker { grid-template-columns: 1fr 1fr; padding: 18px; }
+        .privacy { flex-direction: column; padding: 22px; gap: 14px; }
+        .hv-float { right: 8px; }
+    }
+</style>
+</head>
+<body>
+    <div class="lp">
+
+        <!-- ==================== NAV ==================== -->
+        <nav>
+            <div class="logo">
+                <div class="logo-mark"><i class="ti ti-mail-forward" aria-hidden="true"></i></div>
+                <span class="logo-name">newdevjobs</span>
+            </div>
+
+            <!-- Hamburger mobile -->
+            <input type="checkbox" id="menu-toggle" class="menu-toggle-input">
+            <label for="menu-toggle" class="menu-toggle-label">
+                <span></span><span></span><span></span>
+            </label>
+
+            <ul class="nav-links">
+                <li><a href="#como-funciona">como funciona</a></li>
+                <li><a href="#precos">preços</a></li>
+                <li><a href="#">para recrutadores</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
+                    <i class="ti ti-sun icon-sun"></i>
+                    <i class="ti ti-moon icon-moon"></i>
+                </button>
+                <button class="nav-cta"><i class="ti ti-brand-google" aria-hidden="true"></i> entrar com Google</button>
+            </div>
+        </nav>
+
+        <!-- ==================== HERO ==================== -->
+        <section class="hero">
+            <div class="hero-copy">
+                <div class="hero-tag">automação de candidaturas</div>
+                <h1>Sua candidatura<br>chega <span class="accent">antes</span><br>de <strong>todo mundo.</strong></h1>
+                <p class="hero-sub">Monitoramos posts de recrutadores no LinkedIn, extraímos vagas com email de contato e enviamos seu currículo automaticamente — usando a sua própria conta Gmail.</p>
+                <div class="hero-actions">
+                    <button class="btn-p"><i class="ti ti-brand-google" aria-hidden="true"></i> começar grátis</button>
+                    <button class="btn-s">ver como funciona</button>
+                </div>
+                <p class="hero-note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 candidaturas grátis por dia. Sem cartão de crédito.</p>
+            </div>
+
+            <!-- Mockup do produto -->
+            <div class="hero-visual" aria-hidden="true">
+                <div class="hv-bar">
+                    <span class="hv-dot"></span><span class="hv-dot"></span><span class="hv-dot"></span>
+                    <span class="hv-title">newdevjobs · dashboard</span>
+                </div>
+                <div class="hv-card">
+                    <div class="hv-row">
+                        <div class="hv-company">
+                            <div class="hv-avatar"><i class="ti ti-building"></i></div>
+                            <div>
+                                <div class="hv-role">Dev Backend Pleno · .NET</div>
+                                <div class="hv-meta">Acme Tech · remoto · há 3 min</div>
+                            </div>
+                        </div>
+                        <span class="hv-score">match 94%</span>
+                    </div>
+                    <div class="hv-status">
+                        <i class="ti ti-circle-check"></i>
+                        <span>currículo enviado · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via seu Gmail</span></span>
+                    </div>
+                </div>
+                <div class="hv-card">
+                    <div class="hv-row">
+                        <div class="hv-company">
+                            <div class="hv-avatar"><i class="ti ti-building"></i></div>
+                            <div>
+                                <div class="hv-role">Engenheiro Node.js</div>
+                                <div class="hv-meta">Nimbus · híbrido · há 11 min</div>
+                            </div>
+                        </div>
+                        <span class="hv-score">match 88%</span>
+                    </div>
+                    <div class="hv-status">
+                        <i class="ti ti-circle-check"></i>
+                        <span>currículo enviado · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via seu Gmail</span></span>
+                    </div>
+                </div>
+                <div class="hv-float">
+                    <i class="ti ti-send"></i>
+                    <div>
+                        <div class="hv-float-n">+12</div>
+                        <div class="hv-float-l">enviadas hoje</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TICKER ==================== -->
+        <div class="section" style="padding-top:0;">
+            <div class="ticker">
+                <div class="tick-item"><span class="tick-n mono">45k+</span><span class="tick-l">vagas/mês monitoradas</span></div>
+                <div class="tick-item"><span class="tick-n mono">92%</span><span class="tick-l">taxa de entrega</span></div>
+                <div class="tick-item"><span class="tick-n mono">0</span><span class="tick-l">senhas armazenadas</span></div>
+                <div class="tick-item"><span class="tick-n mono">−150h</span><span class="tick-l">economizadas por mês</span></div>
+            </div>
+        </div>
+
+        <!-- ==================== COMO FUNCIONA ==================== -->
+        <section class="section" id="como-funciona">
+            <div class="sec-eyebrow">como funciona</div>
+            <h2 class="sec-h">Configure uma vez.<br><strong>Candidate-se sempre.</strong></h2>
+            <p class="sec-sub">Três passos e sua busca entra em piloto automático.</p>
+            <div class="steps">
+                <div class="step">
+                    <span class="step-n mono">01</span>
+                    <div class="step-body">
+                        <h3>Monte seu perfil técnico</h3>
+                        <p>Informe sua stack, nível de senioridade, modalidade e pretensão. Faça upload do seu currículo em PDF.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-n mono">02</span>
+                    <div class="step-body">
+                        <h3>Conecte seu Gmail</h3>
+                        <p>Autorize apenas o escopo de envio. Você aparece como remetente para o recrutador. Nunca lemos seus emails.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-n mono">03</span>
+                    <div class="step-body">
+                        <h3>Receba candidaturas automáticas</h3>
+                        <p>IA faz o matching entre seu perfil e a vaga. Emails personalizados são enviados direto para o recrutador.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== FUNCIONALIDADES ==================== -->
+        <section class="section">
+            <div class="sec-eyebrow">funcionalidades</div>
+            <h2 class="sec-h"><strong>Tudo</strong> que você precisa<br>para se destacar.</h2>
+            <div class="feat-grid">
+                <div class="feat">
+                    <div class="feat-ico"><i class="ti ti-brand-linkedin" aria-hidden="true"></i></div>
+                    <h3>scraping de posts</h3>
+                    <p>Monitora recrutadores no LinkedIn em tempo real. Posts novos com email são capturados em minutos.</p>
+                </div>
+                <div class="feat">
+                    <div class="feat-ico"><i class="ti ti-cpu" aria-hidden="true"></i></div>
+                    <h3>matching por IA</h3>
+                    <p>Score de compatibilidade entre seu perfil e a vaga. Só envia quando faz sentido.</p>
+                </div>
+                <div class="feat">
+                    <div class="feat-ico"><i class="ti ti-mail-forward" aria-hidden="true"></i></div>
+                    <h3>email pelo seu Gmail</h3>
+                    <p>Enviado da sua conta. O recrutador vê seu nome, não o nome de uma ferramenta.</p>
+                </div>
+                <div class="feat">
+                    <div class="feat-ico"><i class="ti ti-chart-line" aria-hidden="true"></i></div>
+                    <h3>dashboard completo</h3>
+                    <p>Acompanhe envios, matches e histórico. Pause, filtre ou ajuste a qualquer momento.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== PREÇOS ==================== -->
+        <section class="section" id="precos">
+            <div class="sec-eyebrow">preços</div>
+            <h2 class="sec-h">Simples e<br><strong>transparente.</strong></h2>
+            <p class="sec-sub">Comece grátis. Faça upgrade quando precisar de mais.</p>
+            <div class="plans">
+                <div class="plan">
+                    <div class="plan-label">free</div>
+                    <div class="plan-price">R$0</div>
+                    <div class="plan-per">para sempre grátis</div>
+                    <ul class="plan-feats">
+                        <li><i class="ti ti-check" aria-hidden="true"></i>7 candidaturas por dia</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>1 perfil de busca</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>matching básico</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>sem cartão de crédito</li>
+                    </ul>
+                    <button class="plan-btn">começar grátis</button>
+                </div>
+                <div class="plan featured">
+                    <div class="pop-badge">mais popular</div>
+                    <div class="plan-label">starter</div>
+                    <div class="plan-price">R$80</div>
+                    <div class="plan-per">/mês · 70 emails por dia</div>
+                    <ul class="plan-feats">
+                        <li><i class="ti ti-check" aria-hidden="true"></i>70 candidaturas por dia</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>filtragem antes do envio</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>matching com IA</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>histórico de candidaturas</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>suporte por email</li>
+                    </ul>
+                    <button class="plan-btn">assinar starter</button>
+                </div>
+                <div class="plan">
+                    <div class="plan-label">pro</div>
+                    <div class="plan-price">R$189</div>
+                    <div class="plan-per">/mês · 200 emails por dia</div>
+                    <ul class="plan-feats">
+                        <li><i class="ti ti-check" aria-hidden="true"></i>200 candidaturas por dia</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>tudo do starter</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>tracking de abertura</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>multi-contas</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>agendamento automático</li>
+                        <li><i class="ti ti-check" aria-hidden="true"></i>suporte prioritário</li>
+                    </ul>
+                    <button class="plan-btn">assinar pro</button>
+                </div>
+            </div>
+            <div class="privacy">
+                <i class="ti ti-shield-check" aria-hidden="true"></i>
+                <div>
+                    <h3>sua privacidade é prioridade</h3>
+                    <ul>
+                        <li>usamos apenas o escopo gmail.send — somente envio</li>
+                        <li>nunca lemos, excluímos ou modificamos seus emails</li>
+                        <li>você pode revogar o acesso a qualquer momento</li>
+                        <li>nenhuma senha armazenada em nossos servidores</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== CTA ==================== -->
+        <div class="cta-bar">
+            <h2>Pronto para <strong>automatizar</strong><br>sua busca por emprego?</h2>
+            <p>Configure em menos de 5 minutos. 7 candidaturas grátis todo dia.</p>
+            <button class="btn-white">começar agora — é grátis</button>
+        </div>
+
+        <!-- ==================== FOOTER ==================== -->
+        <footer>
+            <span class="footer-logo">newdevjobs</span>
+            <span class="footer-note">feito para devs brasileiros em busca ativa · 2026</span>
+        </footer>
+
+    </div>
+
+    <!-- ==================== SCRIPT TEMA ==================== -->
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Inicializa tema ao carregar
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else if (saved === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+</body>
+</html>

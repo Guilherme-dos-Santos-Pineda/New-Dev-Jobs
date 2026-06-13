@@ -1,0 +1,94 @@
+# Render Blueprint — newdevjobs
+# 3 serviços Node (API web, worker de envio, cron do scraper) + site estático (frontend).
+# Banco/Auth/Storage = Supabase (externo). Secrets ficam no grupo de env "newdevjobs-secrets".
+# Crie o grupo em Render → Env Groups e preencha os valores (ver DEPLOY.md).
+
+envVarGroups:
+  - name: newdevjobs-secrets
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: cvs
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false   # https://<api>.onrender.com/api/auth/google/callback
+      - key: FRONTEND_URL
+        sync: false   # https://<frontend>.onrender.com
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: APIFY_TOKEN
+        sync: false
+      - key: APIFY_PROFILE_ACTOR_ID
+        sync: false
+      - key: APIFY_POST_ACTOR_ID
+        value: buIWk2uOUzTmcLsuB
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_STARTER
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false
+
+services:
+  # API HTTP (enfileira envios, billing, admin, etc.)
+  - type: web
+    name: newdevjobs-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node backend/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - fromGroup: newdevjobs-secrets
+
+  # Worker: processa a fila pg-boss (envios) e os runs do scraper disparados pelo admin
+  - type: worker
+    name: newdevjobs-worker
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node backend/worker.js
+    envVars:
+      - fromGroup: newdevjobs-secrets
+
+  # Cron: monitoramento periódico (posts dos recrutadores aprovados) — a cada 6h
+  - type: cron
+    name: newdevjobs-scraper
+    runtime: node
+    schedule: "0 */6 * * *"
+    buildCommand: npm install
+    startCommand: node scraper.js --mode=monitoring
+    envVars:
+      - fromGroup: newdevjobs-secrets
+
+  # Frontend (build Vite → estático). VITE_* são lidas em BUILD time.
+  - type: web
+    name: newdevjobs-frontend
+    runtime: static
+    buildCommand: npm install && npm run build --prefix frontend
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html   # SPA fallback (React Router)
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_URL
+        sync: false   # https://<api>.onrender.com
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        sync: false

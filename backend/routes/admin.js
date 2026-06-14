@@ -147,11 +147,20 @@ const runSchema = z.object({
     type: z.enum(['discovery', 'monitoring']),
     params: z.object({
         queries: z.array(z.string().min(1)).max(20).optional(),
+        // descoberta
         location: z.string().max(80).optional(),
-        maxResults: z.coerce.number().int().min(1).max(50).optional(),
-        maxPosts: z.coerce.number().int().min(1).max(50).optional(),
+        locations: z.array(z.string().min(1)).max(20).optional(),
+        maxResults: z.coerce.number().int().min(1).max(100).optional(),
+        takePages: z.coerce.number().int().min(1).max(40).optional(),
+        // monitoramento
+        maxPosts: z.coerce.number().int().min(1).max(100).optional(),
         source: z.enum(['global', 'saved', 'selected']).optional(),
         recruiterIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
+        contentType: z.enum(['all', 'jobs']).optional(),
+        postedLimit: z.enum(['any', '1h', '24h', 'week', 'month', '3months', '6months', 'year']).optional(),
+        sortBy: z.enum(['relevance', 'date']).optional(),
+        scrapePages: z.coerce.number().int().min(1).max(40).optional(),
+        startPage: z.coerce.number().int().min(1).max(100).optional(),
     }).optional(),
 });
 router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) => {

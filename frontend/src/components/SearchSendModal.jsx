@@ -10,6 +10,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
     const toast = useToast();
     const [phase, setPhase] = useState('searching'); // searching | choose | manual
     const [matches, setMatches] = useState([]);
+    const [filtered, setFiltered] = useState(0); // vagas escondidas pelos filtros do perfil
     const [selected, setSelected] = useState(new Set());
     const [expanded, setExpanded] = useState(null);
     const [starting, setStarting] = useState(false);
@@ -22,10 +23,10 @@ export default function SearchSendModal({ onClose, onStarted }) {
         const started = Date.now();
         (async () => {
             try { await refreshUser(); } catch { /* ignore */ }
-            let list = [];
-            try { const r = await api.getMatches(); list = r.matches; } catch { /* ignore */ }
+            let list = []; let hidden = 0;
+            try { const r = await api.getMatches(); list = r.matches; hidden = r.filtered || 0; } catch { /* ignore */ }
             const wait = Math.max(0, 2200 - (Date.now() - started)); // efeito de "busca"
-            setTimeout(() => { if (alive) { setMatches(list); setSelected(new Set(list.map((m) => m.id))); setPhase('choose'); } }, wait);
+            setTimeout(() => { if (alive) { setMatches(list); setFiltered(hidden); setSelected(new Set(list.map((m) => m.id))); setPhase('choose'); } }, wait);
         })();
         return () => { alive = false; };
     }, []);
@@ -70,7 +71,14 @@ export default function SearchSendModal({ onClose, onStarted }) {
                         </div>
                         <div style={{ padding: '18px 22px' }}>
                             {matches.length === 0 ? (
-                                <div className="empty"><i className="ti ti-briefcase-off" />Nenhuma vaga disponível com seus filtros agora.</div>
+                                filtered > 0 ? (
+                                    <div className="notice warn">
+                                        <i className="ti ti-filter-x" />
+                                        <span><b>{filtered}</b> vaga(s) encontrada(s), mas todas foram descartadas pelos seus filtros (ex.: keyword obrigatória). Ajuste em <Link to="/app/perfil?section=filters">Perfil → Filtros</Link>.</span>
+                                    </div>
+                                ) : (
+                                    <div className="empty"><i className="ti ti-briefcase-off" />Nenhuma vaga disponível agora. Rode o scraper ou volte mais tarde.</div>
+                                )
                             ) : !ready ? (
                                 <div className="notice warn">
                                     <i className="ti ti-alert-triangle" />

@@ -18,8 +18,13 @@ export default function BotsPanel() {
     // formulários dos runs
     const [discQueries, setDiscQueries] = useState('Tech Recruiter\nTalent Acquisition');
     const [discMax, setDiscMax] = useState(5);
+    const [discLocations, setDiscLocations] = useState('Brazil');
+    const [discPages, setDiscPages] = useState(1);
     const [monQueries, setMonQueries] = useState('"hiring backend developer"\n"hiring full stack developer"');
     const [monMax, setMonMax] = useState(10);
+    const [monPeriod, setMonPeriod] = useState('month');
+    const [monPages, setMonPages] = useState(1);
+    const [monOnlyJobs, setMonOnlyJobs] = useState(true);
     const [monSource, setMonSource] = useState('saved'); // global | saved | selected
     const [monSelected, setMonSelected] = useState([]);  // ids quando 'selected'
     const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
@@ -45,10 +50,14 @@ export default function BotsPanel() {
 
     async function runScraper(type) {
         const params = type === 'discovery'
-            ? { queries: parseQueries(discQueries), maxResults: Number(discMax) || 5 }
+            ? {
+                queries: parseQueries(discQueries), maxResults: Number(discMax) || 5,
+                locations: parseQueries(discLocations), takePages: Number(discPages) || 1,
+            }
             : {
                 queries: parseQueries(monQueries), maxPosts: Number(monMax) || 10,
                 source: monSource, ...(monSource === 'selected' ? { recruiterIds: monSelected } : {}),
+                contentType: monOnlyJobs ? 'jobs' : 'all', postedLimit: monPeriod, scrapePages: Number(monPages) || 1,
             };
         if (type === 'monitoring' && monSource === 'selected' && !monSelected.length) {
             toast.show('Selecione ao menos um recrutador.', 'error'); return;
@@ -82,8 +91,18 @@ export default function BotsPanel() {
                         <textarea className="input" rows={3} value={discQueries} onChange={(e) => setDiscQueries(e.target.value)} />
                     </div>
                     <div className="field">
-                        <label>Máx. resultados</label>
-                        <input className="input" type="number" min="1" max="50" value={discMax} onChange={(e) => setDiscMax(e.target.value)} />
+                        <label>Países / locais (um por linha)</label>
+                        <textarea className="input" rows={2} value={discLocations} onChange={(e) => setDiscLocations(e.target.value)} placeholder="Brazil&#10;Portugal" />
+                    </div>
+                    <div className="grid-2">
+                        <div className="field">
+                            <label>Máx. resultados</label>
+                            <input className="input" type="number" min="1" max="100" value={discMax} onChange={(e) => setDiscMax(e.target.value)} />
+                        </div>
+                        <div className="field">
+                            <label>Páginas (25/pág)</label>
+                            <input className="input" type="number" min="1" max="40" value={discPages} onChange={(e) => setDiscPages(e.target.value)} />
+                        </div>
                     </div>
                     <button className="btn primary block sm" disabled={!!running} onClick={() => runScraper('discovery')}>
                         {running === 'discovery' ? 'Enfileirando…' : (<><i className="ti ti-player-play" /> Rodar descoberta</>)}
@@ -122,10 +141,27 @@ export default function BotsPanel() {
                         <label>Queries (uma por linha, use aspas)</label>
                         <textarea className="input" rows={3} value={monQueries} onChange={(e) => setMonQueries(e.target.value)} />
                     </div>
-                    <div className="field">
-                        <label>Máx. posts</label>
-                        <input className="input" type="number" min="1" max="50" value={monMax} onChange={(e) => setMonMax(e.target.value)} />
+                    <div className="grid-2">
+                        <div className="field">
+                            <label>Máx. posts / query</label>
+                            <input className="input" type="number" min="1" max="100" value={monMax} onChange={(e) => setMonMax(e.target.value)} />
+                        </div>
+                        <div className="field">
+                            <label>Páginas</label>
+                            <input className="input" type="number" min="1" max="40" value={monPages} onChange={(e) => setMonPages(e.target.value)} />
+                        </div>
                     </div>
+                    <div className="field">
+                        <label>Período (recência)</label>
+                        <select className="select" value={monPeriod} onChange={(e) => setMonPeriod(e.target.value)}>
+                            <option value="any">Qualquer</option><option value="24h">24h</option>
+                            <option value="week">Última semana</option><option value="month">Último mês</option>
+                            <option value="3months">3 meses</option><option value="year">Último ano</option>
+                        </select>
+                    </div>
+                    <label className="row" style={{ alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 12, fontWeight: 400 }}>
+                        <input type="checkbox" checked={monOnlyJobs} onChange={(e) => setMonOnlyJobs(e.target.checked)} /> só posts de vaga (recomendado)
+                    </label>
                     <button className="btn primary block sm" disabled={!!running} onClick={() => runScraper('monitoring')}>
                         {running === 'monitoring' ? 'Enfileirando…' : (<><i className="ti ti-player-play" /> Rodar monitoramento</>)}
                     </button>

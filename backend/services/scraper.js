@@ -103,23 +103,42 @@ async function recruiterIdFor(authorUrl) {
     return rec?.Id || null;
 }
 
+// Adiciona/atualiza o autor do post na base de recrutadores. Retorna { id, added }.
+async function upsertRecruiterFromPost(authorUrl, name, company, email) {
+    if (!authorUrl) return { id: null, added: false };
+    const [row] = await sql`
+        insert into "Recruiters" ("LinkedinUrl", "Name", "Company", "Email", "Status")
+        values (${authorUrl}, ${name || null}, ${company || null}, ${email || null}, 'discovered')
+        on conflict ("LinkedinUrl") do update set
+            "Name"    = coalesce("Recruiters"."Name", excluded."Name"),
+            "Company" = coalesce("Recruiters"."Company", excluded."Company"),
+            "Email"   = coalesce("Recruiters"."Email", excluded."Email"),
+            "UpdatedAt" = now()
+        returning "Id", (xmax = 0) as added`;
+    return { id: row?.Id || null, added: !!row?.added };
+}
+
 // =========================
 // FASE 1 — Descoberta de recrutadores
 // =========================
-export async function runDiscovery({ queries, location = 'Brazil', maxResults = 5, runId } = {}) {
+export async function runDiscovery({ queries, location = 'Brazil', locations, maxResults = 5, takePages, startPage, runId } = {}) {
     if (!config.apify.profileActorId) throw new Error('APIFY_PROFILE_ACTOR_ID não configurado (actor de perfis)');
     const titles = (queries && queries.length ? queries : ['Tech Recruiter', 'Talent Acquisition']);
+    // países/locais: aceita array (locations) ou um único (location)
+    const locs = (locations && locations.length) ? locations : (location ? [location] : []);
     const client = apifyClient();
 
     // Input do actor harvestapi/linkedin-profile-search:
-    // searchQuery (string), currentJobTitles (array), maxItems, locations, profileScraperMode.
-    // "Full + email search" é o modo que retorna email.
+    // searchQuery (string), currentJobTitles (array), maxItems, locations, profileScraperMode,
+    // takePages/startPage (paginação). "Full + email search" retorna email.
     const input = {
         searchQuery: titles[0],
         currentJobTitles: titles,
         maxItems: maxResults,
         profileScraperMode: 'Full + email search',
-        ...(location ? { locations: [location] } : {}),
+        ...(locs.length ? { locations: locs } : {}),
+        ...(takePages ? { takePages } : {}),
+        ...(startPage ? { startPage } : {}),
     };
 
     const run = await client.actor(config.apify.profileActorId).call(input);
@@ -161,7 +180,10 @@ export async function runDiscovery({ queries, location = 'Brazil', maxResults = 
 // =========================
 // FASE 2 — Monitoramento de recrutadores aprovados
 // =========================
-export async function runMonitoring({ queries, maxPosts = 10, runId, source = 'saved', recruiterIds } = {}) {
+export async function runMonitoring({
+    queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
+    contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
+} = {}) {
     // Queries entre aspas → o Post Search Scraper trata como frase (busca mais precisa).
     const searchQueries = (queries && queries.length ? queries : ['"hiring software engineer"', '"hiring backend developer"']);
 
@@ -183,10 +205,14 @@ export async function runMonitoring({ queries, maxPosts = 10, runId, source = 's
     const input = {
         searchQueries,
         maxPosts,
+        contentType: contentType || 'jobs', // só posts do tipo "vaga" → menos lixo
         profileScraperMode: 'short',
-        startPage: 1,
         scrapeReactions: false,
         scrapeComments: false,
+        ...(postedLimit ? { postedLimit } : {}),   // any|1h|24h|week|month|3months|6months|year
+        ...(sortBy ? { sortBy } : {}),             // relevance|date
+        ...(scrapePages ? { scrapePages } : {}),   // nº de páginas (volume)
+        ...(startPage ? { startPage } : { startPage: 1 }),
         ...(authorUrls.length ? { authorUrls } : {}),
     };
 
@@ -194,7 +220,7 @@ export async function runMonitoring({ queries, maxPosts = 10, runId, source = 's
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
     // found = encontrados; novos/duplicados = vagas; descartadosIA/semEmail/rejeitados; aiUsed
-    const s = { found: items.length, novos: 0, duplicados: 0, descartadosIA: 0, semEmail: 0, rejeitados: 0, aiUsed: 0 };
+    const s = { found: items.length, novos: 0, duplicados: 0, descartadosIA: 0, semEmail: 0, rejeitados: 0, recrutadoresAdd: 0, aiUsed: 0 };
     let aiCalls = 0;
     for (const item of items) {
         const content = item.content || '';
@@ -228,7 +254,9 @@ export async function runMonitoring({ queries, maxPosts = 10, runId, source = 's
         if (!qualifies) { if (!f.email) s.semEmail += 1; else s.descartadosIA += 1; continue; }
         if (!f.email) { s.semEmail += 1; continue; }
 
-        const recId = await recruiterIdFor(authorUrl);
+        // O autor do post vira recrutador na base (e a vaga o liga → deixa de ser "órfão").
+        const { id: recId, added } = await upsertRecruiterFromPost(authorUrl, authorName, f.company, f.email);
+        if (added) s.recrutadoresAdd += 1;
         const r = await insertJob({ f, content, postId, postedAt, recruiterId: recId });
         if (r === 'new') s.novos += 1; else s.duplicados += 1;
 

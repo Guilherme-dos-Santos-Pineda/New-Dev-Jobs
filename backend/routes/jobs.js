@@ -29,7 +29,11 @@ router.get('/', requireAuth, async (req, res) => {
 // GET /api/jobs/matches  — vagas candidatáveis (filtros + com email + não enviadas)
 router.get('/matches', requireAuth, async (req, res) => {
     const matches = await getMatches(req.user.Id);
-    res.json({ matches, total: matches.length });
+    // Quantas vagas (com email, não enviadas) existem ignorando os filtros do perfil,
+    // para explicar ao usuário quando os filtros estão escondendo vagas.
+    const all = await listForUser(req.user.Id, { ignoreFilters: true });
+    const candidatable = all.jobs.filter((j) => j.email && !j.applied).length;
+    res.json({ matches, total: matches.length, candidatable, filtered: Math.max(0, candidatable - matches.length) });
 });
 
 // GET /api/jobs/:id

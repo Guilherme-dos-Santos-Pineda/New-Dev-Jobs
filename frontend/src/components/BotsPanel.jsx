@@ -65,12 +65,30 @@ export default function BotsPanel() {
         const cost = type === 'discovery' ? '~$0.03/perfil (com email)' : '~$0.01 a cada 5 posts';
         if (!window.confirm(`Rodar ${type === 'discovery' ? 'descoberta' : 'monitoramento'}?\n\nIsso consome créditos do Apify (${cost}).`)) return;
         setRunning(type);
+        let started;
         try {
-            await api.adminRunScraper(type, params);
-            toast.show('Run enfileirado. Acompanhe no histórico abaixo.');
-            setTimeout(load, 2500); // dá tempo do worker pegar
-        } catch (e) { toast.show(e.message, 'error'); }
-        finally { setRunning(''); }
+            const r = await api.adminRunScraper(type, params);
+            started = r.run;
+            toast.show('Run iniciado — atualizando ao concluir…');
+            await load(); // mostra o run "running" na hora
+        } catch (e) { toast.show(e.message, 'error'); setRunning(''); return; }
+
+        // Hot-reload: acompanha o run até terminar e recarrega sozinho (sem F5)
+        let tries = 0;
+        const iv = setInterval(async () => {
+            tries += 1;
+            try {
+                const { runs } = await api.adminScraperRuns();
+                const cur = runs.find((x) => x.id === started.id);
+                if (cur && (cur.status === 'done' || cur.status === 'failed')) {
+                    clearInterval(iv);
+                    setRunning('');
+                    await load();
+                    toast.show(cur.status === 'done' ? `Concluído · ${fmtStats(cur.stats)}` : `Falhou: ${cur.error || 'erro'}`, cur.status === 'done' ? 'success' : 'error');
+                }
+            } catch { /* ignore */ }
+            if (tries > 100) { clearInterval(iv); setRunning(''); } // ~5min de teto
+        }, 3000);
     }
 
     if (loading) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;

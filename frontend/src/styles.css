@@ -717,6 +717,19 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .plan-featured { background: var(--color-featured-bg); border-color: var(--color-accent-dark); box-shadow: var(--glow-accent); }
 .plan-featured .plan-tag, .plan-featured .plan-price-v { color: var(--color-featured-text); }
 
+/* Cards de candidatura (estilo do mockup da landing) */
+.app-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+.app-card { display: flex; flex-direction: column; gap: 12px; transition: var(--transition); }
+.app-card:hover { box-shadow: var(--shadow-md); border-color: var(--color-border-medium); transform: translateY(-2px); }
+.app-card-top { display: flex; align-items: flex-start; gap: 12px; }
+.app-avatar { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; background: var(--grad-accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: var(--glow-accent); }
+.app-card-title { font-size: 14.5px; font-weight: 600; line-height: 1.25; }
+.app-card-meta { font-size: 12px; color: var(--color-text-tertiary); margin-top: 3px; }
+.app-card-status { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--color-text-secondary); padding: 9px 11px; background: var(--color-bg-secondary); border-radius: 10px; }
+.app-card-status i.lead { font-size: 15px; }
+.app-card-status .via { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--color-success); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+.app-card-foot { display: flex; align-items: center; gap: 8px; }
+
 /* ============================================
    MOBILE FIXES (empilhamento limpo no celular)
    ============================================ */

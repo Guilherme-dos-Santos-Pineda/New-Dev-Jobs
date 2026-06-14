@@ -11,7 +11,7 @@ function shapeApp(a) {
     return {
         id: a.Id, jobId: a.JobId, company: a.Company, title: a.JobTitle,
         to: a.JobEmail, status: a.Status, matchScore: a.MatchScore,
-        subject: a.Subject, createdAt: a.CreatedAt, sentAt: a.SentAt,
+        subject: a.Subject, body: a.Body, createdAt: a.CreatedAt, sentAt: a.SentAt,
     };
 }
 

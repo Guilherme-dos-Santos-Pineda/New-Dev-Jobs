@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast.jsx';
 import { fmtDate } from '../utils.js';
 import BotsPanel from '../components/BotsPanel.jsx';
 import AdminJobs from '../components/AdminJobs.jsx';
+import AdminRecruiters from '../components/AdminRecruiters.jsx';
 import AdminRawContent from '../components/AdminRawContent.jsx';
 import AdminStats from '../components/AdminStats.jsx';
 
@@ -77,7 +78,8 @@ export default function Admin() {
                 {[
                     ['geral', 'Visão geral', 'ti-layout-dashboard'],
                     ['vagas', 'Vagas', 'ti-briefcase'],
-                    ['bots', 'Recrutadores & Bots', 'ti-robot'],
+                    ['recrutadores', 'Recrutadores', 'ti-address-book'],
+                    ['bots', 'Bots & Scraper', 'ti-robot'],
                     ['raw', 'Conteúdo bruto', 'ti-file-text'],
                     ['stats', 'Estatísticas', 'ti-chart-bar'],
                 ].map(([id, label, icon]) => (
@@ -89,6 +91,7 @@ export default function Admin() {
 
             {tab === 'bots' && <BotsPanel />}
             {tab === 'vagas' && <AdminJobs />}
+            {tab === 'recrutadores' && <AdminRecruiters />}
             {tab === 'raw' && <AdminRawContent />}
             {tab === 'stats' && <AdminStats />}
 

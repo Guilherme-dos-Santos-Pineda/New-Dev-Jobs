@@ -99,7 +99,11 @@ export const api = {
     adminToggleSource: (id, active) => request('PATCH', `/admin/sources/${id}`, { active }),
     adminDeleteSource: (id) => request('DELETE', `/admin/sources/${id}`),
     // bots / scraper
-    adminRecruiters: (status) => request('GET', `/admin/recruiters${status ? `?status=${status}` : ''}`),
+    adminRecruiters: (params = {}) => {
+        const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+        return request('GET', `/admin/recruiters${qs ? `?${qs}` : ''}`);
+    },
+    adminRecruiterStats: () => request('GET', '/admin/recruiters/stats'),
     adminUpdateRecruiter: (id, status) => request('PATCH', `/admin/recruiters/${id}`, { status }),
     adminRunScraper: (type, params) => request('POST', '/admin/scraper/run', { type, params }),
     adminScraperRuns: () => request('GET', '/admin/scraper/runs'),

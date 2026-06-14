@@ -18,6 +18,7 @@ function shapeRecruiter(r) {
         id: r.Id, linkedinUrl: r.LinkedinUrl, name: r.Name, email: r.Email,
         title: r.Title, company: r.Company, status: r.Status,
         lastPostDate: r.LastPostDate, createdAt: r.CreatedAt,
+        jobsCount: r.jobs_count ?? undefined, emailsSent: r.emails_sent ?? undefined,
     };
 }
 
@@ -82,13 +83,47 @@ router.delete('/sources/:id', requireAdmin, async (req, res) => {
 
 // ---------- Base de recrutadores (scraper DevScout) ----------
 
-// GET /api/admin/recruiters?status=
+// GET /api/admin/recruiters/stats — total / com vagas / sem vagas / com email
+router.get('/recruiters/stats', requireAdmin, async (_req, res) => {
+    const [s] = await sql`
+        select count(*)::int as total,
+               count(*) filter (where exists (select 1 from "Jobs" j where j."RecruiterId" = r."Id"))::int as withjobs,
+               count(*) filter (where r."Email" is not null and r."Email" <> '')::int as withemail
+        from "Recruiters" r`;
+    res.json({ total: s.total, withJobs: s.withjobs, withoutJobs: s.total - s.withjobs, withEmail: s.withemail });
+});
+
+// GET /api/admin/recruiters?status=&hasJobs=&hasEmail=&q=&sort=&page=&pageSize=
 router.get('/recruiters', requireAdmin, async (req, res) => {
-    const status = req.query.status;
-    const rows = status
-        ? await sql`select * from "Recruiters" where "Status" = ${status} order by "UpdatedAt" desc limit 500`
-        : await sql`select * from "Recruiters" order by "UpdatedAt" desc limit 500`;
-    res.json({ recruiters: rows.map(shapeRecruiter) });
+    const status = req.query.status || null;
+    const q = req.query.q ? `%${req.query.q}%` : null;
+    const hasJobs = req.query.hasJobs || null;      // 'true' | 'false'
+    const hasEmail = req.query.hasEmail || null;    // 'true'
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(5, Number(req.query.pageSize) || 25));
+    const sortMap = {
+        jobs: sql`jobs_count desc nulls last, r."UpdatedAt" desc`,
+        emails: sql`emails_sent desc nulls last`,
+        name: sql`r."Name" asc`,
+        recent: sql`r."CreatedAt" desc`,
+    };
+    const orderBy = sortMap[req.query.sort] || sortMap.jobs;
+
+    const where = sql`
+        where (${status}::text is null or r."Status" = ${status})
+          and (${q}::text is null or r."Name" ilike ${q} or r."Email" ilike ${q} or r."Company" ilike ${q})
+          and (${hasEmail}::text is null or (r."Email" is not null and r."Email" <> ''))
+          and (${hasJobs}::text is null or (${hasJobs} = 'true') = exists (select 1 from "Jobs" j where j."RecruiterId" = r."Id"))`;
+
+    const [{ total }] = await sql`select count(*)::int as total from "Recruiters" r ${where}`;
+    const rows = await sql`
+        select r.*,
+            (select count(*)::int from "Jobs" j where j."RecruiterId" = r."Id") as jobs_count,
+            (select count(*)::int from "Applications" a join "Jobs" j on j."Id" = a."JobId" where j."RecruiterId" = r."Id") as emails_sent
+        from "Recruiters" r ${where}
+        order by ${orderBy}
+        limit ${pageSize} offset ${(page - 1) * pageSize}`;
+    res.json({ recruiters: rows.map(shapeRecruiter), total, page, pageSize });
 });
 
 // PATCH /api/admin/recruiters/:id  { status }

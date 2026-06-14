@@ -150,6 +150,8 @@ const runSchema = z.object({
         location: z.string().max(80).optional(),
         maxResults: z.coerce.number().int().min(1).max(50).optional(),
         maxPosts: z.coerce.number().int().min(1).max(50).optional(),
+        source: z.enum(['global', 'saved', 'selected']).optional(),
+        recruiterIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
     }).optional(),
 });
 router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) => {

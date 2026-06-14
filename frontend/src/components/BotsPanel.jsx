@@ -20,6 +20,10 @@ export default function BotsPanel() {
     const [discMax, setDiscMax] = useState(5);
     const [monQueries, setMonQueries] = useState('"hiring backend developer"\n"hiring full stack developer"');
     const [monMax, setMonMax] = useState(10);
+    const [monSource, setMonSource] = useState('saved'); // global | saved | selected
+    const [monSelected, setMonSelected] = useState([]);  // ids quando 'selected'
+    const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
+    const [runDetail, setRunDetail] = useState(null);    // run aberto no modal
 
     const load = useCallback(async () => {
         try {
@@ -42,7 +46,13 @@ export default function BotsPanel() {
     async function runScraper(type) {
         const params = type === 'discovery'
             ? { queries: parseQueries(discQueries), maxResults: Number(discMax) || 5 }
-            : { queries: parseQueries(monQueries), maxPosts: Number(monMax) || 10 };
+            : {
+                queries: parseQueries(monQueries), maxPosts: Number(monMax) || 10,
+                source: monSource, ...(monSource === 'selected' ? { recruiterIds: monSelected } : {}),
+            };
+        if (type === 'monitoring' && monSource === 'selected' && !monSelected.length) {
+            toast.show('Selecione ao menos um recrutador.', 'error'); return;
+        }
         const cost = type === 'discovery' ? '~$0.03/perfil (com email)' : '~$0.01 a cada 5 posts';
         if (!window.confirm(`Rodar ${type === 'discovery' ? 'descoberta' : 'monitoramento'}?\n\nIsso consome créditos do Apify (${cost}).`)) return;
         setRunning(type);
@@ -83,8 +93,31 @@ export default function BotsPanel() {
                 <div className="card" style={{ flex: 1, minWidth: 300 }}>
                     <div className="section-title"><i className="ti ti-radar" /> Monitoramento de vagas</div>
                     <p className="muted" style={{ fontSize: 12.5, marginTop: -4, marginBottom: 10 }}>
-                        Busca posts dos recrutadores <b>aprovados</b> (queries entre aspas = mais preciso).
+                        Busca posts (queries entre aspas = mais preciso).
                     </p>
+                    <div className="field">
+                        <label>Onde buscar</label>
+                        <select className="select" value={monSource} onChange={(e) => setMonSource(e.target.value)}>
+                            <option value="saved">Todos os recrutadores salvos (aprovados)</option>
+                            <option value="selected">Recrutadores selecionados</option>
+                            <option value="global">LinkedIn inteiro (mais volume/custo)</option>
+                        </select>
+                    </div>
+                    {monSource === 'selected' && (
+                        <div className="field">
+                            <label>Selecione os recrutadores</label>
+                            <div style={{ maxHeight: 130, overflowY: 'auto', border: '1px solid var(--color-border-light)', borderRadius: 10, padding: 8 }}>
+                                {recruiters.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Nenhum recrutador. Rode a descoberta.</div>
+                                    : recruiters.map((r) => (
+                                        <label key={r.id} className="row" style={{ alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0', fontWeight: 400 }}>
+                                            <input type="checkbox" checked={monSelected.includes(r.id)}
+                                                onChange={(e) => setMonSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))} />
+                                            {r.name || 'Recrutador'} <span className="muted">{r.company || ''}</span>
+                                        </label>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
                     <div className="field">
                         <label>Queries (uma por linha, use aspas)</label>
                         <textarea className="input" rows={3} value={monQueries} onChange={(e) => setMonQueries(e.target.value)} />
@@ -123,23 +156,50 @@ export default function BotsPanel() {
                     ))}
                 </div>
 
-                {/* ---- Histórico de execuções ---- */}
+                {/* ---- Histórico de execuções (5 + ver mais; clique abre detalhes) ---- */}
                 <div className="card" style={{ flex: 1, minWidth: 300 }}>
                     <div className="section-title"><i className="ti ti-history" /> Execuções recentes</div>
                     {runs.length === 0 ? (
                         <div className="empty" style={{ padding: 22 }}><i className="ti ti-clock-off" />Nenhuma execução ainda.</div>
-                    ) : runs.map((run) => (
-                        <div key={run.id} className="rank-row" style={{ alignItems: 'flex-start' }}>
+                    ) : runs.slice(0, runsAll ? runs.length : 5).map((run) => (
+                        <div key={run.id} className="rank-row" style={{ alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => setRunDetail(run)}>
                             <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{ fontWeight: 600, fontSize: 13 }}>{run.type === 'discovery' ? 'Descoberta' : 'Monitoramento'}</div>
                                 <div className="muted" style={{ fontSize: 11.5 }}>{fmtDate(run.createdAt)}</div>
-                                <div className="muted" style={{ fontSize: 11.5 }}>{run.status === 'failed' ? (run.error || 'erro') : fmtStats(run.stats)}</div>
+                                <div className="muted" style={{ fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{run.status === 'failed' ? (run.error || 'erro') : fmtStats(run.stats)}</div>
                             </div>
                             <span className={`badge ${RUN_BADGE[run.status] || 'warn'}`}>{run.status}</span>
                         </div>
                     ))}
+                    {runs.length > 5 && (
+                        <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => setRunsAll((v) => !v)}>
+                            {runsAll ? 'ver menos' : `ver mais (${runs.length - 5})`}
+                        </button>
+                    )}
                 </div>
             </div>
+
+            {/* Modal de detalhes da execução */}
+            {runDetail && (
+                <div className="modal-overlay" onClick={() => setRunDetail(null)}>
+                    <div className="modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-head">
+                            <h3>{runDetail.type === 'discovery' ? 'Descoberta' : 'Monitoramento'} · {runDetail.status}</h3>
+                            <button className="close" onClick={() => setRunDetail(null)}><i className="ti ti-x" /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: 20 }}>
+                            <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>
+                                criado {fmtDate(runDetail.createdAt)}{runDetail.finishedAt ? ` · concluído ${fmtDate(runDetail.finishedAt)}` : ''}
+                            </div>
+                            {runDetail.error && <div className="notice danger"><i className="ti ti-alert-circle" />{runDetail.error}</div>}
+                            <div className="section-title" style={{ fontSize: 13 }}>Parâmetros</div>
+                            <pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--color-bg-secondary)', padding: 12, borderRadius: 10, marginBottom: 14 }}>{JSON.stringify(runDetail.params || {}, null, 2)}</pre>
+                            <div className="section-title" style={{ fontSize: 13 }}>Resultado</div>
+                            <pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--color-bg-secondary)', padding: 12, borderRadius: 10 }}>{JSON.stringify(runDetail.stats || {}, null, 2)}</pre>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

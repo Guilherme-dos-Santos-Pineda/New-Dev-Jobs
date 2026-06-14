@@ -161,14 +161,22 @@ export async function runDiscovery({ queries, location = 'Brazil', maxResults = 
 // =========================
 // FASE 2 — Monitoramento de recrutadores aprovados
 // =========================
-export async function runMonitoring({ queries, maxPosts = 10, runId } = {}) {
+export async function runMonitoring({ queries, maxPosts = 10, runId, source = 'saved', recruiterIds } = {}) {
     // Queries entre aspas → o Post Search Scraper trata como frase (busca mais precisa).
     const searchQueries = (queries && queries.length ? queries : ['"hiring software engineer"', '"hiring backend developer"']);
 
-    // Recrutadores aprovados; fallback p/ RecruiterSources ativas (retrocompat).
-    let authorUrls = (await sql`select "LinkedinUrl" from "Recruiters" where "Status" = 'approved'`).map((r) => r.LinkedinUrl);
-    if (!authorUrls.length) {
-        authorUrls = (await sql`select "Url" from "RecruiterSources" where "Active" = true`).map((r) => r.Url);
+    // Estratégia de origem da busca:
+    //  - 'global'   → sem authorUrls (busca em todo o LinkedIn pela query; mais volume/custo)
+    //  - 'selected' → apenas os recrutadores escolhidos (recruiterIds)
+    //  - 'saved'    → recrutadores aprovados (fallback: RecruiterSources ativas) [padrão]
+    let authorUrls = [];
+    if (source === 'selected' && recruiterIds?.length) {
+        authorUrls = (await sql`select "LinkedinUrl" from "Recruiters" where "Id" = any(${recruiterIds})`).map((r) => r.LinkedinUrl);
+    } else if (source !== 'global') {
+        authorUrls = (await sql`select "LinkedinUrl" from "Recruiters" where "Status" = 'approved'`).map((r) => r.LinkedinUrl);
+        if (!authorUrls.length) {
+            authorUrls = (await sql`select "Url" from "RecruiterSources" where "Active" = true`).map((r) => r.Url);
+        }
     }
 
     const client = apifyClient();
@@ -230,6 +238,7 @@ export async function runMonitoring({ queries, maxPosts = 10, runId } = {}) {
     }
 
     s.recruiters = authorUrls.length;
+    s.source = source;
     await setRunStats(runId, s);
     return s;
 }

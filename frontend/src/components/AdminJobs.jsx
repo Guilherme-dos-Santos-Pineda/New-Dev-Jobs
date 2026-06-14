@@ -9,6 +9,7 @@ export default function AdminJobs() {
     const toast = useToast();
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [open, setOpen] = useState(null);
     const [f, setF] = useState({ q: '', seniority: '', minScore: '', tech: '' });
 
     async function load(filters = f) {
@@ -50,7 +51,7 @@ export default function AdminJobs() {
                         <thead><tr><th>Cargo</th><th>Empresa</th><th>Skills</th><th>Score IA</th><th>Senioridade</th><th>Local</th><th>Data</th></tr></thead>
                         <tbody>
                             {jobs.map((j) => (
-                                <tr key={j.id}>
+                                <tr key={j.id} style={{ cursor: 'pointer' }} onClick={() => setOpen(j)}>
                                     <td style={{ fontWeight: 600, maxWidth: 240 }}>{j.title || '—'}</td>
                                     <td>{j.company || '—'}</td>
                                     <td style={{ maxWidth: 180 }}>{(j.skills || []).slice(0, 3).join(', ') || '—'}</td>
@@ -65,6 +66,38 @@ export default function AdminJobs() {
                 </div>
             )}
             <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>{jobs.length} vaga(s) · até 200 mais recentes.</div>
+
+            {/* Detalhe da vaga (inclui o conteúdo bruto do post) */}
+            {open && (
+                <div className="modal-overlay" onClick={() => setOpen(null)}>
+                    <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-head">
+                            <h3>{open.title || 'Vaga'}</h3>
+                            <button className="close" onClick={() => setOpen(null)}><i className="ti ti-x" /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: 20 }}>
+                            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                                {open.aiScore != null && <span className={`score ${scoreClass(open.aiScore)}`}>{open.aiScore}% IA</span>}
+                                {open.classification && <span className="badge neutral">{open.classification}</span>}
+                                {open.seniority && <span className="badge info">{open.seniority}</span>}
+                                {open.modality && <span className="badge info">{open.modality}</span>}
+                            </div>
+                            <div style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 12 }}>
+                                <div><b>Empresa:</b> {open.company || '—'}</div>
+                                <div><b>Email:</b> {open.email || '—'}</div>
+                                {open.location && <div><b>Local:</b> {open.location}</div>}
+                                {open.salary && <div><b>Salário:</b> {open.salary}</div>}
+                                <div><b>Skills:</b> {(open.skills || []).join(', ') || '—'}</div>
+                                <div className="muted"><b>Coletada:</b> {fmtDate(open.createdAt)}</div>
+                            </div>
+                            <div className="section-title" style={{ fontSize: 13 }}>Conteúdo do post (bruto)</div>
+                            <div style={{ fontSize: 12.5, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--color-text-secondary)', background: 'var(--color-bg-secondary)', padding: 12, borderRadius: 10, maxHeight: 320, overflow: 'auto' }}>
+                                {open.description || '(sem conteúdo)'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

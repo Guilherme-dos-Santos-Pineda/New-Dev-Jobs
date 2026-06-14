@@ -161,6 +161,8 @@ const runSchema = z.object({
         sortBy: z.enum(['relevance', 'date']).optional(),
         scrapePages: z.coerce.number().int().min(1).max(40).optional(),
         startPage: z.coerce.number().int().min(1).max(100).optional(),
+        region: z.enum(['global', 'br']).optional(),
+        excludeCountries: z.array(z.string().min(1)).max(20).optional(),
     }).optional(),
 });
 router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) => {
@@ -182,7 +184,8 @@ function shapeJob(j) {
     return {
         id: j.Id, company: j.Company, title: j.JobTitle, email: j.Email, skills: parseArr(j.Skills),
         aiScore: j.AiScore, classification: j.AiClassification, seniority: j.Seniority,
-        modality: j.Modality, location: j.Location, postedAt: j.PostedAt, createdAt: j.CreatedAt,
+        modality: j.Modality, location: j.Location, salary: j.Salary, description: j.Description,
+        linkedinId: j.LinkedinId, postedAt: j.PostedAt, createdAt: j.CreatedAt,
     };
 }
 
@@ -193,8 +196,7 @@ router.get('/jobs', requireAdmin, async (req, res) => {
     const minScore = req.query.minScore ? Number(req.query.minScore) : null;
     const techLike = req.query.tech ? `%${req.query.tech}%` : null;
     const rows = await sql`
-        select "Id","Company","JobTitle","Email","Skills","AiScore","AiClassification","Seniority","Modality","Location","PostedAt","CreatedAt"
-        from "Jobs"
+        select * from "Jobs"
         where (${q}::text is null or "JobTitle" ilike ${q} or "Company" ilike ${q})
           and (${seniority}::text is null or lower(coalesce("Seniority",'')) = lower(${seniority}))
           and (${minScore}::int is null or coalesce("AiScore",0) >= ${minScore})

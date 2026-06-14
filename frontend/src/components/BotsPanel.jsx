@@ -25,6 +25,8 @@ export default function BotsPanel() {
     const [monPeriod, setMonPeriod] = useState('month');
     const [monPages, setMonPages] = useState(1);
     const [monOnlyJobs, setMonOnlyJobs] = useState(true);
+    const [monRegion, setMonRegion] = useState('br');   // br | global
+    const [monExclude, setMonExclude] = useState('india'); // países a excluir (quando global)
     const [monSource, setMonSource] = useState('saved'); // global | saved | selected
     const [monSelected, setMonSelected] = useState([]);  // ids quando 'selected'
     const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
@@ -58,6 +60,7 @@ export default function BotsPanel() {
                 queries: parseQueries(monQueries), maxPosts: Number(monMax) || 10,
                 source: monSource, ...(monSource === 'selected' ? { recruiterIds: monSelected } : {}),
                 contentType: monOnlyJobs ? 'jobs' : 'all', postedLimit: monPeriod, scrapePages: Number(monPages) || 1,
+                region: monRegion, ...(monRegion === 'global' && monExclude.trim() ? { excludeCountries: parseQueries(monExclude) } : {}),
             };
         if (type === 'monitoring' && monSource === 'selected' && !monSelected.length) {
             toast.show('Selecione ao menos um recrutador.', 'error'); return;
@@ -153,6 +156,19 @@ export default function BotsPanel() {
                                         </label>
                                     ))}
                             </div>
+                        </div>
+                    )}
+                    <div className="field">
+                        <label>Região</label>
+                        <select className="select" value={monRegion} onChange={(e) => setMonRegion(e.target.value)}>
+                            <option value="br">Só Brasil (heurística: .br, cidades BR, português)</option>
+                            <option value="global">Internacional (todos os países)</option>
+                        </select>
+                    </div>
+                    {monRegion === 'global' && (
+                        <div className="field">
+                            <label>Excluir países (um por linha)</label>
+                            <textarea className="input" rows={2} value={monExclude} onChange={(e) => setMonExclude(e.target.value)} placeholder="india&#10;usa" />
                         </div>
                     )}
                     <div className="field">

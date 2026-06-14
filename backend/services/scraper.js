@@ -58,6 +58,30 @@ async function setRunStats(runId, stats) {
     if (runId) await sql`update "ScraperRuns" set "Stats" = ${sql.json(stats)} where "Id" = ${runId}`;
 }
 
+// ---- Heurística de país (o Post Search não tem filtro de país) ----
+const BR_HINT = /brasil|brazil|s[ãa]o paulo|\bsp\b|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis|goi[âa]nia|remoto \(brasil\)/i;
+const PT_MARKER = /\b(vaga|vagas|contratando|candidat|curr[íi]culo|sal[áa]rio|requisitos|desenvolvedor|pessoa desenvolvedora|conhecimentos?|experi[êe]ncia|home ?office|h[íi]brido|clt|pj)\b/i;
+const COUNTRY_HINTS = {
+    india: /\bindia\b|bangalore|bengaluru|hyderabad|mumbai|new delhi|\bdelhi\b|\bpune\b|chennai|noida|gurgaon|gurugram|kolkata|\bncr\b/i,
+    usa: /\b(united states|u\.?s\.?a?\.?)\b|new york|san francisco|california|\btexas\b|seattle|boston|chicago/i,
+    uk: /\b(united kingdom|u\.?k\.?)\b|london|manchester/i,
+    canada: /\bcanada\b|toronto|vancouver|ontario/i,
+    portugal: /\bportugal\b|lisboa|lisbon|porto\b/i,
+};
+function looksBrazil(content, ai, email) {
+    const dom = (email || '').split('@')[1]?.toLowerCase() || '';
+    if (dom.endsWith('.br')) return true;
+    const text = `${content || ''} ${ai?.localizacao || ''}`;
+    if (BR_HINT.test(text)) return true;
+    if (PT_MARKER.test(text) && /[ãõçáéíóúâêô]/i.test(content || '')) return true; // português com acentos
+    return false;
+}
+function matchesCountry(content, ai, name) {
+    const text = `${content || ''} ${ai?.localizacao || ''}`;
+    const re = COUNTRY_HINTS[name?.toLowerCase()] || new RegExp(`\\b${(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    return re.test(text);
+}
+
 // Deriva os campos da vaga a partir do conteúdo + análise de IA (com fallback regex).
 function deriveJobFields(content, ai, item = {}) {
     const authorName = item.author?.name || null;
@@ -183,6 +207,7 @@ export async function runDiscovery({ queries, location = 'Brazil', locations, ma
 export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
+    region = 'global', excludeCountries,
 } = {}) {
     // Queries entre aspas → o Post Search Scraper trata como frase (busca mais precisa).
     const searchQueries = (queries && queries.length ? queries : ['"hiring software engineer"', '"hiring backend developer"']);
@@ -220,7 +245,7 @@ export async function runMonitoring({
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
     // found = encontrados; novos/duplicados = vagas; descartadosIA/semEmail/rejeitados; aiUsed
-    const s = { found: items.length, novos: 0, duplicados: 0, descartadosIA: 0, semEmail: 0, rejeitados: 0, recrutadoresAdd: 0, aiUsed: 0 };
+    const s = { found: items.length, novos: 0, duplicados: 0, descartadosIA: 0, semEmail: 0, rejeitados: 0, foraRegiao: 0, recrutadoresAdd: 0, aiUsed: 0 };
     let aiCalls = 0;
     for (const item of items) {
         const content = item.content || '';
@@ -253,6 +278,10 @@ export async function runMonitoring({
         const qualifies = force || (f.isJob && f.email && (f.confidence == null || f.confidence >= config.ai.minConfidence));
         if (!qualifies) { if (!f.email) s.semEmail += 1; else s.descartadosIA += 1; continue; }
         if (!f.email) { s.semEmail += 1; continue; }
+
+        // Filtro de região (heurística — o Post Search não tem filtro de país)
+        if (region === 'br' && !looksBrazil(content, ai, f.email)) { s.foraRegiao += 1; continue; }
+        if (excludeCountries?.length && excludeCountries.some((c) => matchesCountry(content, ai, c))) { s.foraRegiao += 1; continue; }
 
         // O autor do post vira recrutador na base (e a vaga o liga → deixa de ser "órfão").
         const { id: recId, added } = await upsertRecruiterFromPost(authorUrl, authorName, f.company, f.email);

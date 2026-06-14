@@ -27,12 +27,15 @@ Copie os `STRIPE_PRICE_STARTER` / `STRIPE_PRICE_PRO` impressos para o env group.
 ## 3. Render — Blueprint
 1. Render → **New → Blueprint** → aponte para o repositório (lê o `render.yaml`).
 2. Crie o **Env Group `newdevjobs-secrets`** e preencha (valores `sync:false`):
-   - `DATABASE_URL` (conexão **direta** 5432 do Supabase; senha com `@` → `%40`)
+   - `DATABASE_URL` — **pooler em session mode** (porta 5432, `postgres.<ref>@aws-…pooler.supabase.com`;
+     a conexão direta `db.<ref>` foi descontinuada). Senha com `@` → `%40`.
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET=cvs`
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI=https://<api>.onrender.com/api/auth/google/callback`
    - `FRONTEND_URL=https://<frontend>.onrender.com`, `ADMIN_EMAILS`
-   - `APIFY_TOKEN`, `APIFY_PROFILE_ACTOR_ID`, `APIFY_POST_ACTOR_ID`
-   - `STRIPE_SECRET_KEY`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO` (o `STRIPE_WEBHOOK_SECRET` vem no passo 5)
+   - `APIFY_TOKEN`, `APIFY_PROFILE_ACTOR_ID=M2FMdjRVeF1HPGFcc`, `APIFY_POST_ACTOR_ID=buIWk2uOUzTmcLsuB`
+   - `STRIPE_SECRET_KEY`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO` (gerados no passo 2; `STRIPE_WEBHOOK_SECRET` vem no passo 5)
+   - **IA (Groq):** `GROQ_API_KEY`, `GROQ_MODEL=llama-3.3-70b-versatile`, `AI_ENABLED=true`,
+     `AI_MIN_CONFIDENCE=70`, `AI_MAX_CALLS_PER_RUN=40` (sem isso, o scraper usa só o fallback regex)
 3. No serviço **frontend**, preencha as `VITE_*`:
    - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
    - `VITE_API_URL=https://<api>.onrender.com`

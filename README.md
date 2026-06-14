@@ -1,61 +1,64 @@
 # newdevjobs
 
-SaaS de **candidaturas automáticas** para devs: monitora vagas de recrutadores,
-calcula match com o perfil do usuário e envia o currículo por email.
+SaaS de **candidaturas automáticas** para devs: um scraper (Apify) coleta posts de
+recrutadores no LinkedIn, uma **IA (Groq)** classifica/extrai as vagas, o sistema calcula
+o **match** com o perfil do usuário e **envia o currículo por email** (Gmail API) —
+automaticamente ou com seleção manual.
+
+🌐 Produção: app em Render · banco/auth/storage no Supabase · pagamentos no Stripe.
 
 ## Arquitetura
 
 ```
-index.html            # landing page (marketing)
-scraper.js            # coletor de vagas do LinkedIn (Apify) -> jobs.db
-backend/              # API REST (Express + SQLite)  — porta 3001
-frontend/             # app/dashboard (React + Vite) — porta 5173
-jobs.db               # banco SQLite (Jobs, Users, Profiles, Applications)
-uploads/              # currículos enviados (PDF)
+pages/index.html       # landing page (marketing) — referência de design
+scraper.js             # CLI do scraper (Apify) → Postgres  (--mode=discovery|monitoring)
+backend/               # API Express + worker (Node)        — porta 3001
+  server.js            #   API HTTP (enfileira envios, billing, admin, dashboard)
+  worker.js            #   processo separado: consome a fila pg-boss (envios + scraper)
+  services/            #   ai (Groq), scraper, sender, mailer, usage, stripeClient…
+  routes/              #   auth, profile, jobs, queue, billing, admin, dashboard…
+  lib/                 #   sql (Postgres), supabaseAdmin, boss (pg-boss), cvStorage, circuitBreaker
+frontend/              # app/dashboard (React + Vite)        — porta 5173
+supabase/migrations/   # schema versionado (0001…0004)
+render.yaml            # blueprint de deploy (web + worker + cron + static)
 ```
 
-## Como rodar (2 terminais)
+**Stack:** Postgres (Supabase) · Supabase Auth (Google + email/senha) · Supabase Storage
+(currículos) · pg-boss (fila no Postgres) + worker · Stripe (assinaturas) · Groq (pré-análise
+de IA) · Apify (scraper) · React + Vite.
 
-**1) Backend**
+## Como rodar (dev — 3 processos)
+
+Pré-requisito: `.env` na raiz e `frontend/.env` preenchidos (veja `.env.example`).
+
 ```bash
 npm install
-npm start            # http://localhost:3001  (API)
+node backend/server.js               # API   → http://localhost:3001
+npm run worker                       # worker (dispara emails + roda o scraper)
+npm run dev --prefix frontend        # app   → http://localhost:5173
 ```
 
-**2) Frontend**
-```bash
-cd frontend
-npm install
-npm run dev          # http://localhost:5173  (app)
-```
+> ⚠️ São **3 processos**. Sem o worker, os envios ficam na fila e nada é enviado.
+> Dev: `EMAIL_MODE=mock SEND_INTERVAL_MS=3000 npm run worker` simula envio sem mandar email.
 
-O Vite faz proxy de `/api` para o backend, então basta abrir
-**http://localhost:5173**, entrar com o login de desenvolvimento (mock) e usar.
+Scraper por CLI: `npm run scrape` (monitoramento) · `npm run scrape:discovery` (descoberta).
 
-## Fluxo do usuário
+## Funcionalidades
 
-1. **Login** (mock — nome + email).
-2. **Perfil**: skills, senioridade, modalidade, pretensão e upload do CV (PDF).
-3. **Conectar Google** (mock nesta fase).
-4. **Vagas**: lista ordenada por match; candidatar gera e "envia" o email.
-5. **Dashboard / Candidaturas**: acompanhamento e histórico.
+- **Auth** real (Supabase): login com Google, email/senha e reset.
+- **Perfil**: skills, senioridade, modalidade, pretensão, filtros e **CV em PDF** (Storage).
+- **Conectar Gmail** (escopo `gmail.send`) para enviar como o próprio usuário.
+- **Dashboard** premium: KPIs com sparkline, "próxima melhor oportunidade", central de atividades.
+- **Robô de envio** (pg-boss): espaça 60–120s, retry/backoff, teto diário por plano.
+- **Planos & Assinatura** (Stripe): Free / Starter / Pro, checkout + billing portal + faturas.
+- **Scraper DevScout** (Apify): descoberta de recrutadores + monitoramento de posts; **IA Groq**
+  classifica/extrai antes de salvar (com circuit breaker e fallback regex).
+- **Admin**: Vagas (filtros), Recrutadores & Bots, Conteúdo bruto (aprovar/rejeitar/reprocessar IA),
+  Estatísticas/Observabilidade.
 
-## Envio real (Google OAuth + Gmail)
+## Deploy
 
-O envio de email é **real** quando você configura as credenciais do Google
-(`.env`). Sem elas, roda em **modo mock** (loga no console) e o app continua
-utilizável. Passo-a-passo em [`backend/SETUP_GOOGLE.md`](backend/SETUP_GOOGLE.md).
-
-- Escopo usado: `gmail.send` (somente envio).
-- O email é montado a partir do **template** do usuário (assunto + corpo com
-  variáveis) e leva o **currículo em anexo**.
-- Em **Configurações**, o usuário escolhe **revisar antes** (preview + confirmar)
-  ou **envio automático**, edita o template e conecta/desconecta o Google.
-
-## Status / mocks
-
-- **Auth do app**: login mock por Bearer token (`dev.<id>`). → trocar por sessão real.
-- **Envio**: real via Gmail quando configurado; mock caso contrário.
-- **Vagas**: vêm do `scraper.js` (Apify). Rode `npm run scrape` para atualizar.
-
-Detalhes da API em [`backend/README.md`](backend/README.md).
+Passo a passo (Render + Supabase + Stripe + Apify) em [`DEPLOY.md`](DEPLOY.md).
+Variáveis em [`.env.example`](.env.example) e [`frontend/.env.example`](frontend/.env.example).
+Detalhes da API em [`backend/README.md`](backend/README.md). Setup do Supabase/Google em
+[`backend/SETUP_SUPABASE.md`](backend/SETUP_SUPABASE.md) e [`backend/SETUP_GOOGLE.md`](backend/SETUP_GOOGLE.md).

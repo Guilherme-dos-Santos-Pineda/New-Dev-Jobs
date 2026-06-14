@@ -22,7 +22,7 @@ export default function AdminStats() {
     if (loading) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;
     if (!data) return null;
 
-    const { raw, jobs, ai, runs } = data;
+    const { raw, jobs, ai, runs, dedup } = data;
     const precision = raw.total ? Math.round((raw.classified_jobs / raw.total) * 100) : 0;
     const cards = [
         { l: 'Posts coletados', v: nf(raw.total), i: 'ti-database' },
@@ -45,6 +45,26 @@ export default function AdminStats() {
                     </div>
                 ))}
             </div>
+
+            {dedup && (
+                <div className="card" style={{ marginBottom: 18 }}>
+                    <div className="section-title"><i className="ti ti-copy" /> Deduplicação (monitoramento)</div>
+                    <div className="cards-grid">
+                        {[
+                            { l: 'Total bruto encontrado', v: nf(dedup.found), i: 'ti-search' },
+                            { l: 'Aproveitado (novas)', v: nf(dedup.novos), i: 'ti-circle-plus' },
+                            { l: 'Duplicado', v: nf(dedup.duplicados), i: 'ti-copy' },
+                            { l: 'Descartado pela IA', v: nf(dedup.descartados), i: 'ti-filter-x' },
+                            { l: 'Taxa de duplicação', v: `${dedup.taxaDuplicacao}%`, i: 'ti-percentage' },
+                        ].map((c) => (
+                            <div key={c.l} className="card kpi">
+                                <div className="kpi-top"><span className="kpi-ico"><i className={`ti ${c.i}`} /></span><span className="kpi-label">{c.l}</span></div>
+                                <div className="kpi-num">{c.v}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="row" style={{ alignItems: 'flex-start' }}>
                 <div className="card" style={{ flex: 1, minWidth: 280 }}>

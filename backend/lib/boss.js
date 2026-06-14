@@ -21,7 +21,7 @@ async function createInstance() {
     const boss = new PgBoss({
         connectionString: url,
         ssl: { rejectUnauthorized: false }, // Supabase exige TLS (sem verificação de CA, igual ao sql.js)
-        max: Number(process.env.PGBOSS_POOL_MAX) || 4,
+        max: Number(process.env.PGBOSS_POOL_MAX) || 2,
     });
     boss.on('error', (e) => console.error('pg-boss erro:', e.message));
     await boss.start();

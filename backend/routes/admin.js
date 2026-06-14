@@ -4,7 +4,7 @@ import sql from '../lib/sql.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
-import { reprocessPost } from '../services/scraper.js';
+import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
 import { aiState } from '../services/ai.js';
 
 const router = Router();
@@ -177,9 +177,18 @@ router.get('/raw', requireAdmin, async (req, res) => {
 // PATCH /api/admin/raw/:id  { status }
 const rawPatchSchema = z.object({ status: z.enum(['pending', 'approved', 'rejected']) });
 router.patch('/raw/:id', requireAdmin, validate(rawPatchSchema), async (req, res) => {
-    const [row] = await sql`update "ScrapedPosts" set "Status" = ${req.body.status} where "Id" = ${Number(req.params.id)} returning *`;
+    const id = Number(req.params.id);
+    const [row] = await sql`update "ScrapedPosts" set "Status" = ${req.body.status} where "Id" = ${id} returning *`;
     if (!row) return res.status(404).json({ error: 'Post não encontrado' });
-    res.json({ post: shapeRaw(row) });
+    let job = null;
+    if (req.body.status === 'approved') {
+        // força a criação da vaga mesmo que a IA tenha descartado
+        try { job = await materializeJobFromPost(id); } catch (e) { job = { ok: false, reason: e.message }; }
+    } else if (req.body.status === 'rejected' && row.LinkedinId) {
+        // bloqueia: remove a vaga gerada por este post (futuras execuções não recriam)
+        await sql`delete from "Jobs" where "LinkedinId" = ${row.LinkedinId}`;
+    }
+    res.json({ post: shapeRaw(row), job });
 });
 
 // POST /api/admin/raw/:id/reprocess — re-roda a IA no post
@@ -202,8 +211,16 @@ router.get('/ai-stats', requireAdmin, async (_req, res) => {
                count(*) filter (where ("AiResult"->>'isJob')::boolean)::int as classified_jobs
         from "ScrapedPosts"`;
     const [jobs] = await sql`select count(*)::int as total, coalesce(round(avg("AiScore")),0)::int as avgscore, count(*) filter (where "AiScore" is not null)::int as withai from "Jobs"`;
+    // Agregado de dedup a partir dos runs de monitoramento
+    const [dedup] = await sql`
+        select coalesce(sum(("Stats"->>'found')::int), 0)::int as found,
+               coalesce(sum(("Stats"->>'novos')::int), 0)::int as novos,
+               coalesce(sum(("Stats"->>'duplicados')::int), 0)::int as duplicados,
+               coalesce(sum(("Stats"->>'descartadosIA')::int), 0)::int as descartados
+        from "ScraperRuns" where "Type" = 'monitoring'`;
+    dedup.taxaDuplicacao = (dedup.novos + dedup.duplicados) ? Math.round((dedup.duplicados / (dedup.novos + dedup.duplicados)) * 100) : 0;
     const runs = await sql`select * from "ScraperRuns" order by "CreatedAt" desc limit 10`;
-    res.json({ raw, jobs, ai: aiState(), runs: runs.map(shapeRun) });
+    res.json({ raw, jobs, dedup, ai: aiState(), runs: runs.map(shapeRun) });
 });
 
 export default router;

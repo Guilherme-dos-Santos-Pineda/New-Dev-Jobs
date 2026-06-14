@@ -18,7 +18,9 @@ const sql = url
     ? postgres(url, {
         ssl: 'require',
         prepare: false,
-        max: Number(process.env.PG_POOL_MAX) || 10,
+        // pooler do Supabase (session mode) limita ~15 conexões no total; como rodamos
+        // API + worker (+ cron), mantemos pools pequenos por processo.
+        max: Number(process.env.PG_POOL_MAX) || 4,
         transform: { undefined: null },
     })
     : null;

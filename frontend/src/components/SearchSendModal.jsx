@@ -25,7 +25,9 @@ export default function SearchSendModal({ onClose, onStarted }) {
             try { await refreshUser(); } catch { /* ignore */ }
             let list = []; let hidden = 0;
             try { const r = await api.getMatches(); list = r.matches; hidden = r.filtered || 0; } catch { /* ignore */ }
-            const wait = Math.max(0, 2200 - (Date.now() - started)); // efeito de "busca"
+            // Mínimo curto só para a animação de "busca" não piscar — sem padding
+            // artificial de tempo. Se a API já demorou mais que isso, abre na hora.
+            const wait = Math.max(0, 700 - (Date.now() - started));
             setTimeout(() => { if (alive) { setMatches(list); setFiltered(hidden); setSelected(new Set(list.map((m) => m.id))); setPhase('choose'); } }, wait);
         })();
         return () => { alive = false; };

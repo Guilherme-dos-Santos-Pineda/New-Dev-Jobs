@@ -10,4 +10,17 @@ export default defineConfig({
             '/api': 'http://localhost:3001',
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                // Separa dependências grandes e estáveis em chunks próprios: o
+                // hash deles não muda quando o código da app muda, então o browser
+                // mantém em cache entre deploys.
+                manualChunks: {
+                    react: ['react', 'react-dom', 'react-router-dom'],
+                    supabase: ['@supabase/supabase-js'],
+                },
+            },
+        },
+    },
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
 import { useToast } from '../components/Toast.jsx';
 import { useAuth } from '../auth.jsx';
 import { MODALITY_OPTIONS, LEVEL_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
@@ -29,7 +30,6 @@ export default function Profile() {
 
     const [form, setForm] = useState(EMPTY);
     const [cvName, setCvName] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [importing, setImporting] = useState(false);
@@ -52,13 +52,17 @@ export default function Profile() {
         setCvName(p.cvName);
     }
 
+    // Cacheado: ao voltar para o Perfil (ou após prefetch no hover) o formulário
+    // aparece preenchido na hora. Aplicamos só uma vez para não sobrescrever o que
+    // o usuário está editando quando a revalidação em segundo plano retorna.
+    const { data, loading } = useCachedResource('profile', () => api.getProfile());
+    const appliedRef = useRef(false);
     useEffect(() => {
-        (async () => {
-            const { profile } = await api.getProfile();
-            applyProfile(profile);
-            setLoading(false);
-        })();
-    }, []);
+        if (data?.profile && !appliedRef.current) {
+            applyProfile(data.profile);
+            appliedRef.current = true;
+        }
+    }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -67,6 +71,7 @@ export default function Profile() {
         try {
             const { profile } = await api.updateProfile(form);
             applyProfile(profile);
+            mutateCache('profile', { profile });
             await refreshUser();
             toast.show('Configurações salvas');
         } catch (e) { toast.show(e.message, 'error'); }
@@ -78,6 +83,7 @@ export default function Profile() {
         try {
             const { profile } = await api.resetProfile();
             applyProfile(profile);
+            mutateCache('profile', { profile });
             await refreshUser();
             toast.show('Configurações resetadas');
         } catch (e) { toast.show('Falha ao resetar', 'error'); }
@@ -89,6 +95,7 @@ export default function Profile() {
         try {
             const { profile } = await api.uploadCv(file);
             setCvName(profile.cvName);
+            mutateCache('profile', { profile });
             await refreshUser();
             toast.show('Currículo enviado');
         } catch (e) { toast.show(e.message, 'error'); }

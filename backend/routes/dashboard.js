@@ -10,45 +10,53 @@ const router = Router();
 router.get('/', requireAuth, async (req, res) => {
     const uid = req.user.Id;
 
-    const [jobs] = await sql`
-        select count(*)::int as total,
-               count(*) filter (where "CreatedAt"::date = current_date)::int as today,
-               count(distinct "Company") filter (where "Company" is not null and "Company" <> '')::int as companies
-        from "Jobs"`;
-    const [apps] = await sql`
-        select count(*)::int as total,
-               count(*) filter (where "CreatedAt" >= now() - interval '7 days')::int as week,
-               coalesce(round(avg("MatchScore")), 0)::int as avgmatch
-        from "Applications" where "UserId" = ${uid}`;
-    const [rec] = await sql`select count(*)::int as total, count(*) filter (where "Status"='approved')::int as approved from "Recruiters"`;
+    // Todas as consultas abaixo são independentes — disparamos em paralelo em vez de
+    // encadear ~9 round-trips. A mais cara (getMatches) deixa de bloquear as demais.
+    const [
+        [jobs],
+        [apps],
+        [rec],
+        usage,
+        matches,
+        sentSeriesRows,
+        jobSeriesRows,
+        recentApps,
+        recentJobs,
+    ] = await Promise.all([
+        sql`
+            select count(*)::int as total,
+                   count(*) filter (where "CreatedAt"::date = current_date)::int as today,
+                   count(distinct "Company") filter (where "Company" is not null and "Company" <> '')::int as companies
+            from "Jobs"`,
+        sql`
+            select count(*)::int as total,
+                   count(*) filter (where "CreatedAt" >= now() - interval '7 days')::int as week,
+                   coalesce(round(avg("MatchScore")), 0)::int as avgmatch
+            from "Applications" where "UserId" = ${uid}`,
+        sql`select count(*)::int as total, count(*) filter (where "Status"='approved')::int as approved from "Recruiters"`,
+        planUsage(uid, req.user.Plan),
+        getMatches(uid), // a primeira é a "próxima melhor"
+        sql`
+            select count(a."Id")::int as c
+            from generate_series(current_date - interval '6 days', current_date, interval '1 day') d
+            left join "Applications" a on a."UserId" = ${uid} and a."CreatedAt"::date = d::date
+            group by d order by d`,
+        sql`
+            select count(j."Id")::int as c
+            from generate_series(current_date - interval '6 days', current_date, interval '1 day') d
+            left join "Jobs" j on j."CreatedAt"::date = d::date
+            group by d order by d`,
+        sql`
+            select a."Id", a."Status", a."MatchScore", a."CreatedAt", j."JobTitle", j."Company"
+            from "Applications" a join "Jobs" j on j."Id" = a."JobId"
+            where a."UserId" = ${uid} order by a."CreatedAt" desc limit 5`,
+        sql`select "JobTitle", "Company", "CreatedAt" from "Jobs" order by "CreatedAt" desc limit 4`,
+    ]);
 
-    const usage = await planUsage(uid, req.user.Plan);
-
-    // Vagas candidatáveis (reusa o matcher); a primeira é a "próxima melhor"
-    const matches = await getMatches(uid);
     const compatible = matches.length;
     const matchesAbove90 = matches.filter((m) => m.matchScore >= 90).length;
     const nb = matches[0];
     const nextBest = nb ? { id: nb.id, title: nb.title, company: nb.company, matchScore: nb.matchScore, skills: (nb.matchedSkills || []).slice(0, 5) } : null;
-
-    // Sparklines (últimos 7 dias)
-    const sentSeriesRows = await sql`
-        select count(a."Id")::int as c
-        from generate_series(current_date - interval '6 days', current_date, interval '1 day') d
-        left join "Applications" a on a."UserId" = ${uid} and a."CreatedAt"::date = d::date
-        group by d order by d`;
-    const jobSeriesRows = await sql`
-        select count(j."Id")::int as c
-        from generate_series(current_date - interval '6 days', current_date, interval '1 day') d
-        left join "Jobs" j on j."CreatedAt"::date = d::date
-        group by d order by d`;
-
-    // Atividades recentes (timeline) + lista de candidaturas recentes
-    const recentApps = await sql`
-        select a."Id", a."Status", a."MatchScore", a."CreatedAt", j."JobTitle", j."Company"
-        from "Applications" a join "Jobs" j on j."Id" = a."JobId"
-        where a."UserId" = ${uid} order by a."CreatedAt" desc limit 5`;
-    const recentJobs = await sql`select "JobTitle", "Company", "CreatedAt" from "Jobs" order by "CreatedAt" desc limit 4`;
 
     const activities = [
         ...recentApps.map((a) => ({

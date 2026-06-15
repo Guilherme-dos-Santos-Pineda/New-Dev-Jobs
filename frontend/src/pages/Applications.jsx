@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { useCachedResource } from '../lib/useCachedResource.js';
 import { scoreClass, fmtDate } from '../utils.js';
 
 const STATUS = {
@@ -10,16 +11,10 @@ const STATUS = {
 };
 
 export default function Applications() {
-    const [apps, setApps] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // stale-while-revalidate: ao voltar para a aba, mostra na hora e revalida em silêncio.
+    const { data, loading } = useCachedResource('applications', () => api.getApplications());
+    const apps = data?.applications || [];
     const [open, setOpen] = useState(null);
-
-    useEffect(() => {
-        (async () => {
-            try { const { applications } = await api.getApplications(); setApps(applications); }
-            finally { setLoading(false); }
-        })();
-    }, []);
 
     return (
         <div className="page">

@@ -5,10 +5,27 @@ import { supabase } from './lib/supabase.js';
 // Em produção, defina VITE_API_URL com a URL do serviço da API (ex.: https://newdevjobs-api.onrender.com).
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+// Memoiza o token da sessão para não chamar getSession() a cada request (num
+// Promise.all de N chamadas seriam N leituras de storage). O onAuthStateChange
+// abaixo invalida o cache em login/logout/refresh de token.
+let cachedToken;
+let tokenResolved = false;
+
+if (supabase) {
+    supabase.auth.onAuthStateChange((_event, session) => {
+        cachedToken = session?.access_token || null;
+        tokenResolved = true;
+    });
+}
+
 async function authHeader() {
     if (!supabase) return {};
-    const { data } = await supabase.auth.getSession();
-    return data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+    if (!tokenResolved) {
+        const { data } = await supabase.auth.getSession();
+        cachedToken = data.session?.access_token || null;
+        tokenResolved = true;
+    }
+    return cachedToken ? { Authorization: `Bearer ${cachedToken}` } : {};
 }
 
 async function request(method, path, body, { isForm } = {}) {

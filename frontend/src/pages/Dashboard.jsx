@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { useCachedResource } from '../lib/useCachedResource.js';
 import { scoreClass, fmtDate } from '../utils.js';
 import FeedbackSection from '../components/FeedbackSection.jsx';
 import SearchSendModal from '../components/SearchSendModal.jsx';
@@ -23,36 +24,44 @@ const timeAgo = (d) => {
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const [data, setData] = useState(null);
-    const [profile, setProfile] = useState(null);
-    const [ranking, setRanking] = useState([]);
-    const [rankMetric, setRankMetric] = useState('');
-    const [loading, setLoading] = useState(true);
+    // Cada recurso é cacheado: ao voltar para a home (ou após prefetch no hover do
+    // menu) os dados aparecem na hora e revalidam em silêncio. As três chamadas
+    // continuam em paralelo, agora deduplicadas pelo cache.
+    const { data, loading, refresh: refreshDash } = useCachedResource('dashboard', () => api.getDashboard());
+    const { data: profData } = useCachedResource('profile', () => api.getProfile());
+    const { data: rankData, refresh: refreshRank } = useCachedResource('ranking', () => api.getRanking());
+    const profile = profData?.profile;
+    const ranking = rankData?.ranking || [];
+    const rankMetric = rankData?.metric || '';
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [queue, setQueue] = useState(null);
     const pollRef = useRef(null);
 
-    async function loadAll() {
-        try {
-            const [d, { profile }, r] = await Promise.all([api.getDashboard(), api.getProfile(), api.getRanking()]);
-            setData(d); setProfile(profile);
-            setRanking(r.ranking); setRankMetric(r.metric);
-        } catch { /* mantém dados anteriores */ }
-        finally { setLoading(false); }
-    }
+    function refreshData() { refreshDash(); refreshRank(); }
 
     function stopPolling() { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } }
     async function refreshQueue() {
+        if (document.hidden) return; // não bate a API com a aba em segundo plano
         try {
             const { status } = await api.queueStatus();
             setQueue(status);
-            if (!status.active) { stopPolling(); loadAll(); }
+            if (!status.active) { stopPolling(); refreshData(); }
         } catch { /* ignore */ }
     }
     function startPolling() { stopPolling(); refreshQueue(); pollRef.current = setInterval(refreshQueue, 3000); }
 
-    useEffect(() => { loadAll(); refreshQueue(); return stopPolling; // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        // Só faz polling se já houver fila ativa/pendente (ex.: page reload no meio
+        // de um envio). Sem fila, fazemos uma única leitura para mostrar o banner.
+        (async () => {
+            try {
+                const { status } = await api.queueStatus();
+                setQueue(status);
+                if (status.active || status.pending > 0) startPolling();
+            } catch { /* ignore */ }
+        })();
+        return stopPolling; // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const m = data?.metrics;
@@ -142,6 +151,20 @@ export default function Dashboard() {
                         </div>
                     ))}
             </div>
+
+            {/* Skeleton dos blocos abaixo dos KPIs (espelha o layout final) */}
+            {loading && (
+                <>
+                    <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
+                        <div className="skeleton sk-card" style={{ flex: 1.1, minWidth: 300, height: 190 }} />
+                        <div className="skeleton sk-card" style={{ flex: 1, minWidth: 300, height: 190 }} />
+                    </div>
+                    <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
+                        <div className="skeleton sk-card" style={{ flex: 1, minWidth: 300, height: 210 }} />
+                        <div className="skeleton sk-card" style={{ flex: 1, minWidth: 300, height: 210 }} />
+                    </div>
+                </>
+            )}
 
             {/* Próxima melhor oportunidade + Central de atividades */}
             {!loading && data && (

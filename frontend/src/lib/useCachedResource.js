@@ -3,9 +3,31 @@ import { useCallback, useEffect, useState } from 'react';
 // Cache em memória (por aba/sessão) com stale-while-revalidate.
 // Evita refetch ao alternar entre abas que mudam pouco.
 const cache = new Map(); // key -> data
+const inflight = new Map(); // key -> Promise (deduplica chamadas concorrentes)
 
 export function invalidateCache(key) {
     if (key) cache.delete(key); else cache.clear();
+}
+
+// Atualiza o valor cacheado sem refetch (ex.: após salvar). Componentes montados
+// com essa key só refletem na próxima carga — use refresh() se precisar re-render.
+export function mutateCache(key, data) {
+    cache.set(key, data);
+}
+
+/**
+ * Aquece o cache fora de um componente (ex.: no hover de um link de navegação).
+ * Deduplica: chamadas repetidas enquanto a primeira está em voo reusam a Promise.
+ */
+export function prefetch(key, fetcher) {
+    if (cache.has(key) || inflight.has(key)) return inflight.get(key);
+    const p = Promise.resolve()
+        .then(fetcher)
+        .then((res) => { cache.set(key, res); return res; })
+        .catch(() => { /* silencioso: é só um aquecimento */ })
+        .finally(() => inflight.delete(key));
+    inflight.set(key, p);
+    return p;
 }
 
 /**

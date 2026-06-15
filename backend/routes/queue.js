@@ -29,12 +29,13 @@ router.post('/', requireAuth, validate(queueSchema), async (req, res) => {
     catch (e) { return res.status(e.status || 403).json({ error: e.message }); }
 
     const matches = await getMatches(req.user.Id);
-    const matchIds = new Set(matches.map((m) => m.id));
+    // IDs do porsager (bigint) voltam como string; comparar como string evita o mismatch
+    const matchIds = new Set(matches.map((m) => String(m.id)));
 
     let jobIds;
     if (mode === 'manual') {
-        const requested = Array.isArray(req.body?.jobIds) ? req.body.jobIds.map(Number) : [];
-        jobIds = requested.filter((id) => matchIds.has(id));
+        const requested = Array.isArray(req.body?.jobIds) ? req.body.jobIds : [];
+        jobIds = requested.map(String).filter((id) => matchIds.has(id));
         if (!jobIds.length) return res.status(400).json({ error: 'Selecione ao menos uma vaga válida' });
     } else {
         jobIds = matches.map((m) => m.id);

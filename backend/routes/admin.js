@@ -213,13 +213,42 @@ function shapeRaw(p) {
     };
 }
 
-// GET /api/admin/raw?status=
+// GET /api/admin/raw?status=&page=&pageSize=
 router.get('/raw', requireAdmin, async (req, res) => {
     const status = req.query.status || null;
-    const rows = status
-        ? await sql`select * from "ScrapedPosts" where "Status" = ${status} order by "CreatedAt" desc limit 100`
-        : await sql`select * from "ScrapedPosts" order by "CreatedAt" desc limit 100`;
-    res.json({ posts: rows.map(shapeRaw) });
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(50, Math.max(5, Number(req.query.pageSize) || 20));
+    const where = status ? sql`where "Status" = ${status}` : sql``;
+    const [{ total }] = await sql`select count(*)::int as total from "ScrapedPosts" ${where}`;
+    const rows = await sql`select * from "ScrapedPosts" ${where} order by "CreatedAt" desc limit ${pageSize} offset ${(page - 1) * pageSize}`;
+    res.json({ posts: rows.map(shapeRaw), total, page, pageSize });
+});
+
+// POST /api/admin/raw/bulk  { action: approve|reject|reprocess, status? } — em lote
+const rawBulkSchema = z.object({
+    action: z.enum(['approve', 'reject', 'reprocess']),
+    status: z.enum(['pending', 'approved', 'rejected']).optional(),
+});
+router.post('/raw/bulk', requireAdmin, validate(rawBulkSchema), async (req, res) => {
+    const { action } = req.body;
+    const status = req.body.status || 'pending';
+    const rows = await sql`select "Id", "LinkedinId" from "ScrapedPosts" where "Status" = ${status} order by "CreatedAt" desc limit 500`;
+    let done = 0;
+    for (const p of rows) {
+        try {
+            if (action === 'approve') {
+                await sql`update "ScrapedPosts" set "Status" = 'approved' where "Id" = ${p.Id}`;
+                await materializeJobFromPost(p.Id);
+            } else if (action === 'reject') {
+                await sql`update "ScrapedPosts" set "Status" = 'rejected' where "Id" = ${p.Id}`;
+                if (p.LinkedinId) await sql`delete from "Jobs" where "LinkedinId" = ${p.LinkedinId}`;
+            } else if (action === 'reprocess') {
+                await reprocessPost(p.Id);
+            }
+            done += 1;
+        } catch { /* segue */ }
+    }
+    res.json({ ok: true, action, done, total: rows.length });
 });
 
 // PATCH /api/admin/raw/:id  { status }

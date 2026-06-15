@@ -16,8 +16,23 @@ export function detectLevel(text = '') {
     return null;
 }
 
+const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
+// Heurística leve de país da vaga (mesma lógica do scraper)
+function jobIsBR(job) {
+    const dom = (job.Email || '').split('@')[1]?.toLowerCase() || '';
+    if (dom.endsWith('.br')) return true;
+    const text = `${job.Location || ''} ${job.JobTitle || ''} ${job.Description || ''}`;
+    if (BR_HINT.test(text)) return true;
+    return /[ãõçáéíóúâê]/i.test(job.Description || '') && /\b(vaga|currículo|contratando|desenvolvedor)\b/i.test(text);
+}
+
 export function passesFilters(job, profile) {
     if (!profile) return true;
+
+    // Preferência de país do usuário (br | intl)
+    const region = profile.Region || 'br';
+    if (region === 'br' && !jobIsBR(job)) return false;
+    if (region === 'intl' && jobIsBR(job)) return false;
     const skillsText = parseArr(job.Skills).join(' ');
     const text = `${job.JobTitle || ''} ${job.Company || ''} ${job.Description || ''} ${skillsText}`.toLowerCase();
 

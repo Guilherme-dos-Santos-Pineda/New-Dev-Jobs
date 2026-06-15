@@ -111,9 +111,13 @@ export const api = {
         const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
         return request('GET', `/admin/jobs${qs ? `?${qs}` : ''}`);
     },
-    adminRaw: (status) => request('GET', `/admin/raw${status ? `?status=${status}` : ''}`),
+    adminRaw: (params = {}) => {
+        const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+        return request('GET', `/admin/raw${qs ? `?${qs}` : ''}`);
+    },
     adminRawStatus: (id, status) => request('PATCH', `/admin/raw/${id}`, { status }),
     adminReprocess: (id) => request('POST', `/admin/raw/${id}/reprocess`),
+    adminRawBulk: (action, status) => request('POST', '/admin/raw/bulk', { action, status }),
     adminAiStats: () => request('GET', '/admin/ai-stats'),
 
     // billing / planos

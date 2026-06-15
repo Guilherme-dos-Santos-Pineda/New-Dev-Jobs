@@ -9,20 +9,37 @@ const STATUS_BADGE = { pending: 'warn', approved: 'ok', rejected: 'danger' };
 export default function AdminRawContent() {
     const toast = useToast();
     const [posts, setPosts] = useState([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('');
     const [open, setOpen] = useState(null);
     const [busy, setBusy] = useState(null);
+    const [bulking, setBulking] = useState('');
+    const pageSize = 20;
 
-    async function load(status = filter) {
+    async function load(status = filter, p = page) {
         setLoading(true);
-        try { const { posts } = await api.adminRaw(status); setPosts(posts); }
+        try { const r = await api.adminRaw({ status, page: p }); setPosts(r.posts); setTotal(r.total); setPage(r.page); }
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load('', 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    function pick(status) { setFilter(status); load(status); }
+    function pick(status) { setFilter(status); load(status, 1); }
+
+    async function bulk(action) {
+        const target = filter || 'pending';
+        const labels = { approve: 'aceitar todos', reject: 'recusar todos', reprocess: 'reprocessar todos pela IA' };
+        if (!window.confirm(`${labels[action]} os "${target}" (até 500)?`)) return;
+        setBulking(action);
+        try {
+            const r = await api.adminRawBulk(action, target);
+            toast.show(`${labels[action]}: ${r.done}/${r.total} processados`);
+            await load(filter, 1);
+        } catch (e) { toast.show(e.message, 'error'); }
+        finally { setBulking(''); }
+    }
 
     async function setStatus(p, status) {
         try { await api.adminRawStatus(p.id, status); setPosts((prev) => prev.map((x) => (x.id === p.id ? { ...x, status } : x))); }
@@ -37,11 +54,16 @@ export default function AdminRawContent() {
 
     return (
         <div className="card">
-            <div className="row" style={{ alignItems: 'center', marginBottom: 14 }}>
+            <div className="row" style={{ alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
                 <div className="segmented">
                     {FILTERS.map(([v, l]) => <button key={v} className={filter === v ? 'active' : ''} onClick={() => pick(v)}>{l}</button>)}
                 </div>
-                <button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => load()}><i className="ti ti-refresh" /></button>
+                <button className="btn ghost sm" onClick={() => load(filter, page)}><i className="ti ti-refresh" /></button>
+                <div className="spacer" />
+                <span className="muted" style={{ fontSize: 11.5 }}>em lote ({filter || 'pendentes'}):</span>
+                <button className="btn ghost sm" disabled={!!bulking} onClick={() => bulk('reprocess')}><i className="ti ti-robot" /> {bulking === 'reprocess' ? '…' : 'Reprocessar IA'}</button>
+                <button className="btn ghost sm" disabled={!!bulking} onClick={() => bulk('approve')}><i className="ti ti-checks" /> {bulking === 'approve' ? '…' : 'Aceitar todos'}</button>
+                <button className="btn ghost sm" disabled={!!bulking} onClick={() => bulk('reject')}><i className="ti ti-x" /> {bulking === 'reject' ? '…' : 'Recusar todos'}</button>
             </div>
 
             {loading ? (
@@ -85,6 +107,15 @@ export default function AdminRawContent() {
                     </div>
                 );
             })}
+
+            {!loading && total > pageSize && (
+                <div className="row" style={{ alignItems: 'center', marginTop: 12 }}>
+                    <span className="muted" style={{ fontSize: 12 }}>{total} post(s) · página {page}/{Math.ceil(total / pageSize)}</span>
+                    <div className="spacer" />
+                    <button className="btn ghost sm" disabled={page <= 1} onClick={() => load(filter, page - 1)}><i className="ti ti-chevron-left" /> anterior</button>
+                    <button className="btn ghost sm" disabled={page >= Math.ceil(total / pageSize)} onClick={() => load(filter, page + 1)}>próxima <i className="ti ti-chevron-right" /></button>
+                </div>
+            )}
         </div>
     );
 }

@@ -20,18 +20,18 @@ const EMPTY_PROFILE = {
     Skills: [], Seniority: null, Modality: null, SalaryMin: null, SalaryMax: null,
     Headline: null, Phone: null, Whatsapp: null, Linkedin: null, Github: null, Portfolio: null,
     RequiredKeywords: [], BlockedWords: [], BlockedDomains: [], Levels: [], Modalities: [],
-    StrictLevel: false, PostingDays: null,
+    StrictLevel: false, PostingDays: null, Region: 'br',
 };
 
 async function upsertProfile(userId, f) {
     await sql`
         insert into "Profiles" ("UserId", "Skills", "Seniority", "Modality", "SalaryMin", "SalaryMax", "Headline",
             "Phone", "Whatsapp", "Linkedin", "Github", "Portfolio",
-            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "StrictLevel", "PostingDays", "UpdatedAt")
+            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "StrictLevel", "PostingDays", "Region", "UpdatedAt")
         values (${userId}, ${sql.json(f.Skills)}, ${f.Seniority}, ${f.Modality}, ${f.SalaryMin}, ${f.SalaryMax}, ${f.Headline},
             ${f.Phone}, ${f.Whatsapp}, ${f.Linkedin}, ${f.Github}, ${f.Portfolio},
             ${sql.json(f.RequiredKeywords)}, ${sql.json(f.BlockedWords)}, ${sql.json(f.BlockedDomains)},
-            ${sql.json(f.Levels)}, ${sql.json(f.Modalities)}, ${f.StrictLevel}, ${f.PostingDays}, now())
+            ${sql.json(f.Levels)}, ${sql.json(f.Modalities)}, ${f.StrictLevel}, ${f.PostingDays}, ${f.Region || 'br'}, now())
         on conflict ("UserId") do update set
             "Skills" = excluded."Skills", "Seniority" = excluded."Seniority", "Modality" = excluded."Modality",
             "SalaryMin" = excluded."SalaryMin", "SalaryMax" = excluded."SalaryMax", "Headline" = excluded."Headline",
@@ -39,7 +39,7 @@ async function upsertProfile(userId, f) {
             "Github" = excluded."Github", "Portfolio" = excluded."Portfolio",
             "RequiredKeywords" = excluded."RequiredKeywords", "BlockedWords" = excluded."BlockedWords",
             "BlockedDomains" = excluded."BlockedDomains", "Levels" = excluded."Levels", "Modalities" = excluded."Modalities",
-            "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "UpdatedAt" = now()`;
+            "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "Region" = excluded."Region", "UpdatedAt" = now()`;
 }
 
 async function setCv(userId, cvPath, cvName) {
@@ -65,6 +65,7 @@ function publicProfile(p) {
         blockedDomains: parseArr(p.BlockedDomains),
         strictLevel: !!p.StrictLevel,
         postingDays: p.PostingDays,
+        region: p.Region || 'br',
         cvName: p.CvName,
         hasCv: !!p.CvPath,
         updatedAt: p.UpdatedAt,
@@ -111,6 +112,7 @@ router.put('/', requireAuth, async (req, res) => {
         Modalities: filterAllowed(b.modalities, ALLOWED_MODALITIES),
         StrictLevel: !!b.strictLevel,
         PostingDays: Number.isInteger(+b.postingDays) && +b.postingDays > 0 ? +b.postingDays : null,
+        Region: b.region === 'intl' ? 'intl' : 'br',
     });
 
     res.json({ profile: publicProfile(await getProfile(req.user.Id)) });

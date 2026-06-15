@@ -16,7 +16,7 @@ const POSTING_OPTIONS = [
 const EMPTY = {
     skills: [], seniorities: [], modalities: [], salaryMin: '', salaryMax: '', headline: '',
     phone: '', whatsapp: '', linkedin: '', github: '', portfolio: '',
-    requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '',
+    requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br',
 };
 
 export default function Profile() {
@@ -47,7 +47,7 @@ export default function Profile() {
             linkedin: p.linkedin || '', github: p.github || '', portfolio: p.portfolio || '',
             requiredKeywords: p.requiredKeywords || [], blockedWords: p.blockedWords || [],
             blockedDomains: p.blockedDomains || [],
-            strictLevel: !!p.strictLevel, postingDays: p.postingDays ?? '',
+            strictLevel: !!p.strictLevel, postingDays: p.postingDays ?? '', region: p.region || 'br',
         });
         setCvName(p.cvName);
     }
@@ -230,6 +230,14 @@ export default function Profile() {
                         <div className="card">
                             <div className="sec-card-head"><h2>Preferências de Trabalho</h2></div>
                             <div className="why"><i className="ti ti-info-circle" />Pode escolher <b>vários</b>. Ex.: remoto + híbrido + presencial, sendo pleno e sênior.</div>
+                            <div className="field">
+                                <label>Onde se candidatar (país das vagas)</label>
+                                <select className="select" value={form.region} onChange={(e) => set('region', e.target.value)}>
+                                    <option value="br">🇧🇷 Brasil</option>
+                                    <option value="intl">🌎 Internacional</option>
+                                </select>
+                                <div className="hint">Só receberá vagas da região escolhida. (Por enquanto o foco é Brasil.)</div>
+                            </div>
                             <div className="field">
                                 <label>Modalidade <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(selecione uma ou mais)</span></label>
                                 <div className="chips">

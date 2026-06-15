@@ -28,7 +28,6 @@ export default function EmailSettings() {
     const activeField = useRef('body');
 
     const [connecting, setConnecting] = useState(false);
-    const [savingMode, setSavingMode] = useState(false);
     const [testTo, setTestTo] = useState('garmecfeels@gmail.com');
     const [testing, setTesting] = useState(false);
 
@@ -152,16 +151,6 @@ export default function EmailSettings() {
         toast.show('Conta Google desconectada');
     }
 
-    async function setMode(mode) {
-        if (mode === user.sendMode) return;
-        setSavingMode(true);
-        try {
-            await api.updateSettings({ sendMode: mode });
-            await refreshUser();
-        } finally {
-            setSavingMode(false);
-        }
-    }
 
     if (loading) return <div className="center" style={{ padding: 40 }}><div className="spinner" /></div>;
 
@@ -218,32 +207,6 @@ export default function EmailSettings() {
                         </button>
                     </div>
                     {!user.googleConnected && <div className="hint">Conecte sua conta Google para enviar o teste.</div>}
-                </div>
-            </div>
-
-            {/* ---- Modo de envio ---- */}
-            <div className="card" style={{ marginBottom: 20 }}>
-                <div className="section-title">Ao se candidatar</div>
-                <div className="row" style={{ gap: 12 }}>
-                    {[
-                        { v: 'review', icon: 'ti-eye-check', t: 'Revisar antes de enviar', d: 'Mostra o email pronto e você confirma o envio.' },
-                        { v: 'auto', icon: 'ti-bolt', t: 'Enviar automaticamente', d: 'Envia direto ao clicar em candidatar.' },
-                    ].map((o) => (
-                        <button key={o.v} type="button" disabled={savingMode} onClick={() => setMode(o.v)}
-                            className="card hoverable" style={{
-                                flex: 1, minWidth: 220, textAlign: 'left', cursor: 'pointer',
-                                borderColor: user.sendMode === o.v ? 'var(--color-accent)' : 'var(--color-border-light)',
-                                boxShadow: user.sendMode === o.v ? '0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent)' : 'none',
-                                background: 'var(--color-surface)',
-                            }}>
-                            <div className="row" style={{ alignItems: 'center', gap: 10 }}>
-                                <i className={`ti ${o.icon}`} style={{ fontSize: 20, color: 'var(--color-accent)' }} />
-                                <span style={{ fontWeight: 600 }}>{o.t}</span>
-                                {user.sendMode === o.v && <i className="ti ti-circle-check-filled" style={{ marginLeft: 'auto', color: 'var(--color-accent)' }} />}
-                            </div>
-                            <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>{o.d}</div>
-                        </button>
-                    ))}
                 </div>
             </div>
 

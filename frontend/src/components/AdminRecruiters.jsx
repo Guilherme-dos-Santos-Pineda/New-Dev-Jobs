@@ -6,6 +6,16 @@ import { fmtDate } from '../utils.js';
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 const STATUS_BADGE = { discovered: 'warn', approved: 'ok', rejected: 'danger' };
 
+// "há quanto tempo não vejo esse recrutador" (LastCheckedAt). null = nunca varrido.
+const staleAgo = (d) => {
+    if (!d) return 'nunca';
+    const ms = Date.now() - new Date(d);
+    const days = Math.floor(ms / 86400000);
+    if (days >= 1) return `há ${days}d`;
+    const h = Math.floor(ms / 3600000);
+    return h >= 1 ? `há ${h}h` : 'agora';
+};
+
 export default function AdminRecruiters() {
     const toast = useToast();
     const [stats, setStats] = useState(null);
@@ -67,9 +77,10 @@ export default function AdminRecruiters() {
                     <select className="select" style={{ maxWidth: 150 }} value={f.hasJobs} onChange={(e) => set('hasJobs', e.target.value)}>
                         <option value="">Com/sem vaga</option><option value="true">Com vagas</option><option value="false">Sem vagas (órfão)</option>
                     </select>
-                    <select className="select" style={{ maxWidth: 150 }} value={f.sort} onChange={(e) => set('sort', e.target.value)}>
+                    <select className="select" style={{ maxWidth: 160 }} value={f.sort} onChange={(e) => set('sort', e.target.value)}>
                         <option value="jobs">+ vagas</option><option value="emails">+ emails enviados</option>
                         <option value="recent">+ recentes</option><option value="name">nome</option>
+                        <option value="stale">+ obsoletos (cadência)</option>
                     </select>
                     <label className="row" style={{ alignItems: 'center', gap: 6, fontSize: 13 }}>
                         <input type="checkbox" checked={f.hasEmail === 'true'} onChange={(e) => set('hasEmail', e.target.checked ? 'true' : '')} /> só com email
@@ -84,18 +95,24 @@ export default function AdminRecruiters() {
                 ) : (
                     <div className="dtable-wrap">
                         <table className="dtable">
-                            <thead><tr><th>Nome</th><th>Empresa</th><th>Email</th><th>Vagas</th><th>Emails enviados</th><th>Status</th><th className="col-actions">Ações</th></tr></thead>
+                            <thead><tr><th>Nome</th><th>Empresa</th><th>Email</th><th>Vagas</th><th>Emails enviados</th><th>Verificado</th><th>Status</th><th className="col-actions">Ações</th></tr></thead>
                             <tbody>
                                 {data.recruiters.map((r) => (
                                     <tr key={r.id}>
                                         <td style={{ fontWeight: 600 }}>
                                             {r.linkedinUrl ? <a href={r.linkedinUrl} target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>{r.name || 'Recrutador'}</a> : (r.name || 'Recrutador')}
-                                            <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>{r.title || ''}</div>
+                                            <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>
+                                                {r.title || ''}{r.source && r.source !== 'linkedin' ? `${r.title ? ' · ' : ''}${r.source}` : ''}
+                                                {!r.linkedinUrl && <span title="Sem perfil do LinkedIn — não monitorável"> · não monitorável</span>}
+                                            </div>
                                         </td>
                                         <td>{r.company || '—'}</td>
                                         <td>{r.email || <span className="muted">sem email</span>}</td>
                                         <td>{r.jobsCount > 0 ? <span className="badge ok">{r.jobsCount}</span> : <span className="badge neutral">órfão</span>}</td>
                                         <td className="mono">{nf(r.emailsSent)}</td>
+                                        <td className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }} title={r.lastCheckedAt ? fmtDate(r.lastCheckedAt) : 'nunca varrido'}>
+                                            {staleAgo(r.lastCheckedAt)}{r.checkCount ? ` · ${r.checkCount}x` : ''}
+                                        </td>
                                         <td><span className={`badge ${STATUS_BADGE[r.status] || 'neutral'}`}>{r.status}</span></td>
                                         <td className="col-actions">
                                             {r.status !== 'approved' && <button className="btn ghost sm" title="Aprovar" onClick={() => setStatus(r, 'approved')}><i className="ti ti-check" /></button>}

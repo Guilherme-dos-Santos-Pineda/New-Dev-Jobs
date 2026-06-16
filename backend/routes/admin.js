@@ -107,6 +107,7 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
         emails: sql`emails_sent desc nulls last`,
         name: sql`r."Name" asc`,
         recent: sql`r."CreatedAt" desc`,
+        stale: sql`r."LastCheckedAt" asc nulls first, r."Id" asc`, // mais obsoletos primeiro
     };
     const orderBy = sortMap[req.query.sort] || sortMap.jobs;
 

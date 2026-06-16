@@ -29,6 +29,7 @@ export default function BotsPanel() {
     const [monExclude, setMonExclude] = useState('india'); // países a excluir (quando global)
     const [monSource, setMonSource] = useState('saved'); // global | saved | selected
     const [monSelected, setMonSelected] = useState([]);  // ids quando 'selected'
+    const [monMaxRecruiters, setMonMaxRecruiters] = useState(40); // cap da rotação (modo 'saved')
     const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
     const [runDetail, setRunDetail] = useState(null);    // run aberto no modal
 
@@ -59,6 +60,7 @@ export default function BotsPanel() {
             : {
                 queries: parseQueries(monQueries), maxPosts: Number(monMax) || 10,
                 source: monSource, ...(monSource === 'selected' ? { recruiterIds: monSelected } : {}),
+                ...(monSource === 'saved' ? { maxRecruiters: Number(monMaxRecruiters) || 40 } : {}),
                 contentType: monOnlyJobs ? 'jobs' : 'all', postedLimit: monPeriod, scrapePages: Number(monPages) || 1,
                 region: monRegion, ...(monRegion === 'global' && monExclude.trim() ? { excludeCountries: parseQueries(monExclude) } : {}),
             };
@@ -143,6 +145,14 @@ export default function BotsPanel() {
                             <option value="global">LinkedIn inteiro (mais volume/custo)</option>
                         </select>
                     </div>
+                    {monSource === 'saved' && (
+                        <div className="field">
+                            <label>Quantos recrutadores por run (mais obsoletos primeiro)</label>
+                            <input className="input" type="number" min="1" max="500" value={monMaxRecruiters}
+                                onChange={(e) => setMonMaxRecruiters(e.target.value)} />
+                            <div className="hint">Rotaciona pela base aprovada: cada run varre os N que estão há mais tempo sem checagem.</div>
+                        </div>
+                    )}
                     {monSource === 'selected' && (
                         <div className="field">
                             <label>Selecione os recrutadores</label>

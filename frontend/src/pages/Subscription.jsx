@@ -9,6 +9,9 @@ const money = (cents, currency = 'brl') =>
     ((cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: (currency || 'brl').toUpperCase() });
 const fmtDate = (ms) => new Date(ms).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
+const SUB_BADGE = { active: 'ok', trialing: 'info', past_due: 'danger', unpaid: 'danger', canceled: 'neutral' };
+const SUB_LABEL = { active: 'ativa', trialing: 'teste', past_due: 'pagamento pendente', unpaid: 'não paga', canceled: 'cancelada' };
+
 export default function Subscription() {
     const { user, refreshUser } = useAuth();
     const toast = useToast();
@@ -17,10 +20,12 @@ export default function Subscription() {
 
     const { data: plansData, loading: loadingPlans } = useCachedResource('billing:plans', () => api.getPlans());
     const { data: histData, loading: loadingHist, refresh: refreshHist } = useCachedResource('billing:history', () => api.billingHistory());
+    const { data: subData, refresh: refreshSub } = useCachedResource('billing:subscription', () => api.getSubscription());
 
     const plans = plansData?.plans || [];
     const stripeEnabled = plansData?.stripeEnabled;
     const invoices = histData?.invoices || [];
+    const subscription = subData?.subscription || null;
     const current = user?.plan || 'free';
     const usage = user?.usage;
     const hasSub = invoices.length > 0 || current !== 'free';
@@ -29,7 +34,7 @@ export default function Subscription() {
     useEffect(() => {
         const c = params.get('checkout');
         if (!c) return;
-        if (c === 'success') { toast.show('Pagamento concluído! Atualizando seu plano…'); refreshUser(); refreshHist(); }
+        if (c === 'success') { toast.show('Pagamento concluído! Atualizando seu plano…'); refreshUser(); refreshHist(); refreshSub(); }
         else if (c === 'cancel') toast.show('Checkout cancelado.', 'error');
         params.delete('checkout'); setParams(params, { replace: true });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -60,9 +65,19 @@ export default function Subscription() {
                     <div className="kpi-ico" style={{ width: 44, height: 44, fontSize: 22 }}><i className="ti ti-crown" /></div>
                     <div>
                         <div className="muted" style={{ fontSize: 12 }}>Plano atual</div>
-                        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}>
-                            {plans.find((p) => p.id === current)?.label || current}
+                        <div className="row" style={{ alignItems: 'center', gap: 8 }}>
+                            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}>
+                                {plans.find((p) => p.id === current)?.label || current}
+                            </div>
+                            {subscription && <span className={`badge ${SUB_BADGE[subscription.status] || 'neutral'}`}>{SUB_LABEL[subscription.status] || subscription.status}</span>}
                         </div>
+                        {subscription?.currentPeriodEnd && (
+                            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                                {subscription.cancelAtPeriodEnd
+                                    ? <><i className="ti ti-calendar-x" /> cancela em {fmtDate(subscription.currentPeriodEnd)} (acesso até lá)</>
+                                    : <><i className="ti ti-calendar-repeat" /> renova em {fmtDate(subscription.currentPeriodEnd)}</>}
+                            </div>
+                        )}
                     </div>
                     <div className="spacer" />
                     {hasSub && stripeEnabled && (

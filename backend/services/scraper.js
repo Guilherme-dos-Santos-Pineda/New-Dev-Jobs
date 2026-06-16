@@ -39,7 +39,7 @@ const extractTitle = (text) => (
     || text.match(/Cargo:\s*(.+)/i)?.[1]?.trim()
     || ''
 );
-const extractSkills = (text) => {
+export const extractSkills = (text) => {
     const low = (text || '').toLowerCase();
     return knownSkills.filter((s) => low.includes(s.toLowerCase()));
 };
@@ -207,7 +207,7 @@ export async function runDiscovery({ queries, location = 'Brazil', locations, ma
 export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
-    region = 'global', excludeCountries,
+    region = 'global', excludeCountries, maxRecruiters = 40,
 } = {}) {
     // Queries entre aspas → o Post Search Scraper trata como frase (busca mais precisa).
     const searchQueries = (queries && queries.length ? queries : ['"hiring software engineer"', '"hiring backend developer"']);
@@ -215,12 +215,18 @@ export async function runMonitoring({
     // Estratégia de origem da busca:
     //  - 'global'   → sem authorUrls (busca em todo o LinkedIn pela query; mais volume/custo)
     //  - 'selected' → apenas os recrutadores escolhidos (recruiterIds)
-    //  - 'saved'    → recrutadores aprovados (fallback: RecruiterSources ativas) [padrão]
+    //  - 'saved'    → recrutadores aprovados, priorizando os MAIS OBSOLETOS (rotação
+    //                 por LastCheckedAt; cap maxRecruiters controla custo Apify). [padrão]
     let authorUrls = [];
     if (source === 'selected' && recruiterIds?.length) {
-        authorUrls = (await sql`select "LinkedinUrl" from "Recruiters" where "Id" = any(${recruiterIds})`).map((r) => r.LinkedinUrl);
+        authorUrls = (await sql`select "LinkedinUrl" from "Recruiters" where "Id" = any(${recruiterIds}) and "LinkedinUrl" is not null`).map((r) => r.LinkedinUrl);
     } else if (source !== 'global') {
-        authorUrls = (await sql`select "LinkedinUrl" from "Recruiters" where "Status" = 'approved'`).map((r) => r.LinkedinUrl);
+        const cap = maxRecruiters && maxRecruiters > 0 ? maxRecruiters : null;
+        authorUrls = (await sql`
+            select "LinkedinUrl" from "Recruiters"
+            where "Status" = 'approved' and "LinkedinUrl" is not null
+            order by "LastCheckedAt" asc nulls first, "Id" asc
+            ${cap ? sql`limit ${cap}` : sql``}`).map((r) => r.LinkedinUrl);
         if (!authorUrls.length) {
             authorUrls = (await sql`select "Url" from "RecruiterSources" where "Active" = true`).map((r) => r.Url);
         }
@@ -292,6 +298,15 @@ export async function runMonitoring({
         if (recId && postedAt) {
             await sql`update "Recruiters" set "LastPostDate" = greatest(coalesce("LastPostDate", to_timestamp(0)), ${postedAt}), "UpdatedAt" = now() where "Id" = ${recId}`;
         }
+    }
+
+    // Cadência: carimba os recrutadores que ESTE run varreu (saved/selected),
+    // para a próxima rodada priorizar quem está há mais tempo sem ser checado.
+    if (authorUrls.length) {
+        await sql`
+            update "Recruiters"
+            set "LastCheckedAt" = now(), "CheckCount" = "CheckCount" + 1, "UpdatedAt" = now()
+            where "LinkedinUrl" = any(${authorUrls})`;
     }
 
     s.recruiters = authorUrls.length;

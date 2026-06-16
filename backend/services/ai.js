@@ -2,13 +2,19 @@ import { config } from '../config.js';
 import { createCircuitBreaker } from '../lib/circuitBreaker.js';
 
 // =========================
-// Pré-análise de conteúdo com IA (Groq) — classifica + extrai dados de vagas.
-// Tem circuit breaker: se a API falhar/travar repetidas vezes, abre o circuito
-// e o chamador cai no fallback (regex do scraper), sem queimar créditos.
+// Pré-análise de conteúdo com IA — classifica + extrai dados de vagas.
+// Cadeia de provedores (default: Groq → OpenAI). Ambos falam a API compatível
+// com OpenAI (/chat/completions, response_format json_object), então o caller é
+// genérico, só muda baseUrl/apiKey/model. Cada provedor tem seu próprio circuit
+// breaker: se um falha/trava repetidas vezes, o circuito abre e a cadeia pula
+// para o próximo. Se todos falharem, retorna null → caller usa o fallback regex.
 // =========================
 
-const breaker = createCircuitBreaker({ threshold: 3, cooldownMs: 120000 });
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+// Um circuit breaker por provedor (isola falhas: Groq cair não abre o da OpenAI).
+const breakers = {
+    groq: createCircuitBreaker({ threshold: 3, cooldownMs: 120000 }),
+    openai: createCircuitBreaker({ threshold: 3, cooldownMs: 120000 }),
+};
 
 const SYSTEM = 'Você classifica posts do LinkedIn para um agregador de vagas de tecnologia. Responda SOMENTE com JSON válido, sem texto extra.';
 
@@ -37,8 +43,26 @@ Conteúdo:
 """${(text || '').slice(0, 4000)}"""`;
 }
 
+// Provedores na ordem configurada, só os que têm chave (e existem em breakers).
+function activeProviders() {
+    return config.ai.order
+        .map((name) => ({ name, cfg: config.ai.providers[name] }))
+        .filter((p) => p.cfg?.configured && breakers[p.name]);
+}
+
 export function aiState() {
-    return { enabled: config.ai.enabled, model: config.ai.model, ...breaker.state() };
+    const providers = activeProviders().map(({ name, cfg }) => ({
+        name, model: cfg.model, ...breakers[name].state(),
+    }));
+    const primary = providers[0] || { open: false, openUntil: 0, failures: 0 };
+    // Mantém as chaves de topo que o admin/observabilidade já consome.
+    return {
+        enabled: config.ai.enabled,
+        model: primary.model || config.ai.model,
+        order: config.ai.order,
+        open: primary.open, openUntil: primary.openUntil, failures: primary.failures,
+        providers,
+    };
 }
 
 function normalize(p) {
@@ -54,37 +78,52 @@ function normalize(p) {
     };
 }
 
-/**
- * Analisa um texto. Retorna o objeto normalizado, ou null se IA desativada/
- * circuito aberto/erro (o chamador deve usar o fallback nesse caso).
- */
-export async function analyzeContent(text) {
-    if (!config.ai.enabled || breaker.isOpen()) return null;
-
+// Uma chamada a um provedor (API compatível com OpenAI). Retorna o objeto
+// normalizado ou lança (para a cadeia tentar o próximo).
+async function callProvider({ name, cfg }, text) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), config.ai.timeoutMs);
     try {
-        const res = await fetch(GROQ_URL, {
+        const res = await fetch(cfg.baseUrl, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${config.ai.apiKey}`, 'Content-Type': 'application/json' },
+            headers: { Authorization: `Bearer ${cfg.apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: config.ai.model,
+                model: cfg.model,
                 temperature: 0,
                 response_format: { type: 'json_object' },
                 messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: buildPrompt(text) }],
             }),
             signal: ctrl.signal,
         });
-        if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`${name} HTTP ${res.status}`);
         const data = await res.json();
         const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-        breaker.recordSuccess();
+        breakers[name].recordSuccess();
         return normalize(parsed);
     } catch (e) {
-        breaker.recordFailure();
-        console.warn('IA (Groq) falhou:', e.message, '→ fallback');
-        return null;
+        breakers[name].recordFailure();
+        throw e;
     } finally {
         clearTimeout(timer);
     }
+}
+
+/**
+ * Analisa um texto pela cadeia de provedores (na ordem configurada).
+ * Retorna o objeto normalizado do primeiro que responder, ou null se a IA
+ * está desativada / todos os provedores falharam ou estão com o circuito aberto.
+ */
+export async function analyzeContent(text) {
+    if (!config.ai.enabled) return null;
+
+    const providers = activeProviders().filter((p) => !breakers[p.name].isOpen());
+    for (const provider of providers) {
+        try {
+            return await callProvider(provider, text);
+        } catch (e) {
+            console.warn(`IA (${provider.name}) falhou:`, e.message, '→ próximo provedor/fallback');
+            // segue para o próximo provedor da cadeia
+        }
+    }
+    return null;
 }

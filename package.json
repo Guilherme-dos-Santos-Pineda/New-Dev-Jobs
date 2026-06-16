@@ -9,7 +9,9 @@
     "worker": "node backend/worker.js",
     "worker:dev": "node --watch backend/worker.js",
     "scrape": "node scraper.js --mode=monitoring",
-    "scrape:discovery": "node scraper.js --mode=discovery"
+    "scrape:discovery": "node scraper.js --mode=discovery",
+    "import:jobs": "node backend/scripts/import-jobs.js",
+    "db:migrate": "node backend/scripts/apply-migration.mjs"
   },
   "keywords": [],
   "type": "module",

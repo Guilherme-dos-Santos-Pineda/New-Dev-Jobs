@@ -16,8 +16,9 @@ function shapeSource(s) {
 function shapeRecruiter(r) {
     return {
         id: r.Id, linkedinUrl: r.LinkedinUrl, name: r.Name, email: r.Email,
-        title: r.Title, company: r.Company, status: r.Status,
-        lastPostDate: r.LastPostDate, createdAt: r.CreatedAt,
+        title: r.Title, company: r.Company, status: r.Status, source: r.Source,
+        lastPostDate: r.LastPostDate, lastCheckedAt: r.LastCheckedAt, checkCount: r.CheckCount,
+        createdAt: r.CreatedAt,
         jobsCount: r.jobs_count ?? undefined, emailsSent: r.emails_sent ?? undefined,
     };
 }
@@ -106,6 +107,7 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
         emails: sql`emails_sent desc nulls last`,
         name: sql`r."Name" asc`,
         recent: sql`r."CreatedAt" desc`,
+        stale: sql`r."LastCheckedAt" asc nulls first, r."Id" asc`, // mais obsoletos primeiro
     };
     const orderBy = sortMap[req.query.sort] || sortMap.jobs;
 
@@ -156,6 +158,7 @@ const runSchema = z.object({
         maxPosts: z.coerce.number().int().min(1).max(100).optional(),
         source: z.enum(['global', 'saved', 'selected']).optional(),
         recruiterIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
+        maxRecruiters: z.coerce.number().int().min(1).max(500).optional(), // cap p/ rotação (saved)
         contentType: z.enum(['all', 'jobs']).optional(),
         postedLimit: z.enum(['any', '1h', '24h', 'week', 'month', '3months', '6months', 'year']).optional(),
         sortBy: z.enum(['relevance', 'date']).optional(),

@@ -48,8 +48,8 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
             customer_email: req.user.Email,
             metadata: { userId: req.user.Id, plan: req.body.plan },
             subscription_data: { metadata: { userId: req.user.Id, plan: req.body.plan } },
-            success_url: `${config.frontendUrl}/app/perfil?checkout=success`,
-            cancel_url: `${config.frontendUrl}/app/perfil?checkout=cancel`,
+            success_url: `${config.frontendUrl}/app/assinatura?checkout=success`,
+            cancel_url: `${config.frontendUrl}/app/assinatura?checkout=cancel`,
         });
         res.json({ url: session.url });
     } catch (e) {
@@ -74,6 +74,27 @@ router.get('/history', requireAuth, async (req, res) => {
     } catch (e) {
         console.error('Erro ao listar faturas:', e.message);
         res.json({ invoices: [] });
+    }
+});
+
+// GET /api/billing/subscription — status/renovação da assinatura atual (Stripe)
+router.get('/subscription', requireAuth, async (req, res) => {
+    if (!stripeConfigured) return res.json({ subscription: null });
+    const [u] = await sql`select "StripeSubscriptionId" from "Users" where "Id" = ${req.user.Id}`;
+    if (!u?.StripeSubscriptionId) return res.json({ subscription: null });
+    try {
+        const sub = await stripe.subscriptions.retrieve(u.StripeSubscriptionId);
+        res.json({
+            subscription: {
+                status: sub.status, // active | trialing | past_due | canceled | unpaid…
+                currentPeriodEnd: sub.current_period_end ? sub.current_period_end * 1000 : null,
+                cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+                plan: planFromPriceId(sub.items?.data?.[0]?.price?.id),
+            },
+        });
+    } catch (e) {
+        console.error('Erro ao buscar assinatura:', e.message);
+        res.json({ subscription: null });
     }
 });
 

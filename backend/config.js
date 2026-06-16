@@ -17,9 +17,12 @@ const {
     STRIPE_WEBHOOK_SECRET = '',
     STRIPE_PRICE_STARTER = '',
     STRIPE_PRICE_PRO = '',
-    // IA (Groq)
+    // IA — pré-análise do scraper (cadeia de provedores com fallback)
     GROQ_API_KEY = '',
     GROQ_MODEL = 'llama-3.3-70b-versatile',
+    OPENAI_API_KEY = '',
+    OPENAI_MODEL = 'gpt-4o-mini',
+    AI_PROVIDER_ORDER = 'groq,openai', // ordem de tentativa; cai para o próximo quando um falha
     AI_ENABLED = 'true',
     AI_MIN_CONFIDENCE = '70',
     AI_MAX_CALLS_PER_RUN = '40',
@@ -64,9 +67,26 @@ export const config = {
         configured: Boolean(STRIPE_SECRET_KEY),
     },
     ai: {
-        apiKey: GROQ_API_KEY,
+        // Provedores configurados (com chave). A cadeia tenta na ordem de `order`.
+        providers: {
+            groq: {
+                apiKey: GROQ_API_KEY,
+                model: GROQ_MODEL,
+                baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
+                configured: Boolean(GROQ_API_KEY),
+            },
+            openai: {
+                apiKey: OPENAI_API_KEY,
+                model: OPENAI_MODEL,
+                baseUrl: 'https://api.openai.com/v1/chat/completions',
+                configured: Boolean(OPENAI_API_KEY),
+            },
+        },
+        // Ordem de tentativa, só com provedores que têm chave (default groq→openai).
+        order: AI_PROVIDER_ORDER.split(',').map((p) => p.trim().toLowerCase()).filter(Boolean),
+        enabled: AI_ENABLED !== 'false' && Boolean(GROQ_API_KEY || OPENAI_API_KEY),
+        // compat: alguns lugares ainda leem config.ai.model (provedor primário)
         model: GROQ_MODEL,
-        enabled: AI_ENABLED !== 'false' && Boolean(GROQ_API_KEY),
         minConfidence: Number(AI_MIN_CONFIDENCE) || 70,
         maxCallsPerRun: Number(AI_MAX_CALLS_PER_RUN) || 40,
         timeoutMs: Number(AI_TIMEOUT_MS) || 15000,

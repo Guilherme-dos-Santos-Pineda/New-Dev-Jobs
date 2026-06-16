@@ -14,8 +14,10 @@ uploads/
 *.db-wal
 *.db-shm
 
-# saída do scraper (contém dados/emails)
+# saída do scraper / imports (contém dados/emails — PII)
 resultado.json
+response.json
+*.import.json
 
 # build do frontend
 frontend/dist/

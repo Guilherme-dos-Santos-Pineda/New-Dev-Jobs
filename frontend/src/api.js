@@ -140,6 +140,7 @@ export const api = {
     // billing / planos
     getPlans: () => request('GET', '/billing/plans'),
     getUsage: () => request('GET', '/billing/me'),
+    getSubscription: () => request('GET', '/billing/subscription'),
     setPlan: (plan, userId) => request('POST', '/billing/set-plan', { plan, userId }),
     checkout: (plan) => request('POST', '/billing/checkout', { plan }),
     billingHistory: () => request('GET', '/billing/history'),

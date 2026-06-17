@@ -49,12 +49,14 @@ export default function BotsPanel() {
 
     const load = useCallback(async () => {
         try {
-            const [{ recruiters }, { runs }, { schedules }] = await Promise.all([api.adminRecruiters(), api.adminScraperRuns(), api.adminSchedules()]);
+            const [{ recruiters }, { runs }] = await Promise.all([api.adminRecruiters(), api.adminScraperRuns()]);
             setRecruiters(recruiters);
             setRuns(runs);
-            setSchedules(schedules);
         } catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
+        // Agendamentos: opcional — a tabela pode não existir até aplicar a migration 0008.
+        try { const { schedules } = await api.adminSchedules(); setSchedules(schedules); }
+        catch { /* sem robôs agendados ainda */ }
     }, [toast]);
 
     useEffect(() => { load(); }, [load]);

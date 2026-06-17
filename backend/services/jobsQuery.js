@@ -87,10 +87,25 @@ export async function listForUser(userId, { ignoreFilters = false } = {}) {
     };
 }
 
-/** Vagas "candidatáveis": passam nos filtros, têm email e ainda não foram enviadas. */
+/**
+ * Vagas "candidatáveis": passam nos filtros, têm email e ainda não foram enviadas.
+ * A exclusão de "sem email" e "já candidatada" é feita no SQL (usa o índice de
+ * Applications) para não trazer a tabela inteira de Jobs à memória — só o que
+ * resta passa pelo matcher em JS. Resultado idêntico ao filtro antigo em JS.
+ */
 export async function getMatches(userId) {
-    const { jobs } = await listForUser(userId);
-    return jobs
-        .filter((j) => j.email && !j.applied)
+    const [profile] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
+    const rows = await sql`
+        select j.* from "Jobs" j
+        where j."Email" is not null and j."Email" <> ''
+          and not exists (
+              select 1 from "Applications" a
+              where a."UserId" = ${userId} and a."JobId" = j."Id"
+          )
+        order by j."CreatedAt" desc, j."Id" desc`;
+    const noneApplied = new Set(); // a query já excluiu as candidatadas
+    return rows
+        .filter((j) => passesFilters(j, profile))
+        .map((j) => shapeJob(j, profile, noneApplied))
         .sort((a, b) => b.matchScore - a.matchScore);
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { useCachedResource } from '../lib/useCachedResource.js';
 import { useToast } from './Toast.jsx';
 import { fmtDate } from '../utils.js';
 
@@ -32,24 +33,27 @@ function Msg({ text, limit = 160 }) {
 
 export default function FeedbackSection({ limit = 0, compact = false, title = true }) {
     const toast = useToast();
-    const [items, setItems] = useState([]);
-    const [summary, setSummary] = useState({ rated: 0, average: 0, distribution: {}, count: 0 });
-    const [mine, setMine] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // Cacheado por limite: o bloco do Dashboard (limit=5) e a página (limit=0)
+    // não refazem a chamada quando o usuário navega entre eles.
+    const { data, loading, refresh } = useCachedResource(`feedback:${limit}`, () => api.getFeedback(limit));
+    const items = data?.feedback || [];
+    const summary = data?.summary || { rated: 0, average: 0, distribution: {}, count: 0 };
+    const mine = data?.mine || null;
+
     const [message, setMessage] = useState('');
     const [rating, setRating] = useState(0);
     const [busy, setBusy] = useState(false);
     const [editing, setEditing] = useState(false);
 
-    async function load() {
-        const { feedback, summary, mine } = await api.getFeedback(limit);
-        setItems(feedback);
-        setSummary(summary);
-        setMine(mine);
-        if (mine) { setMessage(mine.message); setRating(mine.rating || 0); }
-        setLoading(false);
-    }
-    useEffect(() => { load(); }, []);
+    // Preenche o editor a partir da avaliação existente — mas não enquanto o
+    // usuário edita, para uma revalidação em segundo plano não apagar o texto.
+    useEffect(() => {
+        if (editing) return;
+        setMessage(mine?.message || '');
+        setRating(mine?.rating || 0);
+    }, [mine?.id, mine?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const load = refresh;
 
     async function submit(e) {
         e.preventDefault();
@@ -136,7 +140,14 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
 
             {/* Relatos da comunidade */}
             {loading ? (
-                <div className="center" style={{ padding: 20 }}><div className="spinner" /></div>
+                <div style={{ paddingTop: 8 }}>
+                    {[0, 1, 2].map((i) => (
+                        <div key={i} style={{ marginBottom: 14 }}>
+                            <div className="skeleton sk-line" style={{ width: '40%' }} />
+                            <div className="skeleton sk-line" style={{ width: '90%' }} />
+                        </div>
+                    ))}
+                </div>
             ) : list.length === 0 ? (
                 <div className="empty" style={{ padding: 24 }}>
                     <i className="ti ti-message-heart" />

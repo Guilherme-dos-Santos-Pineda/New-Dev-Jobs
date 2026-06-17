@@ -1,7 +1,42 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
+import { api } from '../api.js';
+import { prefetch } from '../lib/useCachedResource.js';
 import Logo from './Logo.jsx';
+
+// Hover em um item do menu já aquece o chunk lazy da rota + os dados da tela.
+// Quando o usuário clica, a página normalmente já tem tudo em cache.
+const prefetchByPath = {
+    '/app': () => {
+        import('../pages/Dashboard.jsx');
+        prefetch('dashboard', () => api.getDashboard());
+        prefetch('profile', () => api.getProfile());
+        prefetch('ranking', () => api.getRanking());
+    },
+    '/app/candidaturas': () => {
+        import('../pages/Applications.jsx');
+        prefetch('applications', () => api.getApplications());
+    },
+    '/app/feedback': () => {
+        import('../pages/Feedback.jsx');
+        prefetch('feedback:0', () => api.getFeedback());
+    },
+    '/app/perfil': () => {
+        import('../pages/Profile.jsx');
+        prefetch('profile', () => api.getProfile());
+    },
+    '/app/assinatura': () => {
+        import('../pages/Subscription.jsx');
+        prefetch('billing:plans', () => api.getPlans());
+        prefetch('billing:history', () => api.billingHistory());
+    },
+    '/app/admin': () => { import('../pages/Admin.jsx'); },
+};
+
+function warm(path) {
+    try { prefetchByPath[path]?.(); } catch { /* prefetch é best-effort */ }
+}
 
 function toggleTheme() {
     const el = document.documentElement;
@@ -59,6 +94,7 @@ export default function Layout() {
                 <nav className="sidebar-nav">
                     {tabs.map((t) => (
                         <NavLink key={t.to} to={t.to} end={t.end} title={t.label}
+                            onMouseEnter={() => warm(t.to)} onFocus={() => warm(t.to)}
                             className={({ isActive }) => (isActive ? 'active' : '')}>
                             <i className={`ti ${t.icon}`} />
                             <span>{t.label}</span>
@@ -92,6 +128,7 @@ export default function Layout() {
             <nav className="bottom-nav">
                 {tabs.map((t) => (
                     <NavLink key={t.to} to={t.to} end={t.end}
+                        onMouseEnter={() => warm(t.to)} onFocus={() => warm(t.to)}
                         className={({ isActive }) => (isActive ? 'active' : '')}>
                         <i className={`ti ${t.icon}`} />
                         <span>{t.label}</span>

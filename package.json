@@ -12,7 +12,8 @@
     "scrape:discovery": "node scraper.js --mode=discovery",
     "import:jobs": "node backend/scripts/import-jobs.js",
     "db:migrate": "node backend/scripts/apply-migration.mjs",
-    "test:ai": "node backend/scripts/test-ai.mjs"
+    "test:ai": "node backend/scripts/test-ai.mjs",
+    "seed:robots": "node backend/scripts/seed-robots.mjs"
   },
   "keywords": [],
   "type": "module",

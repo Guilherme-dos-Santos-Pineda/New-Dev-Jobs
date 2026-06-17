@@ -36,7 +36,7 @@ app.use(cors({
 
 // ⚠️ Webhook do Stripe precisa do corpo CRU → registrar ANTES do express.json().
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' })); // teto de payload (anti-DoS); uploads usam multer à parte
 
 // Rate limiting: limite geral generoso (cobre polling) + limite estrito em rotas sensíveis.
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });
@@ -45,9 +45,11 @@ const strictLimiter = rateLimit({
     message: { error: 'Muitas requisições. Tente novamente em alguns minutos.' },
 });
 app.use('/api', apiLimiter);
-app.use('/api/email', strictLimiter);            // envio de email de teste
-app.use('/api/billing/checkout', strictLimiter); // criação de checkout
-app.use('/api/billing/set-plan', strictLimiter); // troca de plano (admin)
+app.use('/api/email', strictLimiter);                 // envio de email de teste
+app.use('/api/billing/checkout', strictLimiter);      // criação de checkout
+app.use('/api/billing/set-plan', strictLimiter);      // troca de plano (admin)
+app.use('/api/admin/scraper/run', strictLimiter);     // dispara Apify (custo) — evita rajada
+app.use('/api/profile/import-linkedin', strictLimiter); // parse de PDF (CPU)
 // (o webhook do Stripe NÃO entra no strictLimiter — pode vir em rajada)
 
 app.use(attachUser);

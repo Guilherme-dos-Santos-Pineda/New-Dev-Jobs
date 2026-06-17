@@ -92,10 +92,15 @@ export const config = {
         timeoutMs: Number(AI_TIMEOUT_MS) || 15000,
     },
     adminEmails,
-    // Se nenhum ADMIN_EMAILS configurado, libera admin em dev (auth é mock).
-    isAdminEmail: (email) => adminEmails.length === 0 || adminEmails.includes((email || '').toLowerCase()),
+    // Admin = email na allowlist (ADMIN_EMAILS) OU Users.Role='admin'. SEM fallback
+    // "aberto": se ADMIN_EMAILS estiver vazio, ninguém é admin por email (evita que
+    // qualquer usuário logado vire admin num ambiente mal configurado).
+    isAdminEmail: (email) => adminEmails.includes((email || '').toLowerCase()),
 };
 
 if (!googleConfigured) {
     console.warn('⚠️  Google OAuth não configurado — rodando em modo MOCK de email. Veja backend/SETUP_GOOGLE.md');
+}
+if (adminEmails.length === 0) {
+    console.warn('⚠️  ADMIN_EMAILS vazio — nenhum admin por email. Defina ADMIN_EMAILS (ou Users.Role=admin) para acessar /api/admin.');
 }

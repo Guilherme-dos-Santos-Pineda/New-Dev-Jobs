@@ -37,8 +37,9 @@ export default function BotsPanel() {
     const [monSource, setMonSource] = useState('saved'); // global | saved | selected
     const [monSelected, setMonSelected] = useState([]);  // ids quando 'selected'
     const [monMaxRecruiters, setMonMaxRecruiters] = useState(10); // cap da rotação (modo 'saved')
-    // Seletor de recrutadores (modo 'selected'): busca + só monitoráveis (com LinkedIn)
+    // Seletor de recrutadores (modo 'selected'): busca + filtro de status (mostra TODOS)
     const [pickerQ, setPickerQ] = useState('');
+    const [pickerStatus, setPickerStatus] = useState('');
     const [pickerList, setPickerList] = useState([]);
     const [pickerLoading, setPickerLoading] = useState(false);
     // Robôs agendados (automação)
@@ -62,16 +63,18 @@ export default function BotsPanel() {
     useEffect(() => { load(); }, [load]);
 
     // Carrega recrutadores monitoráveis (com LinkedIn) para o seletor do modo 'selected'.
-    const loadPicker = useCallback(async (q) => {
+    const loadPicker = useCallback(async (q, status) => {
         setPickerLoading(true);
         try {
-            const { recruiters } = await api.adminRecruiters({ q: q || undefined, monitorable: 'true', pageSize: 100, sort: 'recent' });
+            // Mostra TODOS os recrutadores (qualquer status/fonte). Os sem LinkedIn
+            // aparecem marcados como não monitoráveis (não dá pra raspar posts deles).
+            const { recruiters } = await api.adminRecruiters({ q: q || undefined, status: status || undefined, pageSize: 100, sort: 'recent' });
             setPickerList(recruiters);
         } catch (e) { toast.show(e.message, 'error'); }
         finally { setPickerLoading(false); }
     }, [toast]);
 
-    useEffect(() => { if (monSource === 'selected') loadPicker(''); }, [monSource, loadPicker]);
+    useEffect(() => { if (monSource === 'selected') loadPicker(pickerQ, pickerStatus); }, [monSource]); // eslint-disable-line react-hooks/exhaustive-deps
 
     async function setStatus(r, status) {
         try {
@@ -224,25 +227,42 @@ export default function BotsPanel() {
                     )}
                     {monSource === 'selected' && (
                         <div className="field">
-                            <label>Selecione os recrutadores <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(só monitoráveis · {monSelected.length} selecionado(s))</span></label>
-                            <div className="search" style={{ marginBottom: 8 }}>
-                                <i className="ti ti-search" />
-                                <input className="input" placeholder="Buscar por nome, empresa ou email…" value={pickerQ}
-                                    onChange={(e) => setPickerQ(e.target.value)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadPicker(pickerQ); } }} />
+                            <label>Selecione os recrutadores <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({monSelected.length} selecionado(s))</span></label>
+                            <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+                                <div className="search" style={{ flex: 1 }}>
+                                    <i className="ti ti-search" />
+                                    <input className="input" placeholder="Buscar por nome, empresa ou email…" value={pickerQ}
+                                        onChange={(e) => setPickerQ(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadPicker(pickerQ, pickerStatus); } }} />
+                                </div>
+                                <select className="select" style={{ maxWidth: 150 }} value={pickerStatus}
+                                    onChange={(e) => { setPickerStatus(e.target.value); loadPicker(pickerQ, e.target.value); }}>
+                                    <option value="">Todos os status</option>
+                                    <option value="approved">Aprovados</option>
+                                    <option value="discovered">Descobertos (IA)</option>
+                                    <option value="rejected">Rejeitados</option>
+                                </select>
                             </div>
-                            <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--color-border-light)', borderRadius: 10, padding: 8 }}>
+                            <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--color-border-light)', borderRadius: 10, padding: 8 }}>
                                 {pickerLoading ? <div className="muted" style={{ fontSize: 12 }}>Carregando…</div>
-                                    : pickerList.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Nenhum recrutador monitorável (com LinkedIn). Rode a descoberta para achar perfis.</div>
-                                        : pickerList.map((r) => (
-                                            <label key={r.id} className="row" style={{ alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0', fontWeight: 400 }}>
-                                                <input type="checkbox" checked={monSelected.includes(r.id)}
-                                                    onChange={(e) => setMonSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))} />
-                                                {r.name || 'Recrutador'} <span className="muted">{r.company || ''}</span>
-                                            </label>
-                                        ))}
+                                    : pickerList.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Nenhum recrutador encontrado. Importe contatos ou rode a descoberta.</div>
+                                        : pickerList.map((r) => {
+                                            const monitorable = !!r.linkedinUrl;
+                                            return (
+                                                <label key={r.id} className="row" title={monitorable ? '' : 'Sem perfil do LinkedIn — não dá para monitorar posts'}
+                                                    style={{ alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0', fontWeight: 400, opacity: monitorable ? 1 : 0.55, cursor: monitorable ? 'pointer' : 'not-allowed' }}>
+                                                    <input type="checkbox" disabled={!monitorable} checked={monSelected.includes(r.id)}
+                                                        onChange={(e) => setMonSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))} />
+                                                    <span style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {r.name || 'Recrutador'} <span className="muted">{r.company || r.email || ''}</span>
+                                                    </span>
+                                                    <span className={`badge ${STATUS_BADGE[r.status] || 'neutral'}`} style={{ fontSize: 9 }}>{r.status}</span>
+                                                    {!monitorable && <span className="badge neutral" style={{ fontSize: 9 }}>sem LinkedIn</span>}
+                                                </label>
+                                            );
+                                        })}
                             </div>
-                            <div className="hint">Apify monitora no máximo 10 por execução — acima disso rodamos em lotes (mais custo).</div>
+                            <div className="hint">Mostra todos os recrutadores. Só os com LinkedIn são monitoráveis (os de email só servem como alvo de envio). Apify processa 10 por execução — acima disso, em lotes.</div>
                         </div>
                     )}
                     <div className="field">

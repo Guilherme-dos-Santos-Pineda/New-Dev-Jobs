@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidade — newdevjobs</title>
+    <meta name="description" content="Como o newdevjobs coleta, usa e protege seus dados.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <link rel="stylesheet" href="/base.css">
+    <script>
+        (function () {
+            const s = localStorage.getItem('theme');
+            if (s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+        })();
+    </script>
+</head>
+<body>
+    <div class="lp">
+        <nav>
+            <a class="logo" href="/index.html">
+                <span class="logo-mark"><i class="ti ti-mail-forward"></i></span>
+                <span class="logo-name">newdevjobs</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/docs.html">documentação</a></li>
+                <li><a href="/termos.html">termos</a></li>
+                <li><a href="/privacidade.html">privacidade</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
+                    <i class="ti ti-sun icon-sun"></i><i class="ti ti-moon icon-moon"></i>
+                </button>
+                <a class="nav-cta" href="https://newdevjobs-frontend.onrender.com/login"><i class="ti ti-login-2"></i> entrar</a>
+            </div>
+        </nav>
+
+        <article class="doc">
+            <div class="doc-eyebrow">legal</div>
+            <h1>Política de <strong>Privacidade</strong></h1>
+            <p class="updated">Última atualização: 16 de junho de 2026</p>
+            <div class="note"><i class="ti ti-info-circle"></i><span>Modelo inicial para o lançamento; recomendamos revisão jurídica. Em conformidade com a LGPD (Lei 13.709/2018) e com a Política de Dados do Usuário dos Serviços de API do Google.</span></div>
+
+            <h2>1. Quais dados coletamos</h2>
+            <ul>
+                <li><strong>Conta</strong>: nome e email (via login do Google ou cadastro por email).</li>
+                <li><strong>Perfil</strong>: skills, senioridade, modalidade, pretensão, filtros, links (LinkedIn/GitHub/portfólio) e o <strong>currículo em PDF</strong> que você envia.</li>
+                <li><strong>Conta Google (opcional)</strong>: ao conectar, guardamos um <strong>token de autorização</strong> com escopo <code>gmail.send</code> para enviar emails em seu nome. <strong>Não</strong> coletamos sua senha.</li>
+                <li><strong>Uso</strong>: histórico de candidaturas enviadas (vaga, destinatário, data, status) e métricas da sua conta.</li>
+                <li><strong>Pagamento</strong>: processado pela Stripe. Não armazenamos dados completos de cartão.</li>
+            </ul>
+
+            <h2>2. Como usamos</h2>
+            <ul>
+                <li>operar o serviço: calcular o match, montar e <strong>enviar suas candidaturas</strong> pela sua conta Gmail;</li>
+                <li>exibir seu painel, histórico e limites de plano;</li>
+                <li>processar assinaturas e dar suporte;</li>
+                <li>segurança e prevenção de abuso.</li>
+            </ul>
+
+            <h2>3. Uso dos dados do Google (Limited Use)</h2>
+            <p>O uso e a transferência de informações recebidas das APIs do Google obedecem à <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de <strong>Uso Limitado</strong>. Em concreto:</p>
+            <ul>
+                <li>usamos o acesso <strong>exclusivamente</strong> para enviar os emails de candidatura que você solicita (escopo <code>gmail.send</code>);</li>
+                <li><strong>não lemos, listamos, modificamos nem excluímos</strong> mensagens da sua caixa;</li>
+                <li>não usamos esses dados para publicidade e <strong>não os vendemos</strong>;</li>
+                <li>não compartilhamos com terceiros, exceto para operar o envio ou por obrigação legal.</li>
+            </ul>
+
+            <h2>4. Com quem compartilhamos</h2>
+            <p>Apenas com provedores necessários à operação, cada um com sua própria política:</p>
+            <ul>
+                <li><strong>Google</strong> — envio dos emails (Gmail API);</li>
+                <li><strong>Supabase</strong> — autenticação, banco de dados e armazenamento do currículo;</li>
+                <li><strong>Stripe</strong> — pagamentos;</li>
+                <li><strong>Apify</strong> — coleta das publicações de vagas;</li>
+                <li><strong>Groq / OpenAI</strong> — classificação/extração das vagas por IA (processamos o conteúdo dos posts, não seus emails).</li>
+            </ul>
+
+            <h2>5. Armazenamento e segurança</h2>
+            <p>Os dados ficam em infraestrutura gerenciada (Supabase), com acesso restrito por chaves de serviço e conexões cifradas (TLS). O currículo fica em um bucket privado. Tokens de acesso são usados apenas para o envio autorizado.</p>
+
+            <h2>6. Retenção</h2>
+            <p>Mantemos seus dados enquanto sua conta existir. Ao encerrar a conta ou solicitar exclusão, removemos seus dados pessoais e o currículo, salvo o que a lei exigir reter (ex.: registros fiscais de pagamento).</p>
+
+            <h2>7. Seus direitos (LGPD)</h2>
+            <p>Você pode solicitar acesso, correção, portabilidade, exclusão ou a revogação de consentimento dos seus dados. Para enviar emails, você pode <strong>desconectar o Google</strong> a qualquer momento — na plataforma ou em <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</p>
+
+            <h2>8. Contato</h2>
+            <p>Dúvidas ou solicitações sobre privacidade: <a href="mailto:guilhermesantospineda@gmail.com">guilhermesantospineda@gmail.com</a>.</p>
+        </article>
+
+        <footer>
+            <span class="footer-logo">newdevjobs</span>
+            <div class="footer-links">
+                <a href="/docs.html">documentação</a>
+                <a href="/termos.html">termos de uso</a>
+                <a href="/privacidade.html">privacidade</a>
+            </div>
+        </footer>
+    </div>
+    <script>
+        function toggleTheme() {
+            const h = document.documentElement;
+            const dark = h.classList.toggle('dark');
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+    </script>
+</body>
+</html>

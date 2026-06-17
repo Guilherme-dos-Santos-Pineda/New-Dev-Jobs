@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <title>newdevjobs — candidaturas automáticas</title>
 
     <!-- Google Fonts -->
@@ -699,7 +700,7 @@
             <ul class="nav-links">
                 <li><a href="#como-funciona">como funciona</a></li>
                 <li><a href="#precos">preços</a></li>
-                <li><a href="#">para recrutadores</a></li>
+                <li><a href="/docs.html">documentação</a></li>
             </ul>
 
             <div class="nav-actions">
@@ -707,7 +708,7 @@
                     <i class="ti ti-sun icon-sun"></i>
                     <i class="ti ti-moon icon-moon"></i>
                 </button>
-                <button class="nav-cta"><i class="ti ti-brand-google" aria-hidden="true"></i> entrar com Google</button>
+                <button class="nav-cta" onclick="go('/login')"><i class="ti ti-login-2" aria-hidden="true"></i> entrar</button>
             </div>
         </nav>
 
@@ -718,8 +719,8 @@
                 <h1>Sua candidatura<br>chega <span class="accent">antes</span><br>de <strong>todo mundo.</strong></h1>
                 <p class="hero-sub">Monitoramos posts de recrutadores no LinkedIn, extraímos vagas com email de contato e enviamos seu currículo automaticamente — usando a sua própria conta Gmail.</p>
                 <div class="hero-actions">
-                    <button class="btn-p"><i class="ti ti-brand-google" aria-hidden="true" tonavigate="https://newdevjobs-frontend.onrender.com"></i> começar grátis</button>
-                    <button class="btn-s">ver como funciona</button>
+                    <button class="btn-p" onclick="go('/signup')"><i class="ti ti-rocket" aria-hidden="true"></i> começar grátis</button>
+                    <button class="btn-s" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})">ver como funciona</button>
                 </div>
                 <p class="hero-note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 candidaturas grátis por dia. Sem cartão de crédito.</p>
             </div>
@@ -856,7 +857,7 @@
                         <li><i class="ti ti-check" aria-hidden="true"></i>matching básico</li>
                         <li><i class="ti ti-check" aria-hidden="true"></i>sem cartão de crédito</li>
                     </ul>
-                    <button class="plan-btn">começar grátis</button>
+                    <button class="plan-btn" onclick="go('/signup')">começar grátis</button>
                 </div>
                 <div class="plan featured">
                     <div class="pop-badge">mais popular</div>
@@ -870,7 +871,7 @@
                         <li><i class="ti ti-check" aria-hidden="true"></i>histórico de candidaturas</li>
                         <li><i class="ti ti-check" aria-hidden="true"></i>suporte por email</li>
                     </ul>
-                    <button class="plan-btn">assinar starter</button>
+                    <button class="plan-btn" onclick="go('/signup')">assinar starter</button>
                 </div>
                 <div class="plan">
                     <div class="plan-label">pro</div>
@@ -884,7 +885,7 @@
                         <li><i class="ti ti-check" aria-hidden="true"></i>agendamento automático</li>
                         <li><i class="ti ti-check" aria-hidden="true"></i>suporte prioritário</li>
                     </ul>
-                    <button class="plan-btn">assinar pro</button>
+                    <button class="plan-btn" onclick="go('/signup')">assinar pro</button>
                 </div>
             </div>
             <div class="privacy">
@@ -905,19 +906,27 @@
         <div class="cta-bar">
             <h2>Pronto para <strong>automatizar</strong><br>sua busca por emprego?</h2>
             <p>Configure em menos de 5 minutos. 7 candidaturas grátis todo dia.</p>
-            <button class="btn-white">começar agora — é grátis</button>
+            <button class="btn-white" onclick="go('/signup')">começar agora — é grátis</button>
         </div>
 
         <!-- ==================== FOOTER ==================== -->
         <footer>
             <span class="footer-logo">newdevjobs</span>
-            <span class="footer-note">feito para devs brasileiros em busca ativa · 2026</span>
+            <span style="display:flex;gap:18px;flex-wrap:wrap;">
+                <a href="/docs.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;">documentação</a>
+                <a href="/termos.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;">termos de uso</a>
+                <a href="/privacidade.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;">privacidade</a>
+            </span>
+            <span class="footer-note">feito para devs brasileiros · 2026</span>
         </footer>
 
     </div>
 
     <!-- ==================== SCRIPT TEMA ==================== -->
     <script>
+        // Navega para o app (deploy do frontend). Ajuste a URL se o domínio mudar.
+        function go(path) { location.href = 'https://newdevjobs-frontend.onrender.com' + path; }
+
         function toggleTheme() {
             const html = document.documentElement;
             if (html.classList.contains('dark')) {

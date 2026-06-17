@@ -92,3 +92,11 @@ services:
         sync: false   # https://<api>.onrender.com
       - key: VITE_STRIPE_PUBLISHABLE_KEY
         sync: false
+
+  # Site institucional (landing + docs + termos + privacidade) — HTML estático puro.
+  # Os CTAs apontam para o app (newdevjobs-frontend). Sem build: só publica pages/.
+  - type: web
+    name: newdevjobs-site
+    runtime: static
+    buildCommand: echo "site estático — sem build"
+    staticPublishPath: pages

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Como usar o newdevjobs — guia do usuário</title>
+    <meta name="description" content="Guia rápido: monte seu perfil, conecte o Gmail e receba candidaturas automáticas no newdevjobs.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <link rel="stylesheet" href="/base.css">
+    <script>
+        (function () {
+            const s = localStorage.getItem('theme');
+            if (s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+        })();
+    </script>
+</head>
+<body>
+    <div class="lp">
+        <nav>
+            <a class="logo" href="/index.html">
+                <span class="logo-mark"><i class="ti ti-mail-forward"></i></span>
+                <span class="logo-name">newdevjobs</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/index.html#como-funciona">como funciona</a></li>
+                <li><a href="/index.html#precos">preços</a></li>
+                <li><a href="/docs.html">documentação</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
+                    <i class="ti ti-sun icon-sun"></i><i class="ti ti-moon icon-moon"></i>
+                </button>
+                <a class="nav-cta" href="https://newdevjobs-frontend.onrender.com/login"><i class="ti ti-login-2"></i> entrar</a>
+            </div>
+        </nav>
+
+        <article class="doc">
+            <div class="doc-eyebrow">documentação</div>
+            <h1>Como usar o <strong>newdevjobs</strong></h1>
+            <p class="lead">Em poucos minutos você coloca sua busca por vaga no piloto automático: o sistema acha vagas com email de contato, calcula o match com o seu perfil e envia seu currículo — pela sua própria conta Gmail.</p>
+
+            <div class="toc">
+                <a href="#conta"><div class="t">1. Criar sua conta</div><div class="d">login com Google ou email</div></a>
+                <a href="#perfil"><div class="t">2. Montar o perfil + CV</div><div class="d">skills, preferências e currículo</div></a>
+                <a href="#gmail"><div class="t">3. Conectar o Gmail</div><div class="d">para enviar como você</div></a>
+                <a href="#enviar"><div class="t">4. Procurar e enviar</div><div class="d">automático ou seleção manual</div></a>
+                <a href="#planos"><div class="t">5. Planos e limites</div><div class="d">quanto dá pra enviar por dia</div></a>
+                <a href="#faq"><div class="t">6. Perguntas frequentes</div><div class="d">privacidade, cancelamento e mais</div></a>
+            </div>
+
+            <h2 id="conta">1. Criar sua conta</h2>
+            <p>Acesse a plataforma e crie sua conta com <strong>login do Google</strong> (1 clique) ou <strong>email e senha</strong>. Criar conta é grátis e não pede cartão de crédito.</p>
+            <p>Todo novo usuário começa no plano <strong>Free</strong>, com 7 candidaturas por dia.</p>
+
+            <h2 id="perfil">2. Montar o perfil técnico + currículo</h2>
+            <p>No menu <strong>Perfil</strong>, preencha o que define quais vagas combinam com você:</p>
+            <ul>
+                <li><strong>Skills &amp; keywords</strong> — suas tecnologias (ex.: Node.js, React, .NET). É o que calcula o match de cada vaga.</li>
+                <li><strong>Preferências de trabalho</strong> — modalidade (remoto/híbrido/presencial), senioridade, pretensão e <strong>região</strong> (Brasil ou internacional).</li>
+                <li><strong>Filtros (opcional)</strong> — keywords obrigatórias, palavras/domínios bloqueados e período da vaga, para descartar o que não interessa.</li>
+                <li><strong>Contato &amp; currículo</strong> — anexe seu <strong>CV em PDF</strong> (é ele que vai junto no email).</li>
+            </ul>
+            <div class="note"><i class="ti ti-bulb"></i><span>Tem o PDF do seu LinkedIn? Use <strong>"Importar currículo do LinkedIn"</strong> na aba Skills para preencher keywords e contatos automaticamente — depois é só revisar e salvar.</span></div>
+
+            <h2 id="gmail">3. Conectar o Gmail</h2>
+            <p>Em <strong>Perfil → Email &amp; Templates</strong>, clique em <strong>Conectar Google</strong>. Autorize apenas o escopo <code>gmail.send</code>.</p>
+            <ul>
+                <li>Os emails saem da <strong>sua</strong> conta — o recrutador vê o seu nome, não o de uma ferramenta.</li>
+                <li>Usamos só o envio: <strong>nunca lemos, apagamos ou alteramos</strong> seus emails.</li>
+                <li>Você pode revogar o acesso quando quiser (na sua Conta Google ou na própria plataforma).</li>
+            </ul>
+
+            <h2 id="enviar">4. Procurar vagas e enviar</h2>
+            <p>No <strong>Dashboard</strong>, clique em <strong>"Procurar Vagas"</strong>. O sistema busca, entre as vagas coletadas, as que passam nos seus filtros, têm email e ainda não foram enviadas — ordenadas por match. Aí você escolhe:</p>
+            <ul>
+                <li><strong>Envio automático</strong> — manda para todas as vagas compatíveis, uma a cada 60–120s (espaçamento anti-bloqueio). Disponível em todos os planos.</li>
+                <li><strong>Seleção manual</strong> — revise e marque vaga por vaga antes de enviar. Recurso dos planos pagos.</li>
+            </ul>
+            <p>O envio roda em segundo plano. Acompanhe o progresso no banner do Dashboard e o resultado na aba <strong>Candidaturas</strong> (com o email exato que foi enviado).</p>
+            <div class="note"><i class="ti ti-clock-bolt"></i><span>O espaçamento entre envios é proposital: protege sua conta Gmail de bloqueios por excesso de disparos.</span></div>
+
+            <h2 id="planos">5. Planos e limites diários</h2>
+            <ul>
+                <li><strong>Free</strong> — 7 candidaturas/dia, envio automático, matching básico. Sem cartão.</li>
+                <li><strong>Starter (R$80/mês)</strong> — 70/dia, seleção manual, matching com IA, histórico.</li>
+                <li><strong>Pro (R$189/mês)</strong> — 200/dia, tudo do Starter + recursos avançados e suporte prioritário.</li>
+            </ul>
+            <p>Você gerencia plano, faturas e cancelamento na aba <strong>Assinatura</strong> (pagamento seguro via Stripe). Ao atingir o limite do dia, os envios continuam no dia seguinte.</p>
+
+            <h2 id="faq">6. Perguntas frequentes</h2>
+            <h3>Vocês têm acesso à minha senha do Gmail?</h3>
+            <p>Não. A conexão é via OAuth do Google com o escopo de envio. Nenhuma senha é armazenada.</p>
+            <h3>Os emails são enviados em meu nome?</h3>
+            <p>Sim — saem da sua conta Gmail, com o seu remetente. O currículo anexado é o PDF que você enviou no perfil.</p>
+            <h3>Posso parar a qualquer momento?</h3>
+            <p>Sim. Você pode parar um envio em andamento, desconectar o Gmail e cancelar a assinatura quando quiser.</p>
+            <h3>Vocês garantem que serei contratado?</h3>
+            <p>Não. A plataforma automatiza o <em>envio</em> da sua candidatura para vagas compatíveis; a decisão é sempre do recrutador.</p>
+            <h3>Como funciona a privacidade dos meus dados?</h3>
+            <p>Veja a <a href="/privacidade.html">Política de Privacidade</a> e os <a href="/termos.html">Termos de Uso</a>.</p>
+
+            <div class="note" style="margin-top:28px"><i class="ti ti-rocket"></i><span>Pronto para começar? <a href="https://newdevjobs-frontend.onrender.com/signup">Crie sua conta grátis</a> e configure em menos de 5 minutos.</span></div>
+        </article>
+
+        <footer>
+            <span class="footer-logo">newdevjobs</span>
+            <div class="footer-links">
+                <a href="/docs.html">documentação</a>
+                <a href="/termos.html">termos de uso</a>
+                <a href="/privacidade.html">privacidade</a>
+            </div>
+        </footer>
+    </div>
+    <script>
+        function toggleTheme() {
+            const h = document.documentElement;
+            const dark = h.classList.toggle('dark');
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+    </script>
+</body>
+</html>

@@ -8,6 +8,13 @@ const RUN_BADGE = { queued: 'warn', running: 'warn', done: 'ok', failed: 'danger
 
 const parseQueries = (text) => text.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
 
+const INTERVALS = [
+    { v: 60, l: 'a cada 1h' }, { v: 180, l: 'a cada 3h' }, { v: 360, l: 'a cada 6h' },
+    { v: 720, l: 'a cada 12h' }, { v: 1440, l: '1x ao dia' },
+];
+const fmtInterval = (m) => INTERVALS.find((i) => i.v === m)?.l || `a cada ${m}min`;
+const fmtWhen = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+
 export default function BotsPanel() {
     const toast = useToast();
     const [recruiters, setRecruiters] = useState([]);
@@ -34,14 +41,18 @@ export default function BotsPanel() {
     const [pickerQ, setPickerQ] = useState('');
     const [pickerList, setPickerList] = useState([]);
     const [pickerLoading, setPickerLoading] = useState(false);
+    // Robôs agendados (automação)
+    const [schedules, setSchedules] = useState([]);
+    const [schedInterval, setSchedInterval] = useState({ discovery: 1440, monitoring: 360 });
     const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
     const [runDetail, setRunDetail] = useState(null);    // run aberto no modal
 
     const load = useCallback(async () => {
         try {
-            const [{ recruiters }, { runs }] = await Promise.all([api.adminRecruiters(), api.adminScraperRuns()]);
+            const [{ recruiters }, { runs }, { schedules }] = await Promise.all([api.adminRecruiters(), api.adminScraperRuns(), api.adminSchedules()]);
             setRecruiters(recruiters);
             setRuns(runs);
+            setSchedules(schedules);
         } catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }, [toast]);
@@ -67,8 +78,9 @@ export default function BotsPanel() {
         } catch (e) { toast.show(e.message, 'error'); }
     }
 
-    async function runScraper(type) {
-        const params = type === 'discovery'
+    // Monta os params do run a partir dos formulários (reusado pelo run manual e pelos robôs).
+    function buildParams(type) {
+        return type === 'discovery'
             ? {
                 queries: parseQueries(discQueries), maxResults: Number(discMax) || 5,
                 locations: parseQueries(discLocations), takePages: Number(discPages) || 1,
@@ -76,10 +88,42 @@ export default function BotsPanel() {
             : {
                 queries: parseQueries(monQueries), maxPosts: Number(monMax) || 10,
                 source: monSource, ...(monSource === 'selected' ? { recruiterIds: monSelected } : {}),
-                ...(monSource === 'saved' ? { maxRecruiters: Number(monMaxRecruiters) || 40 } : {}),
+                ...(monSource === 'saved' ? { maxRecruiters: Number(monMaxRecruiters) || 10 } : {}),
                 contentType: monOnlyJobs ? 'jobs' : 'all', postedLimit: monPeriod, scrapePages: Number(monPages) || 1,
                 region: monRegion, ...(monRegion === 'global' && monExclude.trim() ? { excludeCountries: parseQueries(monExclude) } : {}),
             };
+    }
+
+    // ----- Robôs agendados (automação) -----
+    async function createSchedule(type) {
+        if (type === 'monitoring' && monSource === 'selected' && !monSelected.length) {
+            toast.show('Selecione ao menos um recrutador.', 'error'); return;
+        }
+        const name = window.prompt(`Nome do robô (${type === 'discovery' ? 'descoberta' : 'monitoramento'}):`,
+            type === 'discovery' ? 'Descoberta diária' : `Monitoramento ${monRegion === 'br' ? 'BR' : 'global'}`);
+        if (!name) return;
+        try {
+            await api.adminCreateSchedule({ name, type, intervalMinutes: Number(schedInterval[type]) || 360, params: buildParams(type) });
+            toast.show('Robô agendado criado — começa no próximo ciclo.');
+            load();
+        } catch (e) { toast.show(e.message, 'error'); }
+    }
+    async function toggleSchedule(s) {
+        try { await api.adminUpdateSchedule(s.id, { active: !s.active }); load(); }
+        catch (e) { toast.show(e.message, 'error'); }
+    }
+    async function runScheduleNow(s) {
+        try { await api.adminUpdateSchedule(s.id, { runNow: true }); toast.show('Vai rodar em até 1 min.'); load(); }
+        catch (e) { toast.show(e.message, 'error'); }
+    }
+    async function deleteSchedule(s) {
+        if (!window.confirm(`Excluir o robô "${s.name}"?`)) return;
+        try { await api.adminDeleteSchedule(s.id); load(); }
+        catch (e) { toast.show(e.message, 'error'); }
+    }
+
+    async function runScraper(type) {
+        const params = buildParams(type);
         if (type === 'monitoring' && monSource === 'selected' && !monSelected.length) {
             toast.show('Selecione ao menos um recrutador.', 'error'); return;
         }
@@ -146,6 +190,13 @@ export default function BotsPanel() {
                     <button className="btn primary block sm" disabled={!!running} onClick={() => runScraper('discovery')}>
                         {running === 'discovery' ? 'Enfileirando…' : (<><i className="ti ti-player-play" /> Rodar descoberta</>)}
                     </button>
+                    <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 8 }}>
+                        <select className="select" style={{ maxWidth: 130 }} value={schedInterval.discovery}
+                            onChange={(e) => setSchedInterval((p) => ({ ...p, discovery: Number(e.target.value) }))}>
+                            {INTERVALS.map((i) => <option key={i.v} value={i.v}>{i.l}</option>)}
+                        </select>
+                        <button className="btn ghost sm" onClick={() => createSchedule('discovery')}><i className="ti ti-clock-plus" /> Agendar robô</button>
+                    </div>
                 </div>
 
                 <div className="card" style={{ flex: 1, minWidth: 300 }}>
@@ -233,7 +284,58 @@ export default function BotsPanel() {
                     <button className="btn primary block sm" disabled={!!running} onClick={() => runScraper('monitoring')}>
                         {running === 'monitoring' ? 'Enfileirando…' : (<><i className="ti ti-player-play" /> Rodar monitoramento</>)}
                     </button>
+                    <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 8 }}>
+                        <select className="select" style={{ maxWidth: 130 }} value={schedInterval.monitoring}
+                            onChange={(e) => setSchedInterval((p) => ({ ...p, monitoring: Number(e.target.value) }))}>
+                            {INTERVALS.map((i) => <option key={i.v} value={i.v}>{i.l}</option>)}
+                        </select>
+                        <button className="btn ghost sm" onClick={() => createSchedule('monitoring')}><i className="ti ti-clock-plus" /> Agendar robô</button>
+                    </div>
                 </div>
+            </div>
+
+            {/* ---- Robôs agendados (automação) ---- */}
+            <div className="card" style={{ marginTop: 14 }}>
+                <div className="row" style={{ alignItems: 'center' }}>
+                    <div className="section-title" style={{ margin: 0 }}><i className="ti ti-robot" /> Robôs agendados ({schedules.length})</div>
+                    <span className="muted" style={{ fontSize: 12, marginLeft: 10 }}>o worker dispara automaticamente</span>
+                    <button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={load}><i className="ti ti-refresh" /></button>
+                </div>
+                {schedules.length === 0 ? (
+                    <div className="empty" style={{ padding: 22 }}><i className="ti ti-clock-off" />Nenhum robô agendado. Configure uma busca acima e clique "Agendar robô".</div>
+                ) : (
+                    <div className="dtable-wrap" style={{ marginTop: 10 }}>
+                        <table className="dtable">
+                            <thead><tr><th>Nome</th><th>Tipo</th><th>Frequência</th><th>Próximo</th><th>Último</th><th>Estado</th><th className="col-actions">Ações</th></tr></thead>
+                            <tbody>
+                                {schedules.map((s) => (
+                                    <tr key={s.id}>
+                                        <td style={{ fontWeight: 600 }}>{s.name}
+                                            <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>
+                                                {s.type === 'monitoring'
+                                                    ? `${s.params?.region === 'br' ? 'BR' : (s.params?.source || 'global')} · ${(s.params?.queries || []).length} queries`
+                                                    : ((s.params?.locations || []).join(', ') || '—')}
+                                            </div>
+                                        </td>
+                                        <td><span className="badge neutral">{s.type === 'discovery' ? 'descoberta' : 'monitoramento'}</span></td>
+                                        <td>{fmtInterval(s.intervalMinutes)}</td>
+                                        <td className="muted" style={{ fontSize: 12 }}>{s.active ? fmtWhen(s.nextRunAt) : '—'}</td>
+                                        <td className="muted" style={{ fontSize: 12 }}>{fmtWhen(s.lastRunAt)}</td>
+                                        <td>
+                                            <button className={`badge ${s.active ? 'ok' : 'neutral'}`} style={{ cursor: 'pointer', border: 'none' }} onClick={() => toggleSchedule(s)}>
+                                                {s.active ? 'ligado' : 'pausado'}
+                                            </button>
+                                        </td>
+                                        <td className="col-actions">
+                                            <button className="btn ghost sm" title="Rodar agora" onClick={() => runScheduleNow(s)}><i className="ti ti-player-play" /></button>
+                                            <button className="btn ghost sm" title="Excluir" onClick={() => deleteSchedule(s)}><i className="ti ti-trash" /></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             <div className="row" style={{ alignItems: 'flex-start', gap: 14, marginTop: 14 }}>

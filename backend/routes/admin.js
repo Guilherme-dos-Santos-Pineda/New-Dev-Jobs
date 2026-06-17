@@ -30,6 +30,13 @@ function shapeRun(r) {
     };
 }
 
+function shapeSchedule(s) {
+    return {
+        id: s.Id, name: s.Name, type: s.Type, params: s.Params, intervalMinutes: s.IntervalMinutes,
+        active: !!s.Active, lastRunAt: s.LastRunAt, nextRunAt: s.NextRunAt, createdAt: s.CreatedAt,
+    };
+}
+
 // GET /api/admin/overview — números gerais da plataforma
 router.get('/overview', requireAdmin, async (_req, res) => {
     const [stats] = await sql`
@@ -146,29 +153,32 @@ router.get('/scraper/runs', requireAdmin, async (_req, res) => {
     res.json({ runs: rows.map(shapeRun) });
 });
 
+// Schema dos parâmetros de um run (reusado pelo run manual e pelos agendamentos).
+const scraperParams = z.object({
+    queries: z.array(z.string().min(1)).max(20).optional(),
+    // descoberta
+    location: z.string().max(80).optional(),
+    locations: z.array(z.string().min(1)).max(20).optional(),
+    maxResults: z.coerce.number().int().min(1).max(100).optional(),
+    takePages: z.coerce.number().int().min(1).max(40).optional(),
+    // monitoramento
+    maxPosts: z.coerce.number().int().min(1).max(100).optional(),
+    source: z.enum(['global', 'saved', 'selected']).optional(),
+    recruiterIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
+    maxRecruiters: z.coerce.number().int().min(1).max(500).optional(), // cap p/ rotação (saved)
+    contentType: z.enum(['all', 'jobs']).optional(),
+    postedLimit: z.enum(['any', '1h', '24h', 'week', 'month', '3months', '6months', 'year']).optional(),
+    sortBy: z.enum(['relevance', 'date']).optional(),
+    scrapePages: z.coerce.number().int().min(1).max(40).optional(),
+    startPage: z.coerce.number().int().min(1).max(100).optional(),
+    region: z.enum(['global', 'br']).optional(),
+    excludeCountries: z.array(z.string().min(1)).max(20).optional(),
+});
+
 // POST /api/admin/scraper/run  { type: 'discovery'|'monitoring', params? }
 const runSchema = z.object({
     type: z.enum(['discovery', 'monitoring']),
-    params: z.object({
-        queries: z.array(z.string().min(1)).max(20).optional(),
-        // descoberta
-        location: z.string().max(80).optional(),
-        locations: z.array(z.string().min(1)).max(20).optional(),
-        maxResults: z.coerce.number().int().min(1).max(100).optional(),
-        takePages: z.coerce.number().int().min(1).max(40).optional(),
-        // monitoramento
-        maxPosts: z.coerce.number().int().min(1).max(100).optional(),
-        source: z.enum(['global', 'saved', 'selected']).optional(),
-        recruiterIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
-        maxRecruiters: z.coerce.number().int().min(1).max(500).optional(), // cap p/ rotação (saved)
-        contentType: z.enum(['all', 'jobs']).optional(),
-        postedLimit: z.enum(['any', '1h', '24h', 'week', 'month', '3months', '6months', 'year']).optional(),
-        sortBy: z.enum(['relevance', 'date']).optional(),
-        scrapePages: z.coerce.number().int().min(1).max(40).optional(),
-        startPage: z.coerce.number().int().min(1).max(100).optional(),
-        region: z.enum(['global', 'br']).optional(),
-        excludeCountries: z.array(z.string().min(1)).max(20).optional(),
-    }).optional(),
+    params: scraperParams.optional(),
 });
 router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) => {
     const { type, params = {} } = req.body;
@@ -181,6 +191,62 @@ router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) 
     const queue = type === 'discovery' ? SCRAPER_DISCOVERY : SCRAPER_MONITORING;
     await boss.send(queue, { runId: Number(run.Id), params }, { retryLimit: 0, expireInSeconds: 600 });
     res.status(201).json({ run: shapeRun(run) });
+});
+
+// ---------- Robôs agendados (ScraperSchedules) — automação ----------
+
+// GET /api/admin/schedules
+router.get('/schedules', requireAdmin, async (_req, res) => {
+    const rows = await sql`select * from "ScraperSchedules" order by "Active" desc, "Id" desc`;
+    res.json({ schedules: rows.map(shapeSchedule) });
+});
+
+// POST /api/admin/schedules  { name, type, intervalMinutes, params?, active? }
+const scheduleSchema = z.object({
+    name: z.string().min(1).max(80),
+    type: z.enum(['discovery', 'monitoring']),
+    intervalMinutes: z.coerce.number().int().min(15).max(10080), // 15 min … 7 dias
+    active: z.boolean().optional(),
+    params: scraperParams.optional(),
+});
+router.post('/schedules', requireAdmin, validate(scheduleSchema), async (req, res) => {
+    const { name, type, intervalMinutes, params = {}, active = true } = req.body;
+    const [row] = await sql`
+        insert into "ScraperSchedules" ("Name", "Type", "Params", "IntervalMinutes", "Active", "NextRunAt")
+        values (${name}, ${type}, ${sql.json(params)}, ${intervalMinutes}, ${active}, now())
+        returning *`;
+    res.status(201).json({ schedule: shapeSchedule(row) });
+});
+
+// PATCH /api/admin/schedules/:id  { active?, intervalMinutes?, name?, params?, runNow? }
+const schedulePatch = z.object({
+    active: z.boolean().optional(),
+    intervalMinutes: z.coerce.number().int().min(15).max(10080).optional(),
+    name: z.string().min(1).max(80).optional(),
+    params: scraperParams.optional(),
+    runNow: z.boolean().optional(), // agenda para o próximo tick (≤60s)
+});
+router.patch('/schedules/:id', requireAdmin, validate(schedulePatch), async (req, res) => {
+    const id = Number(req.params.id);
+    const { active, intervalMinutes, name, params, runNow } = req.body;
+    const [row] = await sql`
+        update "ScraperSchedules" set
+            "Active"          = coalesce(${active ?? null}, "Active"),
+            "IntervalMinutes" = coalesce(${intervalMinutes ?? null}, "IntervalMinutes"),
+            "Name"            = coalesce(${name ?? null}, "Name"),
+            "Params"          = coalesce(${params ? sql.json(params) : null}, "Params"),
+            "NextRunAt"       = case when ${!!runNow} then now() else "NextRunAt" end,
+            "UpdatedAt"       = now()
+        where "Id" = ${id}
+        returning *`;
+    if (!row) return res.status(404).json({ error: 'Agendamento não encontrado' });
+    res.json({ schedule: shapeSchedule(row) });
+});
+
+// DELETE /api/admin/schedules/:id
+router.delete('/schedules/:id', requireAdmin, async (req, res) => {
+    await sql`delete from "ScraperSchedules" where "Id" = ${Number(req.params.id)}`;
+    res.json({ ok: true });
 });
 
 // ---------- Vagas (com filtros) ----------

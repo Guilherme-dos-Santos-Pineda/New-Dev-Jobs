@@ -74,6 +74,38 @@ function makeScraperHandler(fn, label) {
     };
 }
 
+// =========================
+// Agendador (robôs): a cada 60s reivindica os ScraperSchedules vencidos de forma
+// ATÔMICA (o update já marca o próximo disparo → seguro com múltiplos workers) e
+// enfileira o run. A fila do scraper é batchSize 1, então rodam um de cada vez.
+// =========================
+async function runDueSchedules(boss) {
+    const due = await sql`
+        update "ScraperSchedules"
+        set "LastRunAt" = now(),
+            "NextRunAt" = now() + interval '1 minute' * "IntervalMinutes",
+            "UpdatedAt" = now()
+        where "Active" = true and ("NextRunAt" is null or "NextRunAt" <= now())
+        returning *`;
+    for (const sch of due) {
+        const params = sch.Params || {};
+        const [run] = await sql`
+            insert into "ScraperRuns" ("Type", "Status", "Params")
+            values (${sch.Type}, 'queued', ${sql.json({ ...params, scheduleId: Number(sch.Id), scheduleName: sch.Name })})
+            returning "Id"`;
+        const queue = sch.Type === 'discovery' ? SCRAPER_DISCOVERY : SCRAPER_MONITORING;
+        await boss.send(queue, { runId: Number(run.Id), params }, { retryLimit: 0, expireInSeconds: 1800 });
+        console.log(`⏰ robô "${sch.Name}" (${sch.Type}) → run ${run.Id} enfileirado`);
+    }
+    return due.length;
+}
+
+function startScheduler(boss) {
+    const tick = () => runDueSchedules(boss).catch((e) => console.error('scheduler tick falhou:', e.message));
+    tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
+    return setInterval(tick, 60000);
+}
+
 async function main() {
     const boss = await getBoss();
     if (!boss) {
@@ -86,10 +118,14 @@ async function main() {
     // Scraper: 1 run por vez (sem concorrência) para não duplicar custo Apify.
     await boss.work(SCRAPER_DISCOVERY, { batchSize: 1, pollingIntervalSeconds: 3 }, makeScraperHandler(runDiscovery, 'discovery'));
     await boss.work(SCRAPER_MONITORING, { batchSize: 1, pollingIntervalSeconds: 3 }, makeScraperHandler(runMonitoring, 'monitoring'));
-    console.log(`🤖 worker ativo: envios${DEV_LABEL()} + scraper (discovery/monitoring)`);
+
+    // Agendador dos robôs (ScraperSchedules)
+    const scheduler = startScheduler(boss);
+    console.log(`🤖 worker ativo: envios${DEV_LABEL()} + scraper (discovery/monitoring) + agendador`);
 
     const shutdown = async (sig) => {
         console.log(`\n${sig} recebido — encerrando worker…`);
+        clearInterval(scheduler);
         try { await boss.stop({ graceful: true, timeout: 30000 }); } catch {}
         process.exit(0);
     };

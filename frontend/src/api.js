@@ -107,6 +107,11 @@ export const api = {
     adminUpdateRecruiter: (id, status) => request('PATCH', `/admin/recruiters/${id}`, { status }),
     adminRunScraper: (type, params) => request('POST', '/admin/scraper/run', { type, params }),
     adminScraperRuns: () => request('GET', '/admin/scraper/runs'),
+    // robôs agendados (automação)
+    adminSchedules: () => request('GET', '/admin/schedules'),
+    adminCreateSchedule: (data) => request('POST', '/admin/schedules', data),
+    adminUpdateSchedule: (id, data) => request('PATCH', `/admin/schedules/${id}`, data),
+    adminDeleteSchedule: (id) => request('DELETE', `/admin/schedules/${id}`),
     adminJobs: (params = {}) => {
         const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
         return request('GET', `/admin/jobs${qs ? `?${qs}` : ''}`);

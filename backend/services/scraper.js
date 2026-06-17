@@ -207,7 +207,7 @@ export async function runDiscovery({ queries, location = 'Brazil', locations, ma
 export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
-    region = 'global', excludeCountries, maxRecruiters = 40,
+    region = 'global', excludeCountries, maxRecruiters = 10,
 } = {}) {
     // Queries entre aspas → o Post Search Scraper trata como frase (busca mais precisa).
     const searchQueries = (queries && queries.length ? queries : ['"hiring software engineer"', '"hiring backend developer"']);
@@ -232,8 +232,14 @@ export async function runMonitoring({
         }
     }
 
+    // 'selected' sem nenhum recrutador monitorável → erro claro (em vez de cair
+    // silenciosamente numa busca global, que não é o que o usuário pediu).
+    if (source === 'selected' && !authorUrls.length) {
+        throw new Error('Nenhum dos recrutadores selecionados tem perfil do LinkedIn (não monitoráveis). Escolha recrutadores com URL do LinkedIn.');
+    }
+
     const client = apifyClient();
-    const input = {
+    const baseInput = {
         searchQueries,
         maxPosts,
         contentType: contentType || 'jobs', // só posts do tipo "vaga" → menos lixo
@@ -244,11 +250,24 @@ export async function runMonitoring({
         ...(sortBy ? { sortBy } : {}),             // relevance|date
         ...(scrapePages ? { scrapePages } : {}),   // nº de páginas (volume)
         ...(startPage ? { startPage } : { startPage: 1 }),
-        ...(authorUrls.length ? { authorUrls } : {}),
     };
 
-    const run = await client.actor(config.apify.postActorId).call(input);
-    const { items } = await client.dataset(run.defaultDatasetId).listItems();
+    // O actor de Post Search aceita NO MÁXIMO 10 authorUrls por execução. Quando
+    // monitoramos mais que isso, fatiamos em lotes de 10 (cada lote = 1 chamada Apify).
+    // 'global' (sem authorUrls) roda uma única vez.
+    const AUTHOR_LIMIT = 10;
+    const batches = authorUrls.length
+        ? Array.from({ length: Math.ceil(authorUrls.length / AUTHOR_LIMIT) },
+            (_, i) => authorUrls.slice(i * AUTHOR_LIMIT, (i + 1) * AUTHOR_LIMIT))
+        : [null];
+
+    const items = [];
+    for (const batch of batches) {
+        const input = batch ? { ...baseInput, authorUrls: batch } : baseInput;
+        const run = await client.actor(config.apify.postActorId).call(input);
+        const ds = await client.dataset(run.defaultDatasetId).listItems();
+        items.push(...ds.items);
+    }
 
     // found = encontrados; novos/duplicados = vagas; descartadosIA/semEmail/rejeitados; aiUsed
     const s = { found: items.length, novos: 0, duplicados: 0, descartadosIA: 0, semEmail: 0, rejeitados: 0, foraRegiao: 0, recrutadoresAdd: 0, aiUsed: 0 };

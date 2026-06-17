@@ -100,6 +100,7 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
     const q = req.query.q ? `%${req.query.q}%` : null;
     const hasJobs = req.query.hasJobs || null;      // 'true' | 'false'
     const hasEmail = req.query.hasEmail || null;    // 'true'
+    const monitorable = req.query.monitorable || null; // 'true' → só com perfil do LinkedIn
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(100, Math.max(5, Number(req.query.pageSize) || 25));
     const sortMap = {
@@ -115,6 +116,7 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
         where (${status}::text is null or r."Status" = ${status})
           and (${q}::text is null or r."Name" ilike ${q} or r."Email" ilike ${q} or r."Company" ilike ${q})
           and (${hasEmail}::text is null or (r."Email" is not null and r."Email" <> ''))
+          and (${monitorable}::text is null or r."LinkedinUrl" is not null)
           and (${hasJobs}::text is null or (${hasJobs} = 'true') = exists (select 1 from "Jobs" j where j."RecruiterId" = r."Id"))`;
 
     const [{ total }] = await sql`select count(*)::int as total from "Recruiters" r ${where}`;

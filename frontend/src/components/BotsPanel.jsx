@@ -29,7 +29,11 @@ export default function BotsPanel() {
     const [monExclude, setMonExclude] = useState('india'); // países a excluir (quando global)
     const [monSource, setMonSource] = useState('saved'); // global | saved | selected
     const [monSelected, setMonSelected] = useState([]);  // ids quando 'selected'
-    const [monMaxRecruiters, setMonMaxRecruiters] = useState(40); // cap da rotação (modo 'saved')
+    const [monMaxRecruiters, setMonMaxRecruiters] = useState(10); // cap da rotação (modo 'saved')
+    // Seletor de recrutadores (modo 'selected'): busca + só monitoráveis (com LinkedIn)
+    const [pickerQ, setPickerQ] = useState('');
+    const [pickerList, setPickerList] = useState([]);
+    const [pickerLoading, setPickerLoading] = useState(false);
     const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
     const [runDetail, setRunDetail] = useState(null);    // run aberto no modal
 
@@ -43,6 +47,18 @@ export default function BotsPanel() {
     }, [toast]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Carrega recrutadores monitoráveis (com LinkedIn) para o seletor do modo 'selected'.
+    const loadPicker = useCallback(async (q) => {
+        setPickerLoading(true);
+        try {
+            const { recruiters } = await api.adminRecruiters({ q: q || undefined, monitorable: 'true', pageSize: 100, sort: 'recent' });
+            setPickerList(recruiters);
+        } catch (e) { toast.show(e.message, 'error'); }
+        finally { setPickerLoading(false); }
+    }, [toast]);
+
+    useEffect(() => { if (monSource === 'selected') loadPicker(''); }, [monSource, loadPicker]);
 
     async function setStatus(r, status) {
         try {
@@ -150,22 +166,30 @@ export default function BotsPanel() {
                             <label>Quantos recrutadores por run (mais obsoletos primeiro)</label>
                             <input className="input" type="number" min="1" max="500" value={monMaxRecruiters}
                                 onChange={(e) => setMonMaxRecruiters(e.target.value)} />
-                            <div className="hint">Rotaciona pela base aprovada: cada run varre os N que estão há mais tempo sem checagem.</div>
+                            <div className="hint">Rotaciona pela base aprovada (os mais obsoletos primeiro). Apify processa em lotes de 10 — cada 10 = 1 chamada (mais custo).</div>
                         </div>
                     )}
                     {monSource === 'selected' && (
                         <div className="field">
-                            <label>Selecione os recrutadores</label>
-                            <div style={{ maxHeight: 130, overflowY: 'auto', border: '1px solid var(--color-border-light)', borderRadius: 10, padding: 8 }}>
-                                {recruiters.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Nenhum recrutador. Rode a descoberta.</div>
-                                    : recruiters.map((r) => (
-                                        <label key={r.id} className="row" style={{ alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0', fontWeight: 400 }}>
-                                            <input type="checkbox" checked={monSelected.includes(r.id)}
-                                                onChange={(e) => setMonSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))} />
-                                            {r.name || 'Recrutador'} <span className="muted">{r.company || ''}</span>
-                                        </label>
-                                    ))}
+                            <label>Selecione os recrutadores <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(só monitoráveis · {monSelected.length} selecionado(s))</span></label>
+                            <div className="search" style={{ marginBottom: 8 }}>
+                                <i className="ti ti-search" />
+                                <input className="input" placeholder="Buscar por nome, empresa ou email…" value={pickerQ}
+                                    onChange={(e) => setPickerQ(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadPicker(pickerQ); } }} />
                             </div>
+                            <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--color-border-light)', borderRadius: 10, padding: 8 }}>
+                                {pickerLoading ? <div className="muted" style={{ fontSize: 12 }}>Carregando…</div>
+                                    : pickerList.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Nenhum recrutador monitorável (com LinkedIn). Rode a descoberta para achar perfis.</div>
+                                        : pickerList.map((r) => (
+                                            <label key={r.id} className="row" style={{ alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0', fontWeight: 400 }}>
+                                                <input type="checkbox" checked={monSelected.includes(r.id)}
+                                                    onChange={(e) => setMonSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))} />
+                                                {r.name || 'Recrutador'} <span className="muted">{r.company || ''}</span>
+                                            </label>
+                                        ))}
+                            </div>
+                            <div className="hint">Apify monitora no máximo 10 por execução — acima disso rodamos em lotes (mais custo).</div>
                         </div>
                     )}
                     <div className="field">

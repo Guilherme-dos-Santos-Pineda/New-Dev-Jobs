@@ -242,7 +242,9 @@ export async function runMonitoring({
     const baseInput = {
         searchQueries,
         maxPosts,
-        contentType: contentType || 'jobs', // só posts do tipo "vaga" → menos lixo
+        // contentType 'all' (ou ausente) → NÃO envia o filtro → actor traz todos os
+        // posts (tag "jobs" desligada). 'jobs' restringe aos marcados como vaga.
+        ...(contentType === 'all' ? {} : { contentType: contentType || 'jobs' }),
         profileScraperMode: 'short',
         scrapeReactions: false,
         scrapeComments: false,

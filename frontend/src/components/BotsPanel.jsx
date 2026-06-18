@@ -45,6 +45,7 @@ export default function BotsPanel() {
     // Robôs agendados (automação)
     const [schedules, setSchedules] = useState([]);
     const [schedInterval, setSchedInterval] = useState({ discovery: 1440, monitoring: 360 });
+    const [selSched, setSelSched] = useState(() => new Set()); // ids selecionados (ações em massa)
     const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
     const [runDetail, setRunDetail] = useState(null);    // run aberto no modal
 
@@ -126,6 +127,20 @@ export default function BotsPanel() {
         try { await api.adminDeleteSchedule(s.id); load(); }
         catch (e) { toast.show(e.message, 'error'); }
     }
+    // Ação em massa: ids selecionados, ou todos se nada selecionado.
+    async function bulkSchedules(action) {
+        const ids = [...selSched];
+        const scope = ids.length ? `${ids.length} selecionado(s)` : 'TODOS os robôs';
+        const verb = action === 'delete' ? 'Excluir' : action === 'activate' ? 'Ativar' : 'Pausar';
+        if (!window.confirm(`${verb} ${scope}?`)) return;
+        try {
+            const { affected } = await api.adminBulkSchedules(action, ids.length ? ids : undefined);
+            toast.show(`${verb}: ${affected} robô(s).`);
+            setSelSched(new Set());
+            load();
+        } catch (e) { toast.show(e.message, 'error'); }
+    }
+    const toggleSel = (id) => setSelSched((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
     async function runScraper(type) {
         const params = buildParams(type);
@@ -318,20 +333,36 @@ export default function BotsPanel() {
 
             {/* ---- Robôs agendados (automação) ---- */}
             <div className="card" style={{ marginTop: 14 }}>
-                <div className="row" style={{ alignItems: 'center' }}>
+                <div className="row" style={{ alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <div className="section-title" style={{ margin: 0 }}><i className="ti ti-robot" /> Robôs agendados ({schedules.length})</div>
-                    <span className="muted" style={{ fontSize: 12, marginLeft: 10 }}>o worker dispara automaticamente</span>
-                    <button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={load}><i className="ti ti-refresh" /></button>
+                    {selSched.size > 0 && <span className="badge info" style={{ fontSize: 10 }}>{selSched.size} selecionado(s)</span>}
+                    <div className="spacer" />
+                    {schedules.length > 0 && (
+                        <>
+                            <button className="btn ghost sm" onClick={() => bulkSchedules('activate')}><i className="ti ti-player-play" /> Ativar {selSched.size ? 'sel.' : 'todos'}</button>
+                            <button className="btn ghost sm" onClick={() => bulkSchedules('pause')}><i className="ti ti-player-pause" /> Pausar {selSched.size ? 'sel.' : 'todos'}</button>
+                            <button className="btn ghost sm" onClick={() => bulkSchedules('delete')}><i className="ti ti-trash" /> Excluir {selSched.size ? 'sel.' : 'todos'}</button>
+                        </>
+                    )}
+                    <button className="btn ghost sm" onClick={load}><i className="ti ti-refresh" /></button>
                 </div>
                 {schedules.length === 0 ? (
                     <div className="empty" style={{ padding: 22 }}><i className="ti ti-clock-off" />Nenhum robô agendado. Configure uma busca acima e clique "Agendar robô".</div>
                 ) : (
                     <div className="dtable-wrap" style={{ marginTop: 10 }}>
                         <table className="dtable">
-                            <thead><tr><th>Nome</th><th>Tipo</th><th>Frequência</th><th>Próximo</th><th>Último</th><th>Estado</th><th className="col-actions">Ações</th></tr></thead>
+                            <thead><tr>
+                                <th style={{ width: 28 }}>
+                                    <input type="checkbox" title="Selecionar todos"
+                                        checked={schedules.length > 0 && selSched.size === schedules.length}
+                                        onChange={(e) => setSelSched(e.target.checked ? new Set(schedules.map((s) => s.id)) : new Set())} />
+                                </th>
+                                <th>Nome</th><th>Tipo</th><th>Frequência</th><th>Próximo</th><th>Último</th><th>Estado</th><th className="col-actions">Ações</th>
+                            </tr></thead>
                             <tbody>
                                 {schedules.map((s) => (
                                     <tr key={s.id}>
+                                        <td><input type="checkbox" checked={selSched.has(s.id)} onChange={() => toggleSel(s.id)} /></td>
                                         <td style={{ fontWeight: 600 }}>{s.name}
                                             <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>
                                                 {s.type === 'monitoring'

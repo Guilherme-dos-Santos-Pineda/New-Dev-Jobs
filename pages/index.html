@@ -924,8 +924,18 @@
 
     <!-- ==================== SCRIPT TEMA ==================== -->
     <script>
-        // Navega para o app (deploy do frontend). Ajuste a URL se o domínio mudar.
-        function go(path) { location.href = 'https://newdevjobs-frontend.onrender.com' + path; }
+        // Detecta o domínio do app automaticamente:
+        //  • landing.SEU-DOMINIO  → www.SEU-DOMINIO   (custom domain, conforme o DNS)
+        //  • local / onrender      → app no Render (fallback)
+        function appBase() {
+            const h = location.hostname;
+            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('onrender.com')) {
+                return 'https://newdevjobs-frontend.onrender.com';
+            }
+            const root = h.replace(/^(landing|www)\./, '');
+            return 'https://www.' + root; // o app vive em www.<dominio>
+        }
+        function go(path) { location.href = appBase() + path; }
 
         function toggleTheme() {
             const html = document.documentElement;

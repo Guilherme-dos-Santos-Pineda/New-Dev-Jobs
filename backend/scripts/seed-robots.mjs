@@ -70,13 +70,15 @@ const LEVELS = [
     { label: 'Sênior', pt: 'Sênior', en: 'Senior' },
 ];
 
-// Padrões naturais de post (mais variações = mais cobertura). QPR escolhe quantos.
+// Padrões naturais — extraídos das aberturas mais frequentes em posts reais
+// (response.json): "vaga para…", "oportunidade para…", "estamos contratando…",
+// "buscamos…". QPR escolhe quantos por robô.
 const TEMPLATES_PT = [
+    (role, lv) => `Vaga para ${role} ${lv}`,
     (role, lv) => `Estamos contratando ${role} ${lv}`,
-    (role, lv) => `Vaga ${role} ${lv}`,
-    (role, lv) => `Procuramos ${role} ${lv}`,
     (role, lv) => `Oportunidade para ${role} ${lv}`,
     (role, lv) => `Buscamos ${role} ${lv}`,
+    (role, lv) => `Vaga ${role} ${lv}`,
 ];
 const TEMPLATES_EN = [
     (role, lv) => `Hiring ${role} ${lv}`,

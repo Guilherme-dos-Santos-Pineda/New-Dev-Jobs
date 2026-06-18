@@ -249,6 +249,29 @@ router.delete('/schedules/:id', requireAdmin, async (req, res) => {
     res.json({ ok: true });
 });
 
+// POST /api/admin/schedules/bulk  { action, ids? } — em massa (ids ausente = TODOS)
+const scheduleBulkSchema = z.object({
+    action: z.enum(['activate', 'pause', 'delete']),
+    ids: z.array(z.coerce.number().int().positive()).optional(),
+});
+router.post('/schedules/bulk', requireAdmin, validate(scheduleBulkSchema), async (req, res) => {
+    const { action, ids } = req.body;
+    const all = !ids || !ids.length;
+    let rows;
+    if (action === 'delete') {
+        rows = all
+            ? await sql`delete from "ScraperSchedules" returning "Id"`
+            : await sql`delete from "ScraperSchedules" where "Id" = any(${ids}) returning "Id"`;
+    } else {
+        const active = action === 'activate';
+        // ao ativar, agenda o disparo para já (NextRunAt = now); ao pausar, mantém.
+        rows = all
+            ? await sql`update "ScraperSchedules" set "Active" = ${active}, "NextRunAt" = case when ${active} then now() else "NextRunAt" end, "UpdatedAt" = now() returning "Id"`
+            : await sql`update "ScraperSchedules" set "Active" = ${active}, "NextRunAt" = case when ${active} then now() else "NextRunAt" end, "UpdatedAt" = now() where "Id" = any(${ids}) returning "Id"`;
+    }
+    res.json({ ok: true, action, affected: rows.length });
+});
+
 // ---------- Vagas (com filtros) ----------
 const parseArr = (v) => (Array.isArray(v) ? v : []);
 function shapeJob(j) {

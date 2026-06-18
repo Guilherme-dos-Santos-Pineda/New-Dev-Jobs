@@ -129,6 +129,7 @@ export const api = {
     adminCreateSchedule: (data) => request('POST', '/admin/schedules', data),
     adminUpdateSchedule: (id, data) => request('PATCH', `/admin/schedules/${id}`, data),
     adminDeleteSchedule: (id) => request('DELETE', `/admin/schedules/${id}`),
+    adminBulkSchedules: (action, ids) => request('POST', '/admin/schedules/bulk', { action, ids }),
     adminJobs: (params = {}) => {
         const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
         return request('GET', `/admin/jobs${qs ? `?${qs}` : ''}`);

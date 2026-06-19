@@ -54,5 +54,54 @@ de verdade pela sua conta (`gmail.send`).
 - Usamos **apenas** o escopo `gmail.send` (somente envio) — não lemos seus emails.
 - O `refresh_token` é guardado para permitir envios futuros; **Desconectar**
   revoga o acesso.
-- Para publicar (qualquer usuário, não só os de teste) é preciso passar pela
-  verificação do Google. Em dev, mantenha em modo Teste com seus emails.
+
+---
+
+# Produção
+
+Para colocar o envio real no ar, além do que está acima:
+
+## 1. Redirect URI e origens de produção
+
+Em **Credenciais → seu ID do cliente OAuth (Web)**, adicione (mantendo o de localhost):
+
+- **URIs de redirecionamento autorizados:**
+  ```
+  https://newdevjobs-api.onrender.com/api/auth/google/callback
+  ```
+  (troque pelo domínio real da sua **API**; se usar domínio próprio na API, adicione o dele também.)
+- **Origens JavaScript autorizadas:** a URL do **frontend** (ex.: `https://www.SEU-DOMINIO`).
+
+## 2. Variáveis de ambiente no Render (serviço da API + worker)
+
+```env
+GOOGLE_REDIRECT_URI=https://newdevjobs-api.onrender.com/api/auth/google/callback
+FRONTEND_URL=https://www.SEU-DOMINIO        # ou https://newdevjobs-frontend.onrender.com
+```
+O `GOOGLE_REDIRECT_URI` tem que ser **idêntico** ao cadastrado no Google.
+
+## 3. Tela de consentimento (necessária para verificação)
+
+Preencha em **Tela de consentimento OAuth**:
+- **Página inicial do app:** sua landing (ex.: `https://landing.SEU-DOMINIO`).
+- **Política de Privacidade:** `https://landing.SEU-DOMINIO/privacidade.html`.
+- **Termos de Serviço:** `https://landing.SEU-DOMINIO/termos.html`.
+- **Domínios autorizados:** seu domínio próprio (precisa ser verificado no Google
+  Search Console — domínios `onrender.com` **não** servem para verificação).
+
+## 4. ⚠️ O ponto que pega: publicar + verificar (`gmail.send` é escopo RESTRITO)
+
+- **Modo Teste:** até 100 usuários de teste conseguem conectar **sem** verificação.
+  Porém, com escopo sensível/restrito, o **refresh_token expira a cada 7 dias** —
+  ou seja, cada usuário teria que reconectar o Gmail toda semana. Serve para um
+  beta fechado, não para operar de verdade.
+- **Modo Produção (publicado):** o `refresh_token` passa a ser duradouro (conectar
+  uma vez), mas para um escopo **restrito** como `gmail.send` o Google exige
+  **verificação completa**: domínio verificado, política/termos publicados, vídeo
+  de demonstração e, normalmente, uma **avaliação de segurança CASA** (auditoria
+  por terceiro, anual e paga). O processo leva semanas.
+
+**Resumo prático:** dá para lançar um **beta fechado** já (modo Teste, ≤100 emails,
+reconectando o Gmail a cada 7 dias). Para abrir ao público com "conectar uma vez",
+publique o app e inicie a **verificação do Google** — comece cedo, é o item de
+maior prazo do lançamento.

@@ -15,14 +15,18 @@ function shapeApp(a) {
     };
 }
 
-// GET /api/applications
+// GET /api/applications?page=&pageSize=
 router.get('/', requireAuth, async (req, res) => {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(60, Math.max(6, Number(req.query.pageSize) || 24));
+    const [{ total }] = await sql`select count(*)::int as total from "Applications" where "UserId" = ${req.user.Id}`;
     const rows = await sql`
         select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail"
         from "Applications" a join "Jobs" j on j."Id" = a."JobId"
         where a."UserId" = ${req.user.Id}
-        order by a."CreatedAt" desc, a."Id" desc`;
-    res.json({ applications: rows.map(shapeApp) });
+        order by a."CreatedAt" desc, a."Id" desc
+        limit ${pageSize} offset ${(page - 1) * pageSize}`;
+    res.json({ applications: rows.map(shapeApp), total, page, pageSize });
 });
 
 // POST /api/applications/preview  { jobId, lang?, subject?, body? }

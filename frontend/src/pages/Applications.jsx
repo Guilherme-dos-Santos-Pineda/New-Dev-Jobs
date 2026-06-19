@@ -10,10 +10,15 @@ const STATUS = {
     skipped: { badge: 'neutral', icon: 'ti-player-skip-forward', label: 'pulado' },
 };
 
+const PAGE_SIZE = 24;
+
 export default function Applications() {
-    // stale-while-revalidate: ao voltar para a aba, mostra na hora e revalida em silêncio.
-    const { data, loading } = useCachedResource('applications', () => api.getApplications());
+    const [page, setPage] = useState(1);
+    // stale-while-revalidate por página: ao voltar para a aba, mostra na hora e revalida.
+    const { data, loading } = useCachedResource(`applications:${page}`, () => api.getApplications({ page, pageSize: PAGE_SIZE }));
     const apps = data?.applications || [];
+    const total = data?.total ?? apps.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const [open, setOpen] = useState(null);
 
     return (
@@ -63,6 +68,15 @@ export default function Applications() {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {!loading && total > PAGE_SIZE && (
+                <div className="row" style={{ alignItems: 'center', marginTop: 16 }}>
+                    <span className="muted" style={{ fontSize: 12 }}>{total} candidatura(s) · página {page}/{totalPages}</span>
+                    <div className="spacer" />
+                    <button className="btn ghost sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><i className="ti ti-chevron-left" /> anterior</button>
+                    <button className="btn ghost sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>próxima <i className="ti ti-chevron-right" /></button>
                 </div>
             )}
 

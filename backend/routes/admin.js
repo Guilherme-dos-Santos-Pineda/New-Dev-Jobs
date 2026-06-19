@@ -289,14 +289,19 @@ router.get('/jobs', requireAdmin, async (req, res) => {
     const seniority = req.query.seniority || null;
     const minScore = req.query.minScore ? Number(req.query.minScore) : null;
     const techLike = req.query.tech ? `%${req.query.tech}%` : null;
-    const rows = await sql`
-        select * from "Jobs"
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(10, Number(req.query.pageSize) || 30));
+    const where = sql`
         where (${q}::text is null or "JobTitle" ilike ${q} or "Company" ilike ${q})
           and (${seniority}::text is null or lower(coalesce("Seniority",'')) = lower(${seniority}))
           and (${minScore}::int is null or coalesce("AiScore",0) >= ${minScore})
-          and (${techLike}::text is null or "Skills"::text ilike ${techLike})
-        order by "CreatedAt" desc, "Id" desc limit 200`;
-    res.json({ jobs: rows.map(shapeJob) });
+          and (${techLike}::text is null or "Skills"::text ilike ${techLike})`;
+    const [{ total }] = await sql`select count(*)::int as total from "Jobs" ${where}`;
+    const rows = await sql`
+        select * from "Jobs" ${where}
+        order by "CreatedAt" desc, "Id" desc
+        limit ${pageSize} offset ${(page - 1) * pageSize}`;
+    res.json({ jobs: rows.map(shapeJob), total, page, pageSize });
 });
 
 // ---------- Conteúdo bruto (ScrapedPosts) ----------

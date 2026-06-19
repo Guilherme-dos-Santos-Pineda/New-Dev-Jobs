@@ -100,7 +100,10 @@ export const api = {
     },
 
     // applications
-    getApplications: () => request('GET', '/applications'),
+    getApplications: (params = {}) => {
+        const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+        return request('GET', `/applications${qs ? `?${qs}` : ''}`);
+    },
     apply: (jobId) => request('POST', '/applications', { jobId }),
 
     // jobs matches + fila de envio

@@ -5,32 +5,36 @@ import { fmtDate, scoreClass } from '../utils.js';
 
 const SENIORITIES = ['', 'estagio', 'junior', 'pleno', 'senior', 'lead'];
 
+const PAGE_SIZE = 30;
+
 export default function AdminJobs() {
     const toast = useToast();
-    const [jobs, setJobs] = useState([]);
+    const [data, setData] = useState({ jobs: [], total: 0, page: 1 });
     const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(null);
     const [f, setF] = useState({ q: '', seniority: '', minScore: '', tech: '' });
 
-    async function load(filters = f) {
+    async function load(filters = f, page = 1) {
         setLoading(true);
-        try { const { jobs } = await api.adminJobs(filters); setJobs(jobs); }
+        try { setData(await api.adminJobs({ ...filters, page, pageSize: PAGE_SIZE })); }
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load(f, 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+    const jobs = data.jobs || [];
+    const totalPages = Math.max(1, Math.ceil((data.total || 0) / PAGE_SIZE));
 
     return (
         <div className="card">
             <div className="toolbar">
                 <div className="search"><i className="ti ti-search" />
                     <input className="input" placeholder="Cargo ou empresa…" value={f.q}
-                        onChange={(e) => set('q', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+                        onChange={(e) => set('q', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(f, 1)} />
                 </div>
                 <input className="input" style={{ maxWidth: 150 }} placeholder="Tecnologia" value={f.tech}
-                    onChange={(e) => set('tech', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+                    onChange={(e) => set('tech', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(f, 1)} />
                 <select className="select" style={{ maxWidth: 150 }} value={f.seniority} onChange={(e) => set('seniority', e.target.value)}>
                     {SENIORITIES.map((s) => <option key={s} value={s}>{s || 'Senioridade'}</option>)}
                 </select>
@@ -38,7 +42,7 @@ export default function AdminJobs() {
                     <option value="">Score mín.</option>
                     {[50, 70, 80, 90].map((s) => <option key={s} value={s}>≥ {s}%</option>)}
                 </select>
-                <button className="btn primary sm" onClick={() => load()}><i className="ti ti-filter" /> Filtrar</button>
+                <button className="btn primary sm" onClick={() => load(f, 1)}><i className="ti ti-filter" /> Filtrar</button>
             </div>
 
             {loading ? (
@@ -65,7 +69,12 @@ export default function AdminJobs() {
                     </table>
                 </div>
             )}
-            <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>{jobs.length} vaga(s) · até 200 mais recentes.</div>
+            <div className="row" style={{ alignItems: 'center', marginTop: 10 }}>
+                <span className="muted" style={{ fontSize: 12 }}>{(data.total || 0).toLocaleString('pt-BR')} vaga(s) · página {data.page || 1}/{totalPages}</span>
+                <div className="spacer" />
+                <button className="btn ghost sm" disabled={loading || (data.page || 1) <= 1} onClick={() => load(f, (data.page || 1) - 1)}><i className="ti ti-chevron-left" /> anterior</button>
+                <button className="btn ghost sm" disabled={loading || (data.page || 1) >= totalPages} onClick={() => load(f, (data.page || 1) + 1)}>próxima <i className="ti ti-chevron-right" /></button>
+            </div>
 
             {/* Detalhe da vaga (inclui o conteúdo bruto do post) */}
             {open && (

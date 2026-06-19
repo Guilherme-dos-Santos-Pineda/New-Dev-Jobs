@@ -51,6 +51,8 @@ export default function Subscription() {
     }
 
     const pct = usage ? Math.min(100, Math.round((usage.usedToday / Math.max(1, usage.dailyLimit)) * 100)) : 0;
+    const daysLeft = subscription?.currentPeriodEnd
+        ? Math.max(0, Math.ceil((subscription.currentPeriodEnd - Date.now()) / 86400000)) : null;
 
     return (
         <div className="page" style={{ maxWidth: 980 }}>
@@ -76,6 +78,7 @@ export default function Subscription() {
                                 {subscription.cancelAtPeriodEnd
                                     ? <><i className="ti ti-calendar-x" /> cancela em {fmtDate(subscription.currentPeriodEnd)} (acesso até lá)</>
                                     : <><i className="ti ti-calendar-repeat" /> renova em {fmtDate(subscription.currentPeriodEnd)}</>}
+                                {daysLeft != null && <> · <b>{daysLeft}</b> {daysLeft === 1 ? 'dia restante' : 'dias restantes'} <span style={{ opacity: 0.7 }}>(ciclo de 1 mês)</span></>}
                             </div>
                         )}
                     </div>
@@ -123,6 +126,11 @@ export default function Subscription() {
                                 </ul>
                                 {isCurrent ? (
                                     <button className="btn block sm" disabled>Plano atual</button>
+                                ) : current !== 'free' ? (
+                                    // Já tem assinatura paga → trocar pelo portal do Stripe (evita 2ª assinatura).
+                                    <button className="btn block sm" disabled={busy === 'portal' || !stripeEnabled} onClick={manage}>
+                                        {busy === 'portal' ? 'Abrindo…' : (<><i className="ti ti-arrows-exchange" /> {p.id === 'free' ? 'Cancelar / downgrade' : `Trocar para ${p.label}`}</>)}
+                                    </button>
                                 ) : p.purchasable ? (
                                     <button className="btn primary block sm" disabled={!!busy || !stripeEnabled} onClick={() => upgrade(p.id)}>
                                         {busy === p.id ? 'Redirecionando…' : (<><i className="ti ti-arrow-up-circle" /> Assinar {p.label}</>)}

@@ -16,7 +16,7 @@ const prefetchByPath = {
     },
     '/app/candidaturas': () => {
         import('../pages/Applications.jsx');
-        prefetch('applications', () => api.getApplications());
+        prefetch('applications:1', () => api.getApplications({ page: 1, pageSize: 24 }));
     },
     '/app/feedback': () => {
         import('../pages/Feedback.jsx');

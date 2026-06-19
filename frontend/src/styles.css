@@ -2,8 +2,8 @@
    DESIGN TOKENS (alinhados com a landing)
    ============================================ */
 :root {
-    --color-bg: #FFFFFF;
-    --color-bg-secondary: #F6F8FB;
+    --color-bg: #F3F6FA;
+    --color-bg-secondary: #E7ECF4;
     --color-surface: #FFFFFF;
     --color-text: #0D1117;
     --color-text-secondary: #4A5568;
@@ -203,7 +203,11 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .app-shell.collapsed .sidebar-nav a.active::before { left: -10px; }
 .app-shell.collapsed .sidebar-foot .user-chip { justify-content: center; }
 .app-shell.collapsed .sidebar-foot .user-chip span { display: none; }
-.app-shell.collapsed .sidebar-foot-actions { flex-direction: column; }
+.app-shell.collapsed .sidebar-foot-actions { flex-direction: column; align-items: center; }
+.app-shell.collapsed .sidebar-head { align-items: center; }
+.app-shell.collapsed .sidebar-brand { justify-content: center; }
+.app-shell.collapsed .sidebar-foot-actions .icon-btn { flex: 0 0 auto; width: 38px; }
+.app-shell.collapsed .sidebar-foot .user-chip { padding: 4px 0; }
 
 .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background-image: var(--app-glow); background-repeat: no-repeat; }
 
@@ -239,7 +243,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 /* ============================================
    LAYOUT / PAGE
    ============================================ */
-.page { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
+.page { max-width: 1240px; margin: 0 auto; padding: 32px 36px 64px; }
 .page-head { margin-bottom: 24px; }
 .page-head h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.6px; }
 .page-head p { color: var(--color-text-secondary); margin-top: 4px; }

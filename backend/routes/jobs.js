@@ -23,7 +23,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (sort === 'recent') jobs.sort((a, b) => b.id - a.id);
     else jobs.sort((a, b) => b.matchScore - a.matchScore);
 
-    res.json({ jobs, total: jobs.length, filteredOut });
+    // Não expõe o email de contato ao cliente (envio é server-side por jobId).
+    res.json({ jobs: jobs.map(({ email, ...j }) => j), total: jobs.length, filteredOut });
 });
 
 // GET /api/jobs/matches  — vagas candidatáveis (filtros + com email + não enviadas)
@@ -33,7 +34,11 @@ router.get('/matches', requireAuth, async (req, res) => {
     // para explicar ao usuário quando os filtros estão escondendo vagas.
     const all = await listForUser(req.user.Id, { ignoreFilters: true });
     const candidatable = all.jobs.filter((j) => j.email && !j.applied).length;
-    res.json({ matches, total: matches.length, candidatable, filtered: Math.max(0, candidatable - matches.length) });
+    // Segurança: NUNCA devolve o email de contato (evita coletar contatos sem usar a
+    // plataforma). No plano free também oculta a descrição (o post traz o email no texto).
+    const isFree = (req.user.Plan || 'free') === 'free';
+    const safe = matches.map(({ email, description, ...m }) => (isFree ? m : { ...m, description }));
+    res.json({ matches: safe, total: matches.length, candidatable, filtered: Math.max(0, candidatable - matches.length) });
 });
 
 // GET /api/jobs/:id
@@ -43,7 +48,8 @@ router.get('/:id', requireAuth, async (req, res) => {
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${req.user.Id}`;
     const appliedRows = await sql`select "JobId" from "Applications" where "UserId" = ${req.user.Id}`;
     const appliedSet = new Set(appliedRows.map((r) => r.JobId));
-    res.json({ job: shapeJob(job, profile, appliedSet) });
+    const { email, ...safe } = shapeJob(job, profile, appliedSet);
+    res.json({ job: safe });
 });
 
 export default router;

@@ -134,7 +134,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                     <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} />
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontWeight: 600, fontSize: 13.5 }}>{m.title || 'Vaga'}</div>
-                                        <div className="muted" style={{ fontSize: 12 }}>{m.company} · {m.email}</div>
+                                        <div className="muted" style={{ fontSize: 12 }}>{m.company || '—'} · {m.matchScore}% match</div>
                                         {expanded === m.id && <div className="muted" style={{ fontSize: 12, marginTop: 6, whiteSpace: 'pre-wrap', maxHeight: 160, overflow: 'auto' }}>{m.description || 'Sem descrição.'}</div>}
                                         <button className="btn ghost sm" style={{ padding: '2px 0', marginTop: 4 }} onClick={() => setExpanded(expanded === m.id ? null : m.id)}>
                                             <i className={`ti ti-chevron-${expanded === m.id ? 'up' : 'down'}`} /> {expanded === m.id ? 'ocultar' : 'ver detalhes'}

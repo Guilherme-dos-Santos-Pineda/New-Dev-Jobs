@@ -925,7 +925,7 @@
     <!-- ==================== SCRIPT TEMA ==================== -->
     <script>
         // Detecta o domínio do app automaticamente:
-        //  • landing.SEU-DOMINIO  → www.SEU-DOMINIO   (custom domain, conforme o DNS)
+        //  • landing.SEU-DOMINIO  → SEU-DOMINIO (apex)   — o app vive no apex
         //  • local / onrender      → app no Render (fallback)
         function appBase() {
             const h = location.hostname;
@@ -933,7 +933,7 @@
                 return 'https://newdevjobs-frontend.onrender.com';
             }
             const root = h.replace(/^(landing|www)\./, '');
-            return 'https://www.' + root; // o app vive em www.<dominio>
+            return 'https://' + root; // app no apex (ex.: https://newdevjobs.xyz)
         }
         function go(path) { location.href = appBase() + path; }
 

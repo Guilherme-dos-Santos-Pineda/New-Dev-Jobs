@@ -37,6 +37,7 @@ export default function Profile() {
     const [drag, setDrag] = useState(false);
     const fileRef = useRef();
     const liRef = useRef();
+    const busyRef = useRef({}); // travas síncronas anti duplo-clique (upload/import/save)
 
     function applyProfile(p) {
         if (!p) return;
@@ -90,7 +91,8 @@ export default function Profile() {
     }
 
     async function handleCv(file) {
-        if (!file) return;
+        if (!file || busyRef.current.cv) return;
+        busyRef.current.cv = true;
         setUploading(true);
         try {
             const { profile } = await api.uploadCv(file);
@@ -99,12 +101,13 @@ export default function Profile() {
             await refreshUser();
             toast.show('Currículo enviado');
         } catch (e) { toast.show(e.message, 'error'); }
-        finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
+        finally { busyRef.current.cv = false; setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
     }
 
     async function handleImport(file) {
-        if (!file) return;
+        if (!file || busyRef.current.imp) return;
         if (file.type !== 'application/pdf') { toast.show('Envie um PDF', 'error'); return; }
+        busyRef.current.imp = true;
         setImporting(true);
         try {
             const { extracted: ex } = await api.importLinkedin(file);
@@ -123,7 +126,7 @@ export default function Profile() {
             });
             toast.show(`Importado do LinkedIn: ${ex.skills?.length || 0} skills + dados. Revise e salve.`);
         } catch (e) { toast.show(e.message, 'error'); }
-        finally { setImporting(false); if (liRef.current) liRef.current.value = ''; }
+        finally { busyRef.current.imp = false; setImporting(false); if (liRef.current) liRef.current.value = ''; }
     }
 
     const toggleIn = (key, v) => setForm((f) => ({ ...f, [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] }));

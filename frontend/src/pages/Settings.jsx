@@ -28,10 +28,14 @@ export default function EmailSettings() {
     const activeField = useRef('body');
 
     const [connecting, setConnecting] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
     const [testTo, setTestTo] = useState('garmecfeels@gmail.com');
     const [testing, setTesting] = useState(false);
+    const busyRef = useRef({}); // travas síncronas anti duplo-clique por ação
 
     async function sendTest() {
+        if (busyRef.current.test) return; // bloqueia envio duplicado de email de teste
+        busyRef.current.test = true;
         setTesting(true);
         try {
             const r = await api.sendTestEmail(testTo);
@@ -39,6 +43,7 @@ export default function EmailSettings() {
         } catch (e) {
             toast.show(e.message, 'error');
         } finally {
+            busyRef.current.test = false;
             setTesting(false);
         }
     }
@@ -129,6 +134,8 @@ export default function EmailSettings() {
     }
 
     async function connectGoogle() {
+        if (busyRef.current.connect) return; // evita abrir 2 redirects de consentimento
+        busyRef.current.connect = true;
         setConnecting(true);
         try {
             if (googleConfigured) {
@@ -142,13 +149,24 @@ export default function EmailSettings() {
         } catch (e) {
             toast.show(e.message, 'error');
         } finally {
+            busyRef.current.connect = false;
             setConnecting(false);
         }
     }
     async function disconnectGoogle() {
-        await api.disconnectGoogle();
-        await refreshUser();
-        toast.show('Conta Google desconectada');
+        if (busyRef.current.disc) return;
+        busyRef.current.disc = true;
+        setDisconnecting(true);
+        try {
+            await api.disconnectGoogle();
+            await refreshUser();
+            toast.show('Conta Google desconectada');
+        } catch (e) {
+            toast.show(e.message, 'error');
+        } finally {
+            busyRef.current.disc = false;
+            setDisconnecting(false);
+        }
     }
 
 
@@ -176,7 +194,7 @@ export default function EmailSettings() {
                             <div className="badge ok" style={{ marginTop: 4 }}><i className="ti ti-circle-check" /> pronta para enviar</div>
                         </div>
                         <div className="spacer" />
-                        <button className="btn sm" onClick={disconnectGoogle}><i className="ti ti-unlink" /> Desconectar</button>
+                        <button className="btn sm" disabled={disconnecting} onClick={disconnectGoogle}><i className="ti ti-unlink" /> {disconnecting ? 'Desconectando…' : 'Desconectar'}</button>
                     </div>
                 ) : (
                     <div className="row" style={{ alignItems: 'center' }}>

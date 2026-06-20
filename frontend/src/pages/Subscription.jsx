@@ -147,24 +147,22 @@ export default function Subscription() {
             <div className="card fade-in">
                 <div className="section-title"><i className="ti ti-receipt" /> Histórico de pagamentos</div>
                 {loadingHist ? (
-                    <div><div className="skeleton sk-line" style={{ width: '60%' }} /><div className="skeleton sk-line" style={{ width: '40%' }} /></div>
+                    <div className="inv-grid">{[0, 1].map((i) => <div key={i} className="skeleton sk-card" style={{ height: 70 }} />)}</div>
                 ) : invoices.length === 0 ? (
                     <div className="empty" style={{ padding: 28 }}><i className="ti ti-receipt-off" />Nenhum pagamento ainda.</div>
                 ) : (
-                    <div className="dtable-wrap">
-                        <table className="dtable">
-                            <thead><tr><th>Data</th><th>Valor</th><th>Status</th><th className="col-actions">Fatura</th></tr></thead>
-                            <tbody>
-                                {invoices.map((inv) => (
-                                    <tr key={inv.id}>
-                                        <td>{fmtDate(inv.date)}</td>
-                                        <td className="mono">{money(inv.amount, inv.currency)}</td>
-                                        <td><span className={`badge ${inv.status === 'paid' ? 'ok' : 'neutral'}`}>{inv.status}</span></td>
-                                        <td className="col-actions">{inv.url && <a className="btn ghost sm" href={inv.url} target="_blank" rel="noopener"><i className="ti ti-external-link" /> ver</a>}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="inv-grid">
+                        {invoices.map((inv) => (
+                            <div key={inv.id} className="inv-card">
+                                <div className="inv-ico"><i className="ti ti-receipt" /></div>
+                                <div className="inv-main">
+                                    <div className="inv-amount">{money(inv.amount, inv.currency)}</div>
+                                    <div className="muted" style={{ fontSize: 12 }}>{fmtDate(inv.date)}</div>
+                                </div>
+                                <span className={`badge ${inv.status === 'paid' ? 'ok' : 'neutral'}`}>{inv.status === 'paid' ? 'pago' : inv.status}</span>
+                                {inv.url && <a className="btn ghost sm" href={inv.url} target="_blank" rel="noopener" title="Ver fatura"><i className="ti ti-external-link" /></a>}
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
@@ -14,6 +14,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
     const [selected, setSelected] = useState(new Set());
     const [expanded, setExpanded] = useState(null);
     const [starting, setStarting] = useState(false);
+    const startingRef = useRef(false); // guarda síncrona contra duplo-clique
 
     const ready = user.googleConnected && user.hasProfile && user.hasCv;
     const isFree = (user.plan || 'free') === 'free';
@@ -34,6 +35,8 @@ export default function SearchSendModal({ onClose, onStarted }) {
     }, []);
 
     async function start(mode, jobIds) {
+        if (startingRef.current) return; // bloqueia cliques repetidos antes do re-render
+        startingRef.current = true;
         setStarting(true);
         try {
             await api.queueStart(mode, jobIds);
@@ -43,6 +46,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
         } catch (e) {
             if (e.status === 402) toast.show('Seleção manual é um recurso dos planos pagos.', 'error');
             else toast.show(e.message, 'error');
+            startingRef.current = false;
             setStarting(false);
         }
     }
@@ -69,7 +73,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                         <div className="modal-head">
                             <i className="ti ti-sparkles" style={{ color: 'var(--color-accent)', fontSize: 20 }} />
                             <h3>Como deseja enviar os e-mails?</h3>
-                            <button className="close" onClick={onClose}><i className="ti ti-x" /></button>
+                            <button className="close" onClick={onClose} disabled={starting}><i className="ti ti-x" /></button>
                         </div>
                         <div style={{ padding: '18px 22px' }}>
                             {matches.length === 0 ? (
@@ -92,15 +96,17 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                         Sistema encontrou <b style={{ color: 'var(--color-accent)' }}>{matches.length} matches</b> perfeitos!
                                         Executo o envio em lote ou prefere modo seleção manual?
                                     </p>
-                                    <div className="choice" onClick={() => !starting && start('auto')}>
+                                    <div className="choice" style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined} onClick={() => start('auto')}>
                                         <div className="choice-ico ok"><i className="ti ti-bolt" /></div>
                                         <div>
-                                            <div className="choice-t">Enviar automaticamente</div>
+                                            <div className="choice-t">{starting ? 'Iniciando envio…' : 'Enviar automaticamente'}</div>
                                             <div className="choice-d">Enviar todas as {matches.length} vagas filtradas (uma a cada 60–120s).</div>
                                         </div>
-                                        <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                                        {starting
+                                            ? <div className="spinner" style={{ marginLeft: 'auto', width: 18, height: 18, borderWidth: 2 }} />
+                                            : <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />}
                                     </div>
-                                    <div className={`choice ${isFree ? 'locked' : ''}`}
+                                    <div className={`choice ${isFree ? 'locked' : ''}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
                                         onClick={() => { if (isFree) toast.show('Seleção manual disponível nos planos pagos.', 'error'); else setPhase('manual'); }}>
                                         <div className="choice-ico"><i className={`ti ${isFree ? 'ti-lock' : 'ti-list-check'}`} /></div>
                                         <div>
@@ -121,7 +127,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                         <div className="modal-head">
                             <button className="btn ghost sm" onClick={() => setPhase('choose')}><i className="ti ti-arrow-left" /></button>
                             <h3>Selecionar vagas ({selected.size}/{matches.length})</h3>
-                            <button className="close" onClick={onClose}><i className="ti ti-x" /></button>
+                            <button className="close" onClick={onClose} disabled={starting}><i className="ti ti-x" /></button>
                         </div>
                         <div className="modal-body" style={{ padding: '8px 16px' }}>
                             <label className="row" style={{ alignItems: 'center', gap: 8, padding: '8px 4px', cursor: 'pointer' }}>

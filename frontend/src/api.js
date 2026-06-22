@@ -28,7 +28,8 @@ async function authHeader() {
     return cachedToken ? { Authorization: `Bearer ${cachedToken}` } : {};
 }
 
-async function request(method, path, body, { isForm } = {}) {
+async function request(method, path, body, opts = {}) {
+    const { isForm, _retry } = opts;
     const headers = { ...(await authHeader()) };
 
     let payload;
@@ -40,6 +41,18 @@ async function request(method, path, body, { isForm } = {}) {
     }
 
     const res = await fetch(`${API_BASE}/api${path}`, { method, headers, body: payload });
+
+    // Token pode ter expirado: força refresh da sessão e tenta de novo UMA vez.
+    // Evita o "sessão caiu" quando o access_token expira mas o refresh ainda é válido.
+    if (res.status === 401 && supabase && !_retry) {
+        try {
+            const { data } = await supabase.auth.refreshSession();
+            cachedToken = data.session?.access_token || null;
+            tokenResolved = true;
+        } catch { cachedToken = null; }
+        if (cachedToken) return request(method, path, body, { ...opts, _retry: true });
+    }
+
     const text = await res.text();
     const data = text ? JSON.parse(text) : null;
 

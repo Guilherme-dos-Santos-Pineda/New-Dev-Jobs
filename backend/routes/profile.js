@@ -19,7 +19,7 @@ async function getProfile(userId) {
 const EMPTY_PROFILE = {
     Skills: [], Seniority: null, Modality: null, SalaryMin: null, SalaryMax: null,
     Headline: null, Phone: null, Whatsapp: null, Linkedin: null, Github: null, Portfolio: null,
-    RequiredKeywords: [], BlockedWords: [], BlockedDomains: [], Levels: [], Modalities: [],
+    RequiredKeywords: [], BlockedWords: [], BlockedDomains: [], Levels: [], Modalities: [], Areas: [],
     StrictLevel: false, PostingDays: null, Region: 'br',
 };
 
@@ -27,11 +27,11 @@ async function upsertProfile(userId, f) {
     await sql`
         insert into "Profiles" ("UserId", "Skills", "Seniority", "Modality", "SalaryMin", "SalaryMax", "Headline",
             "Phone", "Whatsapp", "Linkedin", "Github", "Portfolio",
-            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "StrictLevel", "PostingDays", "Region", "UpdatedAt")
+            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "Areas", "StrictLevel", "PostingDays", "Region", "UpdatedAt")
         values (${userId}, ${sql.json(f.Skills)}, ${f.Seniority}, ${f.Modality}, ${f.SalaryMin}, ${f.SalaryMax}, ${f.Headline},
             ${f.Phone}, ${f.Whatsapp}, ${f.Linkedin}, ${f.Github}, ${f.Portfolio},
             ${sql.json(f.RequiredKeywords)}, ${sql.json(f.BlockedWords)}, ${sql.json(f.BlockedDomains)},
-            ${sql.json(f.Levels)}, ${sql.json(f.Modalities)}, ${f.StrictLevel}, ${f.PostingDays}, ${f.Region || 'br'}, now())
+            ${sql.json(f.Levels)}, ${sql.json(f.Modalities)}, ${sql.json(f.Areas || [])}, ${f.StrictLevel}, ${f.PostingDays}, ${f.Region || 'br'}, now())
         on conflict ("UserId") do update set
             "Skills" = excluded."Skills", "Seniority" = excluded."Seniority", "Modality" = excluded."Modality",
             "SalaryMin" = excluded."SalaryMin", "SalaryMax" = excluded."SalaryMax", "Headline" = excluded."Headline",
@@ -39,7 +39,7 @@ async function upsertProfile(userId, f) {
             "Github" = excluded."Github", "Portfolio" = excluded."Portfolio",
             "RequiredKeywords" = excluded."RequiredKeywords", "BlockedWords" = excluded."BlockedWords",
             "BlockedDomains" = excluded."BlockedDomains", "Levels" = excluded."Levels", "Modalities" = excluded."Modalities",
-            "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "Region" = excluded."Region", "UpdatedAt" = now()`;
+            "Areas" = excluded."Areas", "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "Region" = excluded."Region", "UpdatedAt" = now()`;
 }
 
 async function setCv(userId, cvPath, cvName) {
@@ -52,6 +52,7 @@ function publicProfile(p) {
         skills: parseArr(p.Skills),
         seniorities: parseArr(p.Levels),
         modalities: parseArr(p.Modalities),
+        areas: parseArr(p.Areas),
         salaryMin: p.SalaryMin,
         salaryMax: p.SalaryMax,
         headline: p.Headline,
@@ -92,6 +93,7 @@ router.put('/', requireAuth, async (req, res) => {
     const b = req.body || {};
     const ALLOWED_LEVELS = ['estagio', 'junior', 'pleno', 'senior', 'lead', 'manager'];
     const ALLOWED_MODALITIES = ['remoto', 'hibrido', 'presencial'];
+    const ALLOWED_AREAS = ['dev', 'qa', 'po', 'data', 'design', 'devops', 'mobile'];
     const filterAllowed = (v, allowed) => toArr(v).map((x) => x.toLowerCase()).filter((x) => allowed.includes(x));
 
     await upsertProfile(req.user.Id, {
@@ -110,6 +112,7 @@ router.put('/', requireAuth, async (req, res) => {
         BlockedDomains: normalizeList(b.blockedDomains, normalizeDomain),
         Levels: filterAllowed(b.seniorities, ALLOWED_LEVELS),
         Modalities: filterAllowed(b.modalities, ALLOWED_MODALITIES),
+        Areas: filterAllowed(b.areas, ALLOWED_AREAS),
         StrictLevel: !!b.strictLevel,
         PostingDays: Number.isInteger(+b.postingDays) && +b.postingDays > 0 ? +b.postingDays : null,
         Region: b.region === 'intl' ? 'intl' : 'br',

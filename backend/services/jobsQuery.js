@@ -16,6 +16,21 @@ export function detectLevel(text = '') {
     return null;
 }
 
+// Classifica a ÁREA/cargo da vaga (dev, qa, po, data, design, devops, mobile) a partir
+// do título + skills. Ordem importa: checa as específicas antes do "dev" genérico.
+// 'other' = não deu pra classificar com confiança (não filtra, p/ não perder vaga boa).
+export function detectArea(job) {
+    const t = `${job.JobTitle || ''} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
+    if (/\bqa\b|quality assurance|\bsdet\b|\btae\b|analista de teste|engenheiro[ a]de? teste|automa[çc][ãa]o de teste|testes? automatizad|qualidade de software/.test(t)) return 'qa';
+    if (/product owner|product manager|\bpo\b|\bpm\b|gerente de produto|gest[ãa]o de produto|scrum master|agilista/.test(t)) return 'po';
+    if (/data engineer|engenheiro[a ]de dados|cientista de dados|data scientist|data analyst|analista de dados|business intelligence|\bbi\b|analytics|machine learning|\bml\b/.test(t)) return 'data';
+    if (/\bux\b|\bui\b|designer|product design|ux\/ui|figma/.test(t)) return 'design';
+    if (/devops|\bsre\b|site reliability|infraestrutura|cloud engineer|platform engineer|kubernetes/.test(t)) return 'devops';
+    if (/\bios\b|android|flutter|react native|desenvolvedor mobile|mobile developer/.test(t)) return 'mobile';
+    if (/desenvolvedor|developer|programador|engenheiro[a ]de software|software engineer|full[\s-]?stack|back[\s-]?end|front[\s-]?end|\.net|\bjava\b|python|\bnode|react|angular|\bphp\b|golang/.test(t)) return 'dev';
+    return 'other';
+}
+
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 // Heurística leve de país da vaga (mesma lógica do scraper)
 function jobIsBR(job) {
@@ -59,6 +74,14 @@ export function passesFilters(job, profile) {
             const lvl = detectLevel(`${job.JobTitle || ''} ${job.Description || ''}`);
             if (lvl && !levels.includes(lvl)) return false;
         }
+    }
+
+    // Área profissional: descarta vagas de outro cargo (ex.: QA não recebe vaga de Dev).
+    // Só filtra quando a área da vaga é identificável (≠ 'other'), p/ não perder vaga boa.
+    const areas = parseArr(profile.Areas);
+    if (areas.length) {
+        const area = detectArea(job);
+        if (area !== 'other' && !areas.includes(area)) return false;
     }
     return true;
 }

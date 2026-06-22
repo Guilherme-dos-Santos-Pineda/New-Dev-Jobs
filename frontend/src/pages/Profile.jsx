@@ -4,7 +4,7 @@ import { api } from '../api.js';
 import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
 import { useToast } from '../components/Toast.jsx';
 import { useAuth } from '../auth.jsx';
-import { MODALITY_OPTIONS, LEVEL_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
+import { MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
 import TagInput from '../components/TagInput.jsx';
 import EmailSettings from './Settings.jsx';
 
@@ -15,7 +15,7 @@ const POSTING_OPTIONS = [
 ];
 
 const EMPTY = {
-    skills: [], seniorities: [], modalities: [], salaryMin: '', salaryMax: '', headline: '',
+    skills: [], seniorities: [], modalities: [], areas: [], salaryMin: '', salaryMax: '', headline: '',
     phone: '', whatsapp: '', linkedin: '', github: '', portfolio: '',
     requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br',
 };
@@ -42,7 +42,7 @@ export default function Profile() {
     function applyProfile(p) {
         if (!p) return;
         setForm({
-            skills: p.skills || [], seniorities: p.seniorities || [], modalities: p.modalities || [],
+            skills: p.skills || [], seniorities: p.seniorities || [], modalities: p.modalities || [], areas: p.areas || [],
             salaryMin: p.salaryMin ?? '', salaryMax: p.salaryMax ?? '', headline: p.headline || '',
             phone: p.phone ? maskPhone(p.phone) : '', whatsapp: p.whatsapp ? maskWhatsapp(p.whatsapp) : '',
             linkedin: p.linkedin || '', github: p.github || '', portfolio: p.portfolio || '',
@@ -247,6 +247,16 @@ export default function Profile() {
                                     <option value="intl">🌎 Internacional</option>
                                 </select>
                                 <div className="hint">Só receberá vagas da região escolhida. (Por enquanto o foco é Brasil.)</div>
+                            </div>
+                            <div className="field">
+                                <label>Área profissional <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(filtra as vagas pelo cargo)</span></label>
+                                <div className="chips">
+                                    {AREA_OPTIONS.map((o) => (
+                                        <span key={o.value} className={`chip toggle ${form.areas.includes(o.value) ? 'on' : ''}`}
+                                            onClick={() => toggleIn('areas', o.value)}>{o.label}</span>
+                                    ))}
+                                </div>
+                                <div className="hint">Sem seleção = todas as áreas. Ex.: marque <b>QA</b> para receber vagas de teste, não de Desenvolvedor.</div>
                             </div>
                             <div className="field">
                                 <label>Modalidade <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(selecione uma ou mais)</span></label>

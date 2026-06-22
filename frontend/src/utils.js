@@ -31,6 +31,17 @@ export const MODALITY_OPTIONS = [
     { value: 'presencial', label: 'Presencial' },
 ];
 
+// Área profissional — filtra as vagas pelo cargo (não só skills/senioridade).
+export const AREA_OPTIONS = [
+    { value: 'dev', label: 'Desenvolvimento' },
+    { value: 'qa', label: 'QA / Testes' },
+    { value: 'devops', label: 'DevOps / Infra' },
+    { value: 'data', label: 'Dados / Analytics' },
+    { value: 'mobile', label: 'Mobile' },
+    { value: 'design', label: 'Design / UX' },
+    { value: 'po', label: 'Produto / PO' },
+];
+
 export const LEVEL_OPTIONS = [
     { value: 'estagio', label: 'Estágio' },
     { value: 'junior', label: 'Júnior' },

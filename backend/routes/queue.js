@@ -10,6 +10,10 @@ import { planUsage } from '../services/usage.js';
 
 const router = Router();
 
+// Envio automático só dispara em vagas com match razoável (evita mandar pra vaga
+// pouco relacionada). Seleção manual ignora este corte (o usuário decide).
+const MIN_AUTO_MATCH = 50;
+
 const queueSchema = z.object({
     mode: z.enum(['auto', 'manual']).optional(),
     jobIds: z.array(z.coerce.number().int().positive()).max(500).optional(),
@@ -38,8 +42,8 @@ router.post('/', requireAuth, validate(queueSchema), async (req, res) => {
         jobIds = requested.map(String).filter((id) => matchIds.has(id));
         if (!jobIds.length) return res.status(400).json({ error: 'Selecione ao menos uma vaga válida' });
     } else {
-        jobIds = matches.map((m) => m.id);
-        if (!jobIds.length) return res.status(400).json({ error: 'Nenhuma vaga disponível para envio' });
+        jobIds = matches.filter((m) => m.matchScore >= MIN_AUTO_MATCH).map((m) => m.id);
+        if (!jobIds.length) return res.status(400).json({ error: `Nenhuma vaga com match ≥ ${MIN_AUTO_MATCH}% para envio automático. Ajuste sua área/skills no perfil ou use a seleção manual.` });
     }
 
     // Teto diário do plano: considera o que já foi enviado hoje

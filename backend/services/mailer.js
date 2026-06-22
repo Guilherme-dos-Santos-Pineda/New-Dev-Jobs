@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import { config } from '../config.js';
-import { authorizedClient } from './google.js';
+import { authorizedClient, isInvalidGrant, markGoogleDisconnected } from './google.js';
 
 // =========================
 // Envio de email da candidatura
@@ -48,10 +48,20 @@ export async function sendApplicationEmail({ userId, from, to, subject, html, te
     const mime = await buildMime({ from, to, subject, html, text, attachmentContent, filename });
     const raw = toBase64Url(mime);
 
-    const { data } = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: { raw },
-    });
+    let data;
+    try {
+        ({ data } = await gmail.users.messages.send({ userId: 'me', requestBody: { raw } }));
+    } catch (err) {
+        // Refresh token morto (revogado, ou expirado no modo "Teste" do Google após 7 dias):
+        // marca a conexão como inválida e devolve um erro claro pedindo reconexão.
+        if (isInvalidGrant(err)) {
+            await markGoogleDisconnected(userId).catch(() => {});
+            const e = new Error('Sua conexão com o Google expirou ou foi revogada. Reconecte sua conta Google em Perfil → Email.');
+            e.code = 'GOOGLE_REAUTH';
+            throw e;
+        }
+        throw err;
+    }
 
     return {
         provider: 'gmail',

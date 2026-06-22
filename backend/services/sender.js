@@ -41,11 +41,17 @@ export async function applyToJob(userId, jobId) {
 
     const cvBuffer = await getCvBuffer(profile.CvPath);
 
-    await sendApplicationEmail({
-        userId, from: user.GoogleEmail || user.Email, to: job.Email,
-        subject: rendered.subject, html: rendered.html, text: rendered.text,
-        attachmentContent: cvBuffer, filename: profile.CvName,
-    });
+    try {
+        await sendApplicationEmail({
+            userId, from: user.GoogleEmail || user.Email, to: job.Email,
+            subject: rendered.subject, html: rendered.html, text: rendered.text,
+            attachmentContent: cvBuffer, filename: profile.CvName,
+        });
+    } catch (e) {
+        // Reconexão necessária = erro definitivo (retry não resolve); o worker marca falha.
+        if (e.code === 'GOOGLE_REAUTH') throw new ApplyError(e.message, 403);
+        throw e; // erros transitórios (rede/Gmail 5xx) sobem para o retry do pg-boss
+    }
 
     const [created] = await sql`
         insert into "Applications" ("UserId", "JobId", "Status", "MatchScore", "Subject", "Body", "SentAt")

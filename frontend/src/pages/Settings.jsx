@@ -42,6 +42,7 @@ export default function EmailSettings() {
             toast.show(r.provider === 'gmail' ? `Email de teste enviado para ${r.to}!` : `Email simulado (mock) para ${r.to}`);
         } catch (e) {
             toast.show(e.message, 'error');
+            if (e.status === 409) refreshUser(); // conexão Google expirou → atualiza UI p/ reconectar
         } finally {
             busyRef.current.test = false;
             setTesting(false);

@@ -98,6 +98,20 @@ export async function authorizedClient(userId) {
     return client;
 }
 
+// Detecta o erro de refresh token inválido/expirado/revogado do Google.
+export function isInvalidGrant(err) {
+    const m = err?.response?.data?.error || err?.response?.data?.error_description || err?.message || '';
+    return /invalid_grant/i.test(String(m));
+}
+
+// Marca a conexão Google como inválida (sem tentar revogar — o token já está morto),
+// para a UI pedir reconexão. Usado quando um envio retorna invalid_grant.
+export async function markGoogleDisconnected(userId) {
+    await sql`
+        update "Users" set "GoogleConnected" = false, "GoogleRefreshToken" = null,
+            "GoogleAccessToken" = null, "GoogleTokenExpiry" = null where "Id" = ${userId}`;
+}
+
 export async function disconnect(userId) {
     const row = await getUserTokens(userId);
     if (row?.GoogleRefreshToken && config.google.configured) {

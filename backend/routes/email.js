@@ -41,6 +41,9 @@ router.post('/test', requireAuth, async (req, res) => {
         });
         res.json({ ok: true, to, provider: result.provider, messageId: result.messageId });
     } catch (e) {
+        if (e.code === 'GOOGLE_REAUTH') {
+            return res.status(409).json({ error: e.message, needsReconnect: true });
+        }
         console.error('Falha no email de teste:', e.message);
         res.status(502).json({ error: `Falha ao enviar: ${e.message}` });
     }

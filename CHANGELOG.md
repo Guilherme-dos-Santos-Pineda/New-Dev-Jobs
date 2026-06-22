@@ -7,6 +7,7 @@ Registro das alterações relevantes. Datas no formato AAAA-MM-DD.
 - **Sessão caindo:** `request()` trata 401 refrescando a sessão do Supabase e repetindo a chamada uma vez — não desloga mais quando o access token expira mas o refresh ainda é válido.
 - **Matching por área profissional:** vagas filtradas pelo CARGO, não só skills/senioridade (um QA não recebe mais vaga de Desenvolvedor). Campo "Área profissional" no perfil (Dev/QA/PO/Data/Design/DevOps/Mobile — migration `0009`); heurística `detectArea` classifica a vaga pelo título/skills; vazio = todas as áreas.
 - **Auto-send com piso de match:** envio automático só dispara em vagas com match ≥ 50% (seleção manual ignora o corte).
+- **Título genérico no email:** quando a vaga não tem cargo claro ("Vaga"/vazio), o assunto deixa de ser "Candidatura para Vaga" e passa a usar a área do usuário (ou headline) → "Candidatura para QA na Empresa".
 - **Anti duplo-clique:** travas síncronas (useRef) + feedback nos botões de envio de vagas, upload de CV, import do LinkedIn, conectar/desconectar Google e email de teste.
 
 ## 2026-06 — Sprint de pré-lançamento

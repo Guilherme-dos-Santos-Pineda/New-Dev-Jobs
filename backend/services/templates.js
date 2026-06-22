@@ -70,6 +70,29 @@ function value(v) {
     return { html: escapeHtml(s), text: s };
 }
 
+// Cargo amigável por área (usado quando a vaga não tem título claro).
+const AREA_ROLE = {
+    dev: 'Desenvolvedor(a)', qa: 'QA', po: 'Product Owner', data: 'Dados & Analytics',
+    design: 'Design/UX', devops: 'DevOps', mobile: 'Desenvolvedor(a) Mobile',
+};
+const parseAreas = (p) => {
+    const v = p?.Areas;
+    if (Array.isArray(v)) return v;
+    try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : []; } catch { return []; }
+};
+
+// Título da vaga para o email: usa o título real; se for genérico ("Vaga"/vazio),
+// deriva da ÁREA do usuário → headline → padrão. Evita "Candidatura para Vaga".
+function niceTitle(job, profile) {
+    const raw = String(job.JobTitle || '').trim();
+    if (raw && !/^vaga$/i.test(raw)) return raw;          // título real (mantém "... vaga de teste" do teste)
+    const role = AREA_ROLE[parseAreas(profile)[0]];
+    if (role) return role;
+    const hl = String(profile?.Headline || '').trim();
+    if (hl) return hl.slice(0, 60);
+    return 'Desenvolvedor(a)';                            // padrão (plataforma é dev-focada)
+}
+
 /**
  * Monta o mapa de variáveis a partir do usuário/perfil/vaga.
  * Cada variável tem versões { html, text }.
@@ -93,7 +116,7 @@ export function buildVars({ user, profile, job }) {
     if (pf.text) push(pf.html, pf.text);
 
     return {
-        job_title: value(job.JobTitle || 'a vaga'),
+        job_title: value(niceTitle(job, p)),
         company: value(job.Company || 'a empresa'),
         sender_name: value(user.Name),
         whatsapp_link: waLink,

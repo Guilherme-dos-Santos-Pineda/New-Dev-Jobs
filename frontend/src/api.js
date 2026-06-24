@@ -127,6 +127,12 @@ export const api = {
 
     // admin
     adminOverview: () => request('GET', '/admin/overview'),
+    adminUsers: (params = {}) => {
+        const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+        return request('GET', `/admin/users${qs ? `?${qs}` : ''}`);
+    },
+    adminUser: (id) => request('GET', `/admin/users/${id}`),
+    adminDeleteUser: (id) => request('DELETE', `/admin/users/${id}`),
     adminGetSources: () => request('GET', '/admin/sources'),
     adminAddSource: (url, label) => request('POST', '/admin/sources', { url, label }),
     adminToggleSource: (id, active) => request('PATCH', `/admin/sources/${id}`, { active }),

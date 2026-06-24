@@ -6,6 +6,7 @@ import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
 import { aiState } from '../services/ai.js';
+import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 
 const router = Router();
 
@@ -58,6 +59,83 @@ router.get('/overview', requireAdmin, async (_req, res) => {
         stats,
         topUsers: topUsers.map((u) => ({ name: u.Name, email: u.Email, plan: u.Plan, apps: u.apps })),
     });
+});
+
+// ---------- Usuários (gestão) ----------
+function shapeUser(u) {
+    return {
+        id: u.Id, name: u.Name, email: u.Email, plan: u.Plan, role: u.Role,
+        googleConnected: !!u.GoogleConnected, googleEmail: u.GoogleEmail,
+        createdAt: u.CreatedAt, apps: u.apps, hasCv: !!u.has_cv, areas: parseArr(u.areas),
+    };
+}
+
+// GET /api/admin/users?q=&page=&pageSize=
+router.get('/users', requireAdmin, async (req, res) => {
+    const q = req.query.q ? `%${req.query.q}%` : null;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(5, Number(req.query.pageSize) || 25));
+    const where = sql`where (${q}::text is null or u."Name" ilike ${q} or u."Email" ilike ${q})`;
+    const [{ total }] = await sql`select count(*)::int as total from "Users" u ${where}`;
+    const rows = await sql`
+        select u."Id", u."Name", u."Email", u."Plan", u."Role", u."GoogleConnected", u."GoogleEmail", u."CreatedAt",
+            (select count(*)::int from "Applications" a where a."UserId" = u."Id") as apps,
+            exists(select 1 from "Profiles" p where p."UserId" = u."Id" and p."CvPath" is not null) as has_cv,
+            (select p."Areas" from "Profiles" p where p."UserId" = u."Id") as areas
+        from "Users" u ${where}
+        order by u."CreatedAt" desc
+        limit ${pageSize} offset ${(page - 1) * pageSize}`;
+    res.json({ users: rows.map(shapeUser), total, page, pageSize });
+});
+
+// GET /api/admin/users/:id — detalhe (perfil + candidaturas + último login)
+router.get('/users/:id', requireAdmin, async (req, res) => {
+    const id = req.params.id;
+    const [u] = await sql`select * from "Users" where "Id" = ${id}`;
+    if (!u) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const [p] = await sql`select * from "Profiles" where "UserId" = ${id}`;
+    const apps = await sql`
+        select a."Id", a."Status", a."MatchScore", a."CreatedAt", j."JobTitle", j."Company"
+        from "Applications" a join "Jobs" j on j."Id" = a."JobId"
+        where a."UserId" = ${id} order by a."CreatedAt" desc limit 25`;
+    const [counts] = await sql`
+        select count(*)::int as total,
+               count(*) filter (where "Status"='sent')::int as sent,
+               count(*) filter (where "Status"='failed')::int as failed
+        from "Applications" where "UserId" = ${id}`;
+    let auth = null;
+    try {
+        if (supabaseAdmin) {
+            const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+            if (data?.user) auth = { lastSignIn: data.user.last_sign_in_at, createdAt: data.user.created_at, provider: data.user.app_metadata?.provider };
+        }
+    } catch { /* opcional */ }
+    res.json({
+        user: shapeUser({ ...u, apps: counts.total, has_cv: !!p?.CvPath, areas: p?.Areas }),
+        profile: p ? {
+            skills: parseArr(p.Skills), areas: parseArr(p.Areas), seniorities: parseArr(p.Levels),
+            modalities: parseArr(p.Modalities), headline: p.Headline, region: p.Region,
+            linkedin: p.Linkedin, github: p.Github, cvName: p.CvName, hasCv: !!p.CvPath,
+        } : null,
+        applications: apps.map((a) => ({ id: a.Id, status: a.Status, matchScore: a.MatchScore, createdAt: a.CreatedAt, title: a.JobTitle, company: a.Company })),
+        counts, auth,
+    });
+});
+
+// DELETE /api/admin/users/:id — apaga o usuário (auth + dados em cascata)
+router.delete('/users/:id', requireAdmin, async (req, res) => {
+    const id = req.params.id;
+    if (id === req.user.Id) return res.status(400).json({ error: 'Você não pode apagar a própria conta por aqui.' });
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase admin indisponível.' });
+    try {
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
+        if (error) throw new Error(error.message);
+        // O delete em auth.users cascateia para "Users" (FK on delete cascade) e dependentes.
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('Erro ao apagar usuário:', e.message);
+        res.status(502).json({ error: 'Falha ao apagar usuário.' });
+    }
 });
 
 // GET /api/admin/sources

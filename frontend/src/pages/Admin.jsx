@@ -9,6 +9,7 @@ import AdminJobs from '../components/AdminJobs.jsx';
 import AdminRecruiters from '../components/AdminRecruiters.jsx';
 import AdminRawContent from '../components/AdminRawContent.jsx';
 import AdminStats from '../components/AdminStats.jsx';
+import AdminUsers from '../components/AdminUsers.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 
@@ -77,6 +78,7 @@ export default function Admin() {
             <div className="segmented" style={{ marginBottom: 18 }}>
                 {[
                     ['geral', 'Visão geral', 'ti-layout-dashboard'],
+                    ['usuarios', 'Usuários', 'ti-users'],
                     ['vagas', 'Vagas', 'ti-briefcase'],
                     ['recrutadores', 'Recrutadores', 'ti-address-book'],
                     ['bots', 'Bots & Scraper', 'ti-robot'],
@@ -90,6 +92,7 @@ export default function Admin() {
             </div>
 
             {tab === 'bots' && <BotsPanel />}
+            {tab === 'usuarios' && <AdminUsers />}
             {tab === 'vagas' && <AdminJobs />}
             {tab === 'recrutadores' && <AdminRecruiters />}
             {tab === 'raw' && <AdminRawContent />}

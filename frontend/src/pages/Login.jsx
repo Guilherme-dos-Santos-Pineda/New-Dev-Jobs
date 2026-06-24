@@ -68,6 +68,13 @@ export default function Login() {
                     <span>Não tem conta? <Link to="/signup">Cadastre-se</Link></span>
                 </div>
             </div>
+
+            {/* Exigido pela verificação do Google: a página inicial precisa linkar a Política de Privacidade. */}
+            <div className="auth-foot">
+                <a href="https://landing.newdevjobs.xyz/privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>
+                <span>·</span>
+                <a href="https://landing.newdevjobs.xyz/termos.html" target="_blank" rel="noopener">Termos de Uso</a>
+            </div>
         </div>
     );
 }

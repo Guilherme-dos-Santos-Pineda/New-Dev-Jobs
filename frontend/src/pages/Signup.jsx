@@ -79,6 +79,11 @@ export default function Signup() {
                     </>
                 )}
             </div>
+            <div className="auth-foot">
+                <a href="https://landing.newdevjobs.xyz/privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>
+                <span>·</span>
+                <a href="https://landing.newdevjobs.xyz/termos.html" target="_blank" rel="noopener">Termos de Uso</a>
+            </div>
         </div>
     );
 }

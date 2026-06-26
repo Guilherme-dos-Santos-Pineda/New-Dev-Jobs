@@ -5,6 +5,7 @@ import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
 import { useToast } from '../components/Toast.jsx';
 import { useAuth } from '../auth.jsx';
 import { MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
+import { useT } from '../lib/i18n.jsx';
 import TagInput from '../components/TagInput.jsx';
 import EmailSettings from './Settings.jsx';
 
@@ -22,6 +23,7 @@ const EMPTY = {
 
 export default function Profile() {
     const toast = useToast();
+    const { t } = useT();
     const { user, refreshUser } = useAuth();
     const [params] = useSearchParams();
     const initialSection = (params.get('google') || params.get('tab') === 'email') ? 'email'
@@ -151,18 +153,18 @@ export default function Profile() {
         <div className="page" style={{ maxWidth: 1080 }}>
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
-                    <h1>Meu Perfil</h1>
-                    <p>Configure suas preferências para receber as melhores vagas.</p>
+                    <h1>{t('Meu Perfil')}</h1>
+                    <p>{t('Configure suas preferências para receber as melhores vagas.')}</p>
                 </div>
                 <div className="spacer" />
-                <button className="btn ghost sm" onClick={resetConfig}><i className="ti ti-rotate" /> Resetar configuração</button>
+                <button className="btn ghost sm" onClick={resetConfig}><i className="ti ti-rotate" /> {t('Resetar configuração')}</button>
             </div>
 
             <div className="card" style={{ marginBottom: 20, padding: 16 }}>
                 <div className="row" style={{ alignItems: 'center', marginBottom: 8 }}>
                     <strong style={{ fontSize: 13 }}>Perfil</strong>
                     <div className="spacer" />
-                    <span className="mono" style={{ fontSize: 13, color: 'var(--color-accent)' }}>{pct}% completo</span>
+                    <span className="mono" style={{ fontSize: 13, color: 'var(--color-accent)' }}>{pct}{t('% completo')}</span>
                 </div>
                 <div className="progress"><span style={{ width: `${pct}%` }} /></div>
             </div>
@@ -172,7 +174,7 @@ export default function Profile() {
                     {sections.map((s) => (
                         <button key={s.id} className={section === s.id ? 'active' : ''} onClick={() => setSection(s.id)}>
                             <i className={`ti ${s.icon} lead`} />
-                            {s.label}
+                            {t(s.label)}
                             <span className="st">
                                 {s.optional
                                     ? (s.complete ? <i className="ti ti-circle-check st-ok" /> : <span className="st-opt">opcional</span>)
@@ -249,7 +251,7 @@ export default function Profile() {
                                 <div className="hint">Só receberá vagas da região escolhida. (Por enquanto o foco é Brasil.)</div>
                             </div>
                             <div className="field">
-                                <label>Área profissional <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(filtra as vagas pelo cargo)</span></label>
+                                <label>{t('Área profissional')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(filtra as vagas pelo cargo)</span></label>
                                 <div className="chips">
                                     {AREA_OPTIONS.map((o) => (
                                         <span key={o.value} className={`chip toggle ${form.areas.includes(o.value) ? 'on' : ''}`}
@@ -403,7 +405,7 @@ export default function Profile() {
                     {showSave && (
                         <div className="row" style={{ marginTop: 20, justifyContent: 'flex-end' }}>
                             <button className="btn primary" disabled={saving} onClick={save}>
-                                {saving ? 'Salvando…' : (<><i className="ti ti-device-floppy" /> Salvar configurações</>)}
+                                {saving ? t('Salvando…') : (<><i className="ti ti-device-floppy" /> {t('Salvar configurações')}</>)}
                             </button>
                         </div>
                     )}

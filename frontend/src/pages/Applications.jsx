@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useCachedResource } from '../lib/useCachedResource.js';
+import { useT } from '../lib/i18n.jsx';
 import { scoreClass, fmtDate } from '../utils.js';
 
 const STATUS = {
@@ -13,6 +14,7 @@ const STATUS = {
 const PAGE_SIZE = 24;
 
 export default function Applications() {
+    const { t } = useT();
     const [page, setPage] = useState(1);
     // stale-while-revalidate por página: ao voltar para a aba, mostra na hora e revalida.
     const { data, loading } = useCachedResource(`applications:${page}`, () => api.getApplications({ page, pageSize: PAGE_SIZE }));
@@ -24,8 +26,8 @@ export default function Applications() {
     return (
         <div className="page">
             <div className="page-head">
-                <h1>Candidaturas</h1>
-                <p>Histórico de currículos enviados automaticamente.</p>
+                <h1>{t('Candidaturas')}</h1>
+                <p>{t('Histórico de currículos enviados automaticamente.')}</p>
             </div>
 
             {loading ? (
@@ -33,8 +35,8 @@ export default function Applications() {
             ) : apps.length === 0 ? (
                 <div className="card empty">
                     <i className="ti ti-send" />
-                    Você ainda não se candidatou a nenhuma vaga.
-                    <div style={{ marginTop: 14 }}><Link to="/app" className="btn primary sm"><i className="ti ti-radar-2" /> Procurar vagas</Link></div>
+                    {t('Você ainda não se candidatou a nenhuma vaga.')}
+                    <div style={{ marginTop: 14 }}><Link to="/app" className="btn primary sm"><i className="ti ti-radar-2" /> {t('Procurar vagas')}</Link></div>
                 </div>
             ) : (
                 <div className="app-cards">
@@ -54,8 +56,8 @@ export default function Applications() {
 
                                 <div className="app-card-status">
                                     <i className={`ti ${st.icon} lead`} style={{ color: `var(--color-${st.badge === 'ok' ? 'success' : st.badge === 'danger' ? 'danger' : 'text-tertiary'})` }} />
-                                    <span>currículo {st.label}</span>
-                                    {sentOk && <span className="via"><i className="ti ti-brand-gmail" /> via seu Gmail</span>}
+                                    <span>{t('currículo')} {t(st.label)}</span>
+                                    {sentOk && <span className="via"><i className="ti ti-brand-gmail" /> {t('via seu Gmail')}</span>}
                                 </div>
 
                                 <div className="app-card-foot">
@@ -63,7 +65,7 @@ export default function Applications() {
                                         <i className="ti ti-mail" /> {a.to || '—'}
                                     </span>
                                     <div className="spacer" />
-                                    <button className="btn ghost sm" onClick={() => setOpen(a)}><i className="ti ti-eye" /> ver email</button>
+                                    <button className="btn ghost sm" onClick={() => setOpen(a)}><i className="ti ti-eye" /> {t('ver email')}</button>
                                 </div>
                             </div>
                         );
@@ -73,10 +75,10 @@ export default function Applications() {
 
             {!loading && total > PAGE_SIZE && (
                 <div className="row" style={{ alignItems: 'center', marginTop: 16 }}>
-                    <span className="muted" style={{ fontSize: 12 }}>{total} candidatura(s) · página {page}/{totalPages}</span>
+                    <span className="muted" style={{ fontSize: 12 }}>{total} {t('candidatura(s)')} · {t('página')} {page}/{totalPages}</span>
                     <div className="spacer" />
-                    <button className="btn ghost sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><i className="ti ti-chevron-left" /> anterior</button>
-                    <button className="btn ghost sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>próxima <i className="ti ti-chevron-right" /></button>
+                    <button className="btn ghost sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><i className="ti ti-chevron-left" /> {t('anterior')}</button>
+                    <button className="btn ghost sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>{t('próxima')} <i className="ti ti-chevron-right" /></button>
                 </div>
             )}
 
@@ -99,7 +101,7 @@ export default function Applications() {
                             {open.body ? (
                                 <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--color-text-secondary)' }}>{open.body}</div>
                             ) : (
-                                <div className="muted" style={{ fontSize: 12.5 }}>Corpo do email não disponível para esta candidatura.</div>
+                                <div className="muted" style={{ fontSize: 12.5 }}>{t('Corpo do email não disponível para esta candidatura.')}</div>
                             )}
                         </div>
                     </div>

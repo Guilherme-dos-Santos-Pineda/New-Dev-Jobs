@@ -87,6 +87,51 @@ const EN = {
     'Envios concluídos': 'Sends finished',
     'Parar': 'Stop',
     'Conclua sua configuração': 'Finish your setup',
+
+    // --- Candidaturas ---
+    'Histórico de currículos enviados automaticamente.': 'History of resumes sent automatically.',
+    'Você ainda não se candidatou a nenhuma vaga.': "You haven't applied to any job yet.",
+    'Procurar vagas': 'Find jobs',
+    'enviado': 'sent', 'falhou': 'failed', 'pulado': 'skipped',
+    'currículo': 'resume',
+    'via seu Gmail': 'via your Gmail',
+    'ver email': 'view email',
+    'candidatura(s)': 'application(s)',
+    'página': 'page', 'anterior': 'previous', 'próxima': 'next',
+    'Corpo do email não disponível para esta candidatura.': 'Email body not available for this application.',
+
+    // --- Assinatura ---
+    'Gerencie seu plano, uso e pagamentos.': 'Manage your plan, usage and payments.',
+    'Plano atual': 'Current plan',
+    'Gerenciar / Cancelar': 'Manage / Cancel',
+    'Abrindo…': 'Opening…',
+    'Envios hoje': 'Sends today',
+    'envios restantes hoje.': 'sends left today.',
+    'renova em': 'renews on', 'cancela em': 'cancels on',
+    '(acesso até lá)': '(access until then)',
+    'dia restante': 'day left', 'dias restantes': 'days left', '(ciclo de 1 mês)': '(1-month cycle)',
+    'Pagamentos não configurados no servidor.': 'Payments not configured on the server.',
+    'atual': 'current', 'mais popular': 'most popular',
+    'Trocar para {plan}': 'Switch to {plan}',
+    'Cancelar / downgrade': 'Cancel / downgrade',
+    'Assinar {plan}': 'Subscribe to {plan}',
+    'Redirecionando…': 'Redirecting…',
+    'Plano grátis': 'Free plan', 'Indisponível': 'Unavailable',
+    'Histórico de pagamentos': 'Payment history',
+    'Nenhum pagamento ainda.': 'No payments yet.',
+    'pago': 'paid',
+    'ativa': 'active', 'teste': 'trial', 'pagamento pendente': 'past due', 'não paga': 'unpaid', 'cancelada': 'canceled',
+
+    // --- Perfil ---
+    'Meu Perfil': 'My Profile',
+    'Configure suas preferências para receber as melhores vagas.': 'Set your preferences to get the best jobs.',
+    'Resetar configuração': 'Reset settings',
+    'Preferências de Trabalho': 'Work Preferences',
+    'Filtros': 'Filters',
+    'Contato & Currículo': 'Contact & Resume',
+    'Salvar configurações': 'Save settings', 'Salvando…': 'Saving…',
+    'Área profissional': 'Professional area',
+    '% completo': '% complete',
 };
 
 const DICT = { pt: {}, en: EN };

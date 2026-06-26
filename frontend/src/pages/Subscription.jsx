@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useCachedResource } from '../lib/useCachedResource.js';
+import { useT } from '../lib/i18n.jsx';
 
 const money = (cents, currency = 'brl') =>
     ((cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: (currency || 'brl').toUpperCase() });
@@ -14,6 +15,7 @@ const SUB_LABEL = { active: 'ativa', trialing: 'teste', past_due: 'pagamento pen
 
 export default function Subscription() {
     const { user, refreshUser } = useAuth();
+    const { t } = useT();
     const toast = useToast();
     const [params, setParams] = useSearchParams();
     const [busy, setBusy] = useState('');
@@ -57,8 +59,8 @@ export default function Subscription() {
     return (
         <div className="page" style={{ maxWidth: 980 }}>
             <div className="page-head">
-                <h1>Assinatura</h1>
-                <p>Gerencie seu plano, uso e pagamentos.</p>
+                <h1>{t('Assinatura')}</h1>
+                <p>{t('Gerencie seu plano, uso e pagamentos.')}</p>
             </div>
 
             {/* Resumo do plano atual + uso */}
@@ -66,43 +68,43 @@ export default function Subscription() {
                 <div className="row" style={{ alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                     <div className="kpi-ico" style={{ width: 44, height: 44, fontSize: 22 }}><i className="ti ti-crown" /></div>
                     <div>
-                        <div className="muted" style={{ fontSize: 12 }}>Plano atual</div>
+                        <div className="muted" style={{ fontSize: 12 }}>{t('Plano atual')}</div>
                         <div className="row" style={{ alignItems: 'center', gap: 8 }}>
                             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}>
                                 {plans.find((p) => p.id === current)?.label || current}
                             </div>
-                            {subscription && <span className={`badge ${SUB_BADGE[subscription.status] || 'neutral'}`}>{SUB_LABEL[subscription.status] || subscription.status}</span>}
+                            {subscription && <span className={`badge ${SUB_BADGE[subscription.status] || 'neutral'}`}>{t(SUB_LABEL[subscription.status] || subscription.status)}</span>}
                         </div>
                         {subscription?.currentPeriodEnd && (
                             <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
                                 {subscription.cancelAtPeriodEnd
-                                    ? <><i className="ti ti-calendar-x" /> cancela em {fmtDate(subscription.currentPeriodEnd)} (acesso até lá)</>
-                                    : <><i className="ti ti-calendar-repeat" /> renova em {fmtDate(subscription.currentPeriodEnd)}</>}
-                                {daysLeft != null && <> · <b>{daysLeft}</b> {daysLeft === 1 ? 'dia restante' : 'dias restantes'} <span style={{ opacity: 0.7 }}>(ciclo de 1 mês)</span></>}
+                                    ? <><i className="ti ti-calendar-x" /> {t('cancela em')} {fmtDate(subscription.currentPeriodEnd)} {t('(acesso até lá)')}</>
+                                    : <><i className="ti ti-calendar-repeat" /> {t('renova em')} {fmtDate(subscription.currentPeriodEnd)}</>}
+                                {daysLeft != null && <> · <b>{daysLeft}</b> {t(daysLeft === 1 ? 'dia restante' : 'dias restantes')} <span style={{ opacity: 0.7 }}>{t('(ciclo de 1 mês)')}</span></>}
                             </div>
                         )}
                     </div>
                     <div className="spacer" />
                     {hasSub && stripeEnabled && (
                         <button className="btn" disabled={busy === 'portal'} onClick={manage}>
-                            <i className="ti ti-settings" /> {busy === 'portal' ? 'Abrindo…' : 'Gerenciar / Cancelar'}
+                            <i className="ti ti-settings" /> {busy === 'portal' ? t('Abrindo…') : t('Gerenciar / Cancelar')}
                         </button>
                     )}
                 </div>
                 {usage && (
                     <div style={{ marginTop: 18 }}>
                         <div className="row" style={{ justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                            <span className="muted">Envios hoje</span>
+                            <span className="muted">{t('Envios hoje')}</span>
                             <span className="mono"><b>{usage.usedToday}</b> / {usage.dailyLimit}</span>
                         </div>
                         <div className="progress"><span style={{ width: `${pct}%` }} /></div>
-                        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{usage.remainingToday} envios restantes hoje.</div>
+                        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{usage.remainingToday} {t('envios restantes hoje.')}</div>
                     </div>
                 )}
             </div>
 
             {/* Planos */}
-            {!stripeEnabled && <div className="notice danger"><i className="ti ti-alert-circle" />Pagamentos não configurados no servidor.</div>}
+            {!stripeEnabled && <div className="notice danger"><i className="ti ti-alert-circle" />{t('Pagamentos não configurados no servidor.')}</div>}
             <div className="cards-grid" style={{ marginBottom: 22 }}>
                 {loadingPlans
                     ? [0, 1, 2].map((i) => <div key={i} className="skeleton sk-card" />)
@@ -114,8 +116,8 @@ export default function Subscription() {
                                 style={!featured && isCurrent ? { borderColor: 'var(--color-accent)' } : undefined}>
                                 <div className="row" style={{ alignItems: 'center' }}>
                                     <span className="plan-tag">{p.label}</span>
-                                    {isCurrent && <span className="badge ok" style={{ marginLeft: 'auto' }}>atual</span>}
-                                    {!isCurrent && featured && <span className="badge info" style={{ marginLeft: 'auto' }}>mais popular</span>}
+                                    {isCurrent && <span className="badge ok" style={{ marginLeft: 'auto' }}>{t('atual')}</span>}
+                                    {!isCurrent && featured && <span className="badge info" style={{ marginLeft: 'auto' }}>{t('mais popular')}</span>}
                                 </div>
                                 <div className="plan-price-row">
                                     <span className="plan-price-v">{p.price ? `R$${p.price}` : 'R$0'}</span>
@@ -125,18 +127,18 @@ export default function Subscription() {
                                     {(p.features || []).map((f) => <li key={f}><i className="ti ti-check" />{f}</li>)}
                                 </ul>
                                 {isCurrent ? (
-                                    <button className="btn block sm" disabled>Plano atual</button>
+                                    <button className="btn block sm" disabled>{t('Plano atual')}</button>
                                 ) : current !== 'free' ? (
                                     // Já tem assinatura paga → trocar pelo portal do Stripe (evita 2ª assinatura).
                                     <button className="btn block sm" disabled={busy === 'portal' || !stripeEnabled} onClick={manage}>
-                                        {busy === 'portal' ? 'Abrindo…' : (<><i className="ti ti-arrows-exchange" /> {p.id === 'free' ? 'Cancelar / downgrade' : `Trocar para ${p.label}`}</>)}
+                                        {busy === 'portal' ? t('Abrindo…') : (<><i className="ti ti-arrows-exchange" /> {p.id === 'free' ? t('Cancelar / downgrade') : t('Trocar para {plan}', { plan: p.label })}</>)}
                                     </button>
                                 ) : p.purchasable ? (
                                     <button className="btn primary block sm" disabled={!!busy || !stripeEnabled} onClick={() => upgrade(p.id)}>
-                                        {busy === p.id ? 'Redirecionando…' : (<><i className="ti ti-arrow-up-circle" /> Assinar {p.label}</>)}
+                                        {busy === p.id ? t('Redirecionando…') : (<><i className="ti ti-arrow-up-circle" /> {t('Assinar {plan}', { plan: p.label })}</>)}
                                     </button>
                                 ) : (
-                                    <button className="btn block sm" disabled>{p.id === 'free' ? 'Plano grátis' : 'Indisponível'}</button>
+                                    <button className="btn block sm" disabled>{p.id === 'free' ? t('Plano grátis') : t('Indisponível')}</button>
                                 )}
                             </div>
                         );
@@ -145,11 +147,11 @@ export default function Subscription() {
 
             {/* Histórico de pagamentos */}
             <div className="card fade-in">
-                <div className="section-title"><i className="ti ti-receipt" /> Histórico de pagamentos</div>
+                <div className="section-title"><i className="ti ti-receipt" /> {t('Histórico de pagamentos')}</div>
                 {loadingHist ? (
                     <div className="inv-grid">{[0, 1].map((i) => <div key={i} className="skeleton sk-card" style={{ height: 70 }} />)}</div>
                 ) : invoices.length === 0 ? (
-                    <div className="empty" style={{ padding: 28 }}><i className="ti ti-receipt-off" />Nenhum pagamento ainda.</div>
+                    <div className="empty" style={{ padding: 28 }}><i className="ti ti-receipt-off" />{t('Nenhum pagamento ainda.')}</div>
                 ) : (
                     <div className="inv-grid">
                         {invoices.map((inv) => (
@@ -159,7 +161,7 @@ export default function Subscription() {
                                     <div className="inv-amount">{money(inv.amount, inv.currency)}</div>
                                     <div className="muted" style={{ fontSize: 12 }}>{fmtDate(inv.date)}</div>
                                 </div>
-                                <span className={`badge ${inv.status === 'paid' ? 'ok' : 'neutral'}`}>{inv.status === 'paid' ? 'pago' : inv.status}</span>
+                                <span className={`badge ${inv.status === 'paid' ? 'ok' : 'neutral'}`}>{inv.status === 'paid' ? t('pago') : inv.status}</span>
                                 {inv.url && <a className="btn ghost sm" href={inv.url} target="_blank" rel="noopener" title="Ver fatura"><i className="ti ti-external-link" /></a>}
                             </div>
                         ))}

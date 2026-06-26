@@ -4,9 +4,11 @@ import { supabase, supabaseConfigured } from '../lib/supabase.js';
 import { useAuth } from '../auth.jsx';
 import Logo from '../components/Logo.jsx';
 import { authError } from '../lib/authErrors.js';
+import { useT } from '../lib/i18n.jsx';
 
 export default function Signup() {
     const { session } = useAuth();
+    const { t } = useT();
     const navigate = useNavigate();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -19,7 +21,7 @@ export default function Signup() {
 
     async function submit(e) {
         e.preventDefault();
-        if (password.length < 6) { setError('A senha deve ter ao menos 6 caracteres.'); return; }
+        if (password.length < 6) { setError(t('A senha deve ter ao menos 6 caracteres.')); return; }
         setBusy(true); setError('');
         const { data, error } = await supabase.auth.signUp({
             email, password,
@@ -40,49 +42,49 @@ export default function Signup() {
                 <div className="brand"><Logo size={36} /></div>
                 {sentConfirm ? (
                     <>
-                        <h1>Confirme seu email</h1>
-                        <p className="sub">Enviamos um link de confirmação para <b>{email}</b>. Clique nele para ativar sua conta.</p>
-                        <Link to="/login" className="btn block" style={{ marginTop: 12 }}>Voltar ao login</Link>
+                        <h1>{t('Confirme seu email')}</h1>
+                        <p className="sub">{t('Enviamos um link de confirmação para')} <b>{email}</b>. {t('Clique nele para ativar sua conta.')}</p>
+                        <Link to="/login" className="btn block" style={{ marginTop: 12 }}>{t('Voltar ao login')}</Link>
                     </>
                 ) : (
                     <>
-                        <h1>Criar conta</h1>
-                        <p className="sub">Comece a automatizar suas candidaturas.</p>
+                        <h1>{t('Criar conta')}</h1>
+                        <p className="sub">{t('Comece a automatizar suas candidaturas.')}</p>
 
                         <button className="btn block" style={{ marginBottom: 16 }} onClick={google} disabled={!supabaseConfigured}>
-                            <i className="ti ti-brand-google" /> Continuar com Google
+                            <i className="ti ti-brand-google" /> {t('Continuar com Google')}
                         </button>
-                        <div className="auth-divider"><span>ou</span></div>
+                        <div className="auth-divider"><span>{t('ou')}</span></div>
 
                         <form onSubmit={submit}>
                             <div className="field">
-                                <label>Nome</label>
-                                <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+                                <label>{t('Nome')}</label>
+                                <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Seu nome')} />
                             </div>
                             <div className="field">
-                                <label>Email</label>
+                                <label>{t('Email')}</label>
                                 <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" />
                             </div>
                             <div className="field">
-                                <label>Senha</label>
-                                <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" />
+                                <label>{t('Senha')}</label>
+                                <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('mínimo 6 caracteres')} />
                             </div>
                             {error && <div className="notice danger"><i className="ti ti-alert-circle" />{error}</div>}
                             <button className="btn primary block" disabled={busy || !supabaseConfigured}>
-                                {busy ? 'Criando…' : (<><i className="ti ti-user-plus" /> Criar conta</>)}
+                                {busy ? t('Criando…') : (<><i className="ti ti-user-plus" /> {t('Criar conta')}</>)}
                             </button>
                         </form>
 
                         <div className="auth-links">
-                            <span>Já tem conta? <Link to="/login">Entrar</Link></span>
+                            <span>{t('Já tem conta?')} <Link to="/login">{t('Entrar')}</Link></span>
                         </div>
                     </>
                 )}
             </div>
             <div className="auth-foot">
-                <a href="https://landing.newdevjobs.xyz/privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>
+                <a href="https://landing.newdevjobs.xyz/privacidade.html" target="_blank" rel="noopener">{t('Política de Privacidade')}</a>
                 <span>·</span>
-                <a href="https://landing.newdevjobs.xyz/termos.html" target="_blank" rel="noopener">Termos de Uso</a>
+                <a href="https://landing.newdevjobs.xyz/termos.html" target="_blank" rel="noopener">{t('Termos de Uso')}</a>
             </div>
         </div>
     );

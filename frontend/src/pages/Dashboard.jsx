@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCachedResource } from '../lib/useCachedResource.js';
+import { useT } from '../lib/i18n.jsx';
 import { scoreClass, fmtDate } from '../utils.js';
 import FeedbackSection from '../components/FeedbackSection.jsx';
 import SearchSendModal from '../components/SearchSendModal.jsx';
@@ -24,6 +25,7 @@ const timeAgo = (d) => {
 
 export default function Dashboard() {
     const { user } = useAuth();
+    const { t } = useT();
     // Cada recurso é cacheado: ao voltar para a home (ou após prefetch no hover do
     // menu) os dados aparecem na hora e revalidam em silêncio. As três chamadas
     // continuam em paralelo, agora deduplicadas pelo cache.
@@ -67,14 +69,14 @@ export default function Dashboard() {
     const m = data?.metrics;
 
     const kpis = m ? [
-        { label: 'Vagas hoje', icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} no total`, spark: data.sparkJobs },
-        { label: 'Vagas compatíveis', icon: 'ti-sparkles', value: nf(m.compatible), sub: 'prontas para enviar' },
-        { label: 'Recrutadores', icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} aprovados` },
-        { label: 'Empresas monitoradas', icon: 'ti-building', value: nf(m.companies), sub: 'com vagas coletadas' },
-        { label: 'Currículos enviados', icon: 'ti-send', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} na semana`, spark: data.sparkSent, color: 'var(--color-success)' },
-        { label: 'Match acima de 90%', icon: 'ti-target', value: nf(m.matchesAbove90), sub: `match médio ${m.avgMatch}%` },
-        { label: 'Tempo economizado', icon: 'ti-clock-bolt', value: fmtSaved(m.timeSavedMin), sub: 'pela automação' },
-        { label: 'Envios restantes hoje', icon: 'ti-gauge', value: nf(m.remainingToday), sub: `de ${nf(m.dailyLimit)} do plano` },
+        { label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}`, spark: data.sparkJobs },
+        { label: t('Vagas compatíveis'), icon: 'ti-sparkles', value: nf(m.compatible), sub: t('prontas para enviar') },
+        { label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
+        { label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
+        { label: t('Currículos enviados'), icon: 'ti-send', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} ${t('na semana')}`, spark: data.sparkSent, color: 'var(--color-success)' },
+        { label: t('Match acima de 90%'), icon: 'ti-target', value: nf(m.matchesAbove90), sub: `${t('match médio')} ${m.avgMatch}%` },
+        { label: t('Tempo economizado'), icon: 'ti-clock-bolt', value: fmtSaved(m.timeSavedMin), sub: t('pela automação') },
+        { label: t('Envios restantes hoje'), icon: 'ti-gauge', value: nf(m.remainingToday), sub: `${t('de')} ${nf(m.dailyLimit)} ${t('do plano')}` },
     ] : [];
 
     const steps = [
@@ -90,12 +92,12 @@ export default function Dashboard() {
         <div className="page">
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
-                    <h1>Olá, {user?.name?.split(' ')[0] || 'dev'} 👋</h1>
-                    <p>Seu radar de oportunidades, em tempo real.</p>
+                    <h1>{t('Olá, {name} 👋', { name: user?.name?.split(' ')[0] || 'dev' })}</h1>
+                    <p>{t('Seu radar de oportunidades, em tempo real.')}</p>
                 </div>
                 <div className="spacer" />
                 <button className="btn primary" onClick={() => setSearchOpen(true)}>
-                    <i className="ti ti-radar-2" /> Procurar Vagas
+                    <i className="ti ti-radar-2" /> {t('Procurar Vagas')}
                 </button>
             </div>
 
@@ -170,7 +172,7 @@ export default function Dashboard() {
             {!loading && data && (
                 <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
                     <div className="card feature-card fade-in" style={{ flex: 1.1, minWidth: 300, display: 'flex', flexDirection: 'column' }}>
-                        <div className="kpi-label" style={{ fontSize: 12.5 }}><i className="ti ti-bolt" /> Próxima melhor oportunidade</div>
+                        <div className="kpi-label" style={{ fontSize: 12.5 }}><i className="ti ti-bolt" /> {t('Próxima melhor oportunidade')}</div>
                         {data.nextBest ? (
                             <>
                                 <div style={{ fontSize: 19, fontWeight: 700, marginTop: 10, lineHeight: 1.25 }}>{data.nextBest.title || 'Vaga'}</div>
@@ -180,7 +182,7 @@ export default function Dashboard() {
                                     {(data.nextBest.skills || []).map((s) => <span key={s} className="badge" style={{ background: 'rgba(255,255,255,.14)', color: '#fff' }}>{s}</span>)}
                                 </div>
                                 <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-                                    <button className="btn" onClick={() => setSearchOpen(true)}><i className="ti ti-send" /> Candidatar agora</button>
+                                    <button className="btn" onClick={() => setSearchOpen(true)}><i className="ti ti-send" /> {t('Candidatar agora')}</button>
                                 </div>
                             </>
                         ) : (
@@ -189,7 +191,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="card fade-in d2" style={{ flex: 1, minWidth: 300 }}>
-                        <div className="section-title"><i className="ti ti-activity" /> Central de atividades</div>
+                        <div className="section-title"><i className="ti ti-activity" /> {t('Central de atividades')}</div>
                         {(!data.activities || data.activities.length === 0) ? (
                             <div className="empty" style={{ padding: 22 }}><i className="ti ti-activity-heartbeat" />Sem atividade ainda.</div>
                         ) : (
@@ -213,7 +215,7 @@ export default function Dashboard() {
             {!loading && data && (
                 <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
                     <div className="card fade-in" style={{ flex: 1, minWidth: 300 }}>
-                        <div className="section-title"><i className="ti ti-trophy" /> Ranking de usuários</div>
+                        <div className="section-title"><i className="ti ti-trophy" /> {t('Ranking de usuários')}</div>
                         <p className="muted" style={{ fontSize: 12, marginTop: -8, marginBottom: 12 }}>Top 10 por {rankMetric}</p>
                         {ranking.length === 0 ? (
                             <div className="empty" style={{ padding: 20 }}><i className="ti ti-trophy-off" />Ninguém enviou e-mails hoje ainda.</div>
@@ -228,9 +230,9 @@ export default function Dashboard() {
 
                     <div className="card fade-in d2" style={{ flex: 1, minWidth: 300 }}>
                         <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
-                            <div className="section-title" style={{ margin: 0 }}><i className="ti ti-history" /> Candidaturas recentes</div>
+                            <div className="section-title" style={{ margin: 0 }}><i className="ti ti-history" /> {t('Candidaturas recentes')}</div>
                             <div className="spacer" />
-                            <Link to="/app/candidaturas" className="btn sm ghost">ver todas <i className="ti ti-arrow-right" /></Link>
+                            <Link to="/app/candidaturas" className="btn sm ghost">{t('ver todas')} <i className="ti ti-arrow-right" /></Link>
                         </div>
                         {(!data.recent || data.recent.length === 0) ? (
                             <div className="empty" style={{ padding: 20 }}>
@@ -253,9 +255,9 @@ export default function Dashboard() {
 
             {/* Feedback */}
             <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
-                <div className="section-title" style={{ margin: 0 }}><i className="ti ti-message-2" /> Últimos feedbacks</div>
+                <div className="section-title" style={{ margin: 0 }}><i className="ti ti-message-2" /> {t('Últimos feedbacks')}</div>
                 <div className="spacer" />
-                <Link to="/app/feedback" className="btn sm ghost">ver todos / avaliar <i className="ti ti-arrow-right" /></Link>
+                <Link to="/app/feedback" className="btn sm ghost">{t('ver todos / avaliar')} <i className="ti ti-arrow-right" /></Link>
             </div>
             <FeedbackSection limit={5} compact title={false} />
 

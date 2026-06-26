@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { api } from '../api.js';
 import { prefetch } from '../lib/useCachedResource.js';
+import { useT } from '../lib/i18n.jsx';
 import Logo from './Logo.jsx';
 
 // Hover em um item do menu já aquece o chunk lazy da rota + os dados da tela.
@@ -61,8 +62,19 @@ function ThemeButton() {
     );
 }
 
+function LangButton() {
+    const { lang, setLang } = useT();
+    return (
+        <button className="icon-btn" style={{ fontWeight: 600, fontSize: 12 }}
+            onClick={() => setLang(lang === 'pt' ? 'en' : 'pt')} title="Idioma / Language" aria-label="Idioma">
+            {lang === 'pt' ? 'PT' : 'EN'}
+        </button>
+    );
+}
+
 export default function Layout() {
     const { user, logout } = useAuth();
+    const { t: tr } = useT();
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar') === 'collapsed');
 
@@ -93,11 +105,11 @@ export default function Layout() {
                 </div>
                 <nav className="sidebar-nav">
                     {tabs.map((t) => (
-                        <NavLink key={t.to} to={t.to} end={t.end} title={t.label}
+                        <NavLink key={t.to} to={t.to} end={t.end} title={tr(t.label)}
                             onMouseEnter={() => warm(t.to)} onFocus={() => warm(t.to)}
                             className={({ isActive }) => (isActive ? 'active' : '')}>
                             <i className={`ti ${t.icon}`} />
-                            <span>{t.label}</span>
+                            <span>{tr(t.label)}</span>
                         </NavLink>
                     ))}
                 </nav>
@@ -107,8 +119,9 @@ export default function Layout() {
                         <span>{user?.name || user?.email}</span>
                     </div>
                     <div className="sidebar-foot-actions">
+                        <LangButton />
                         <ThemeButton />
-                        <button className="icon-btn" title="Sair" onClick={doLogout}><i className="ti ti-logout" /></button>
+                        <button className="icon-btn" title={tr('Sair')} onClick={doLogout}><i className="ti ti-logout" /></button>
                     </div>
                 </div>
             </aside>
@@ -117,8 +130,9 @@ export default function Layout() {
             <header className="mobile-bar">
                 <NavLink to="/app" end className="brand"><Logo /></NavLink>
                 <div className="spacer" />
+                <LangButton />
                 <ThemeButton />
-                <button className="icon-btn" title="Sair" onClick={doLogout}><i className="ti ti-logout" /></button>
+                <button className="icon-btn" title={tr('Sair')} onClick={doLogout}><i className="ti ti-logout" /></button>
             </header>
 
             {/* Conteúdo */}
@@ -131,7 +145,7 @@ export default function Layout() {
                         onMouseEnter={() => warm(t.to)} onFocus={() => warm(t.to)}
                         className={({ isActive }) => (isActive ? 'active' : '')}>
                         <i className={`ti ${t.icon}`} />
-                        <span>{t.label}</span>
+                        <span>{tr(t.label)}</span>
                     </NavLink>
                 ))}
             </nav>

@@ -7,6 +7,7 @@ import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
 import { aiState } from '../services/ai.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
+import { removeCv } from '../lib/cvStorage.js';
 
 const router = Router();
 
@@ -128,6 +129,8 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
     if (id === req.user.Id) return res.status(400).json({ error: 'Você não pode apagar a própria conta por aqui.' });
     if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase admin indisponível.' });
     try {
+        const [p] = await sql`select "CvPath" from "Profiles" where "UserId" = ${id}`;
+        if (p?.CvPath) await removeCv(p.CvPath); // limpa o CV do Storage (best-effort)
         const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
         if (error) throw new Error(error.message);
         // O delete em auth.users cascateia para "Users" (FK on delete cascade) e dependentes.

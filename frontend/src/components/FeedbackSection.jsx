@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useToast } from './Toast.jsx';
+import { useT } from '../lib/i18n.jsx';
 import { fmtDate } from '../utils.js';
 
 function Stars({ value = 0, onChange, size }) {
@@ -17,6 +18,7 @@ function Stars({ value = 0, onChange, size }) {
 
 // Mensagem recolhível (trunca textos longos)
 function Msg({ text, limit = 160 }) {
+    const { t } = useT();
     const [open, setOpen] = useState(false);
     const long = text.length > limit;
     return (
@@ -24,7 +26,7 @@ function Msg({ text, limit = 160 }) {
             {long && !open ? text.slice(0, limit).trimEnd() + '… ' : text}
             {long && (
                 <button type="button" className="fb-more" onClick={() => setOpen((v) => !v)}>
-                    {open ? 'ver menos' : 'ver mais'}
+                    {open ? t('ver menos') : t('ver mais')}
                 </button>
             )}
         </div>
@@ -33,6 +35,7 @@ function Msg({ text, limit = 160 }) {
 
 export default function FeedbackSection({ limit = 0, compact = false, title = true }) {
     const toast = useToast();
+    const { t } = useT();
     // Cacheado por limite: o bloco do Dashboard (limit=5) e a página (limit=0)
     // não refazem a chamada quando o usuário navega entre eles.
     const { data, loading, refresh } = useCachedResource(`feedback:${limit}`, () => api.getFeedback(limit));
@@ -84,7 +87,7 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
 
     return (
         <div className="card">
-            {title && <div className="section-title"><i className="ti ti-message-2" /> Feedback da comunidade</div>}
+            {title && <div className="section-title"><i className="ti ti-message-2" /> {t('Feedback da comunidade')}</div>}
 
             {summary.rated > 0 && (
                 <div className="fb-summary">
@@ -112,27 +115,27 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
             {compact || loading ? null : (mine && !editing) ? (
                 <div className="fb-editor">
                     <div className="row" style={{ alignItems: 'center', marginBottom: 8 }}>
-                        <strong style={{ fontSize: 13 }}>Sua avaliação</strong>
+                        <strong style={{ fontSize: 13 }}>{t('Sua avaliação')}</strong>
                         {mine.rating ? <Stars value={mine.rating} /> : null}
                         <div className="spacer" />
-                        <button className="btn ghost sm" onClick={() => setEditing(true)}><i className="ti ti-pencil" /> Editar</button>
+                        <button className="btn ghost sm" onClick={() => setEditing(true)}><i className="ti ti-pencil" /> {t('Editar')}</button>
                         <button className="btn ghost sm" onClick={remove}><i className="ti ti-trash" /></button>
                     </div>
                     <Msg text={mine.message} />
                 </div>
             ) : (
                 <form onSubmit={submit} className="fb-editor">
-                    <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 10 }}>{mine ? 'Editar sua avaliação' : 'Deixe seu relato'}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 10 }}>{mine ? t('Editar sua avaliação') : t('Deixe seu relato')}</div>
                     <div style={{ marginBottom: 10 }}><Stars value={rating} onChange={setRating} /></div>
                     <textarea className="input" rows={3} value={message} maxLength={1000}
                         onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Como foi sua experiência com a plataforma?" style={{ resize: 'vertical' }} />
+                        placeholder={t('Como foi sua experiência com a plataforma?')} style={{ resize: 'vertical' }} />
                     <div className="row" style={{ alignItems: 'center', marginTop: 10 }}>
                         <span className="muted" style={{ fontSize: 11.5 }}>{message.length}/1000</span>
                         <div className="spacer" />
-                        {mine && <button type="button" className="btn ghost sm" onClick={() => { setEditing(false); setMessage(mine.message); setRating(mine.rating || 0); }}>Cancelar</button>}
+                        {mine && <button type="button" className="btn ghost sm" onClick={() => { setEditing(false); setMessage(mine.message); setRating(mine.rating || 0); }}>{t('Cancelar')}</button>}
                         <button className="btn primary sm" disabled={busy || !message.trim()}>
-                            {busy ? 'Enviando…' : (<><i className="ti ti-send" /> {mine ? 'Salvar' : 'Enviar relato'}</>)}
+                            {busy ? t('Enviando…') : (<><i className="ti ti-send" /> {mine ? t('Salvar') : t('Enviar relato')}</>)}
                         </button>
                     </div>
                 </form>
@@ -151,7 +154,7 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
             ) : list.length === 0 ? (
                 <div className="empty" style={{ padding: 24 }}>
                     <i className="ti ti-message-heart" />
-                    {mine ? 'Você é o primeiro a avaliar. Obrigado!' : 'Seja o primeiro a deixar um relato.'}
+                    {mine ? t('Você é o primeiro a avaliar. Obrigado!') : t('Seja o primeiro a deixar um relato.')}
                 </div>
             ) : (
                 <div>

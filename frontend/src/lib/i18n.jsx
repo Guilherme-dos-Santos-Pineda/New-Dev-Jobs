@@ -132,6 +132,32 @@ const EN = {
     'Salvar configurações': 'Save settings', 'Salvando…': 'Saving…',
     'Área profissional': 'Professional area',
     '% completo': '% complete',
+
+    // --- Feedback ---
+    'Feedback da comunidade': 'Community feedback',
+    'Sua avaliação': 'Your rating',
+    'Editar': 'Edit',
+    'Editar sua avaliação': 'Edit your rating',
+    'Deixe seu relato': 'Leave your feedback',
+    'Como foi sua experiência com a plataforma?': 'How was your experience with the platform?',
+    'Cancelar': 'Cancel',
+    'Enviando…': 'Sending…',
+    'Salvar': 'Save',
+    'Enviar relato': 'Send feedback',
+    'Você é o primeiro a avaliar. Obrigado!': 'You are the first to rate. Thank you!',
+    'Seja o primeiro a deixar um relato.': 'Be the first to leave feedback.',
+    'ver mais': 'see more', 'ver menos': 'see less',
+
+    // --- Modal Procurar Vagas ---
+    'Buscando vagas disponíveis': 'Searching available jobs',
+    'Analisando oportunidades no banco de dados…': 'Analyzing opportunities in the database…',
+    'Como deseja enviar os e-mails?': 'How do you want to send the emails?',
+    'Enviar automaticamente': 'Send automatically',
+    'Iniciando envio…': 'Starting send…',
+    'Revise antes de enviar': 'Review before sending',
+    'Revisar e selecionar vagas específicas para envio.': 'Review and select specific jobs to send.',
+    'Selecionar todas': 'Select all',
+    'ver detalhes': 'see details', 'ocultar': 'hide',
 };
 
 const DICT = { pt: {}, en: EN };

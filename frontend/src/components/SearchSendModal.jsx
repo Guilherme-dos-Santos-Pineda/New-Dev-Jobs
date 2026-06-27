@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from './Toast.jsx';
+import { useT } from '../lib/i18n.jsx';
 import { scoreClass } from '../utils.js';
 
 export default function SearchSendModal({ onClose, onStarted }) {
     const { user, refreshUser } = useAuth();
     const toast = useToast();
+    const { t } = useT();
     const [phase, setPhase] = useState('searching'); // searching | choose | manual
     const [matches, setMatches] = useState([]);
     const [filtered, setFiltered] = useState(0); // vagas escondidas pelos filtros do perfil
@@ -62,8 +64,8 @@ export default function SearchSendModal({ onClose, onStarted }) {
                 {phase === 'searching' && (
                     <div style={{ padding: '48px 32px', textAlign: 'center' }}>
                         <div className="search-pulse"><i className="ti ti-radar-2" /></div>
-                        <h3 style={{ fontSize: 18, fontWeight: 600, marginTop: 18 }}>Buscando vagas disponíveis</h3>
-                        <p className="muted" style={{ marginTop: 8 }}>Analisando oportunidades no banco de dados…</p>
+                        <h3 style={{ fontSize: 18, fontWeight: 600, marginTop: 18 }}>{t('Buscando vagas disponíveis')}</h3>
+                        <p className="muted" style={{ marginTop: 8 }}>{t('Analisando oportunidades no banco de dados…')}</p>
                         <p className="muted" style={{ marginTop: 4, fontSize: 12.5 }}>Analisamos milhares de vagas em tempo real no nosso banco de dados!</p>
                     </div>
                 )}
@@ -72,7 +74,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                     <>
                         <div className="modal-head">
                             <i className="ti ti-sparkles" style={{ color: 'var(--color-accent)', fontSize: 20 }} />
-                            <h3>Como deseja enviar os e-mails?</h3>
+                            <h3>{t('Como deseja enviar os e-mails?')}</h3>
                             <button className="close" onClick={onClose} disabled={starting}><i className="ti ti-x" /></button>
                         </div>
                         <div style={{ padding: '18px 22px' }}>
@@ -99,7 +101,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                     <div className="choice" style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined} onClick={() => start('auto')}>
                                         <div className="choice-ico ok"><i className="ti ti-bolt" /></div>
                                         <div>
-                                            <div className="choice-t">{starting ? 'Iniciando envio…' : 'Enviar automaticamente'}</div>
+                                            <div className="choice-t">{starting ? t('Iniciando envio…') : t('Enviar automaticamente')}</div>
                                             <div className="choice-d">Enviar todas as {matches.length} vagas filtradas (uma a cada 60–120s).</div>
                                         </div>
                                         {starting
@@ -110,8 +112,8 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                         onClick={() => { if (isFree) toast.show('Seleção manual disponível nos planos pagos.', 'error'); else setPhase('manual'); }}>
                                         <div className="choice-ico"><i className={`ti ${isFree ? 'ti-lock' : 'ti-list-check'}`} /></div>
                                         <div>
-                                            <div className="choice-t">Revise antes de enviar {isFree && <span className="badge warn">Pro</span>}</div>
-                                            <div className="choice-d">Revisar e selecionar vagas específicas para envio.</div>
+                                            <div className="choice-t">{t('Revise antes de enviar')} {isFree && <span className="badge warn">Pro</span>}</div>
+                                            <div className="choice-d">{t('Revisar e selecionar vagas específicas para envio.')}</div>
                                         </div>
                                         <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
                                     </div>
@@ -133,7 +135,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                             <label className="row" style={{ alignItems: 'center', gap: 8, padding: '8px 4px', cursor: 'pointer' }}>
                                 <input type="checkbox" checked={selected.size === matches.length}
                                     onChange={(e) => setSelected(e.target.checked ? new Set(matches.map((m) => m.id)) : new Set())} />
-                                Selecionar todas
+                                {t('Selecionar todas')}
                             </label>
                             {matches.map((m) => (
                                 <div key={m.id} className="sel-item">
@@ -143,7 +145,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                         <div className="muted" style={{ fontSize: 12 }}>{m.company || '—'} · {m.matchScore}% match</div>
                                         {expanded === m.id && <div className="muted" style={{ fontSize: 12, marginTop: 6, whiteSpace: 'pre-wrap', maxHeight: 160, overflow: 'auto' }}>{m.description || 'Sem descrição.'}</div>}
                                         <button className="btn ghost sm" style={{ padding: '2px 0', marginTop: 4 }} onClick={() => setExpanded(expanded === m.id ? null : m.id)}>
-                                            <i className={`ti ti-chevron-${expanded === m.id ? 'up' : 'down'}`} /> {expanded === m.id ? 'ocultar' : 'ver detalhes'}
+                                            <i className={`ti ti-chevron-${expanded === m.id ? 'up' : 'down'}`} /> {expanded === m.id ? t('ocultar') : t('ver detalhes')}
                                         </button>
                                     </div>
                                     <span className={`score ${scoreClass(m.matchScore)}`}>{m.matchScore}%</span>
@@ -151,7 +153,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                             ))}
                         </div>
                         <div className="modal-foot">
-                            <button className="btn ghost" onClick={onClose}>Cancelar</button>
+                            <button className="btn ghost" onClick={onClose}>{t('Cancelar')}</button>
                             <button className="btn primary" disabled={starting || selected.size === 0}
                                 onClick={() => start('manual', [...selected])}>
                                 {starting ? 'Enviando…' : (<><i className="ti ti-send" /> Adicionar {selected.size} à fila</>)}

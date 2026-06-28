@@ -13,6 +13,30 @@ test('detectArea: classifica o cargo a partir do título', () => {
     assert.equal(detectArea({ JobTitle: 'Vaga', Skills: [] }), 'other'); // não classificável
 });
 
+test('detectArea: títulos ambíguos de Dev não caem mais em "other"', () => {
+    // Antes vazavam como 'other' (não filtravam) e chegavam a um QA.
+    assert.equal(detectArea({ JobTitle: 'Senior Engineer', Skills: [] }), 'dev');
+    assert.equal(detectArea({ JobTitle: 'Staff Engineer', Skills: [] }), 'dev');
+    assert.equal(detectArea({ JobTitle: 'Backend Engineer', Skills: [] }), 'dev');
+    assert.equal(detectArea({ JobTitle: 'Engenheiro de Software Sênior', Skills: [] }), 'dev');
+});
+
+test('detectArea: QA continua QA mesmo com "engenheiro/quality engineer"', () => {
+    // Não pode ser confundido com Dev por causa do "engineer".
+    assert.equal(detectArea({ JobTitle: 'Engenheiro de Qualidade', Skills: [] }), 'qa');
+    assert.equal(detectArea({ JobTitle: 'Quality Engineer', Skills: [] }), 'qa');
+    assert.equal(detectArea({ JobTitle: 'Test Automation Engineer', Skills: [] }), 'qa');
+    assert.equal(detectArea({ JobTitle: 'Analista de Testes', Skills: [] }), 'qa');
+});
+
+test('passesFilters: QA sênior NÃO recebe vaga de Dev sênior (caso ambíguo)', () => {
+    const qaSenior = { Region: 'br', Areas: ['qa'], Levels: ['senior'] };
+    const devSenior = { JobTitle: 'Senior Engineer', Email: 'rh@x.com.br', Skills: ['Java', 'Spring'] };
+    const qaSeniorJob = { JobTitle: 'Engenheiro de Qualidade Sênior', Email: 'rh@x.com.br', Skills: ['Cypress'] };
+    assert.equal(passesFilters(devSenior, qaSenior), false, 'Dev sênior some para o QA sênior');
+    assert.equal(passesFilters(qaSeniorJob, qaSenior), true, 'QA sênior recebe vaga de QA');
+});
+
 test('detectLevel: extrai a senioridade', () => {
     assert.equal(detectLevel('Desenvolvedor Júnior'), 'junior');
     assert.equal(detectLevel('Vaga Pleno'), 'pleno');

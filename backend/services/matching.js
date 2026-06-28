@@ -2,6 +2,8 @@
 // Motor de matching perfil x vaga
 // =========================
 
+import { detectArea } from './classify.js';
+
 function parseSkills(value) {
     if (!value) return [];
     if (Array.isArray(value)) return value;
@@ -73,11 +75,23 @@ export function computeMatch(profile, job) {
     }
 
     // Skills pesam 80%, senioridade 20%
-    const score = Math.round(skillScore * 0.8 + seniorityScore * 0.2);
+    let score = Math.round(skillScore * 0.8 + seniorityScore * 0.2);
+
+    // Penalidade de ÁREA (defesa em profundidade): se o usuário declarou áreas e a
+    // vaga é de outra área identificável (≠ 'other'), cross-área nunca pode parecer
+    // um match alto — ex.: um QA não deve ver uma vaga de Dev como compatível. O
+    // filtro (passesFilters) já descarta esses casos no feed; aqui garantimos o
+    // mesmo na visão "ignorar filtros" e no ranking.
+    const userAreas = parseSkills(profile?.Areas).map((a) => a.toLowerCase());
+    const jobArea = detectArea(job);
+    const areaMismatch = userAreas.length > 0 && jobArea !== 'other' && !userAreas.includes(jobArea);
+    if (areaMismatch) score = Math.min(Math.round(score * 0.25), 30);
 
     return {
         score: Math.max(0, Math.min(100, score)),
         matched,
         missing,
+        area: jobArea,
+        areaMismatch,
     };
 }

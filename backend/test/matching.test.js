@@ -24,3 +24,28 @@ test('computeMatch: senioridade compatível pontua mais que incompatível', () =
     const estagio = computeMatch({ Skills: ['React'], Levels: ['estagio'] }, job);
     assert.ok(senior.score >= estagio.score);
 });
+
+test('computeMatch: cross-área é fortemente rebaixado (QA x vaga de Dev)', () => {
+    // QA com skills que se sobrepõem às de um Dev (Java/SQL) — sem a penalidade de
+    // área isso daria match alto. Com áreas declaradas, não pode parecer compatível.
+    const qa = { Skills: ['Java', 'SQL', 'Selenium'], Levels: ['senior'], Areas: ['qa'] };
+    const devJob = { JobTitle: 'Senior Engineer', Skills: ['Java', 'SQL'] };
+    const r = computeMatch(qa, devJob);
+    assert.equal(r.areaMismatch, true);
+    assert.ok(r.score <= 30, `cross-área deve ficar baixo, veio ${r.score}`);
+});
+
+test('computeMatch: mesma área não sofre penalidade', () => {
+    const qa = { Skills: ['Selenium', 'Cypress'], Levels: ['senior'], Areas: ['qa'] };
+    const qaJob = { JobTitle: 'Analista de QA', Skills: ['Selenium', 'Cypress'] };
+    const r = computeMatch(qa, qaJob);
+    assert.equal(r.areaMismatch, false);
+    assert.ok(r.score >= 80, `mesma área deve manter score alto, veio ${r.score}`);
+});
+
+test('computeMatch: sem áreas declaradas, não há penalidade de área', () => {
+    const profile = { Skills: ['Java'], Levels: ['senior'] }; // sem Areas
+    const devJob = { JobTitle: 'Senior Engineer', Skills: ['Java'] };
+    const r = computeMatch(profile, devJob);
+    assert.equal(r.areaMismatch, false);
+});

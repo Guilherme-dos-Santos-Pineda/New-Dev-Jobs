@@ -1,35 +1,13 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
+import { detectArea, detectLevel } from './classify.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
 
-export function detectLevel(text = '') {
-    const t = text.toLowerCase();
-    if (/gerente|manager|head\b/.test(t)) return 'manager';
-    if (/tech lead|\blead\b|l[íi]der t[ée]cnico|staff|principal/.test(t)) return 'lead';
-    if (/especialista|specialist/.test(t)) return 'senior';
-    if (/s[êe]nior|senior|\bsr\b/.test(t)) return 'senior';
-    if (/pleno|\bpl\b|mid[-\s]?level/.test(t)) return 'pleno';
-    if (/j[úu]nior|junior|\bjr\b|entry/.test(t)) return 'junior';
-    if (/est[áa]gi|intern|trainee/.test(t)) return 'estagio';
-    return null;
-}
-
-// Classifica a ÁREA/cargo da vaga (dev, qa, po, data, design, devops, mobile) a partir
-// do título + skills. Ordem importa: checa as específicas antes do "dev" genérico.
-// 'other' = não deu pra classificar com confiança (não filtra, p/ não perder vaga boa).
-export function detectArea(job) {
-    const t = `${job.JobTitle || ''} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
-    if (/\bqa\b|quality assurance|\bsdet\b|\btae\b|analista de teste|engenheiro[ a]de? teste|automa[çc][ãa]o de teste|testes? automatizad|qualidade de software/.test(t)) return 'qa';
-    if (/product owner|product manager|\bpo\b|\bpm\b|gerente de produto|gest[ãa]o de produto|scrum master|agilista/.test(t)) return 'po';
-    if (/data engineer|engenheiro[a ]de dados|cientista de dados|data scientist|data analyst|analista de dados|business intelligence|\bbi\b|analytics|machine learning|\bml\b/.test(t)) return 'data';
-    if (/\bux\b|\bui\b|designer|product design|ux\/ui|figma/.test(t)) return 'design';
-    if (/devops|\bsre\b|site reliability|infraestrutura|cloud engineer|platform engineer|kubernetes/.test(t)) return 'devops';
-    if (/\bios\b|android|flutter|react native|desenvolvedor mobile|mobile developer/.test(t)) return 'mobile';
-    if (/desenvolvedor|developer|programador|engenheiro[a ]de software|software engineer|full[\s-]?stack|back[\s-]?end|front[\s-]?end|\.net|\bjava\b|python|\bnode|react|angular|\bphp\b|golang/.test(t)) return 'dev';
-    return 'other';
-}
+// Reexporta a classificação (detectArea/detectLevel vivem em classify.js para
+// serem compartilhados com o motor de match sem import circular).
+export { detectArea, detectLevel };
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 // Heurística leve de país da vaga (mesma lógica do scraper)

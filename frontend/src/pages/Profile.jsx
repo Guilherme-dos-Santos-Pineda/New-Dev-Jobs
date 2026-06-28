@@ -36,6 +36,7 @@ export default function Profile() {
     const [uploading, setUploading] = useState(false);
     const [importing, setImporting] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
+    const [showMatch, setShowMatch] = useState(false);
     const [drag, setDrag] = useState(false);
     const fileRef = useRef();
     const liRef = useRef();
@@ -189,6 +190,35 @@ export default function Profile() {
                         <div className="card">
                             <div className="sec-card-head"><h2>Skills &amp; Keywords</h2></div>
                             <div className="why"><i className="ti ti-info-circle" />Essas keywords calculam o match de cada vaga com seu perfil. Quanto mais precisas, melhores os resultados.</div>
+
+                            {/* Como funciona o match (recolhível) */}
+                            <div className="card" style={{ marginBottom: 18 }}>
+                                <button type="button" className="row" style={{ alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 0, cursor: 'pointer', padding: 0, fontWeight: 600, color: 'var(--color-text)' }}
+                                    onClick={() => setShowMatch((v) => !v)}>
+                                    <i className="ti ti-target-arrow" style={{ color: 'var(--color-accent)' }} />
+                                    Como funciona o match?
+                                    <i className={`ti ti-chevron-${showMatch ? 'down' : 'right'}`} style={{ marginLeft: 'auto' }} />
+                                </button>
+                                {showMatch && (
+                                    <div style={{ marginTop: 12, fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.65 }}>
+                                        <p style={{ marginTop: 0 }}>O match (0–100%) mede o quanto cada vaga combina com você. Ele soma duas partes:</p>
+                                        <ul style={{ margin: '0 0 12px 18px', padding: 0 }}>
+                                            <li><b>Skills — peso 80%.</b> Quantas das skills pedidas na vaga estão nas suas keywords. Ex.: a vaga pede 5 skills e você tem 4 → 80% nesta parte.</li>
+                                            <li><b>Senioridade — peso 20%.</b> 100% se o nível da vaga bate com um dos que você marcou em <i>Preferências de Trabalho</i>; cai ~25 pontos a cada nível de distância (ex.: pleno x sênior).</li>
+                                        </ul>
+                                        <div className="notice info" style={{ marginBottom: 12 }}>
+                                            <i className="ti ti-bolt" /><span>O envio automático só dispara em vagas com match <b>≥ 50%</b>.</span>
+                                        </div>
+                                        <p style={{ margin: '0 0 6px' }}><b>Antes do score, os filtros descartam vagas que não servem:</b> área profissional, região, keywords obrigatórias, palavras e domínios bloqueados, senioridade estrita e data de postagem (aba <i>Filtros</i>).</p>
+                                        <p style={{ margin: '0 0 6px' }}><b>Para melhorar seus resultados:</b></p>
+                                        <ul style={{ margin: 0, padding: '0 0 0 18px' }}>
+                                            <li>Liste as keywords que você <b>realmente</b> domina — encher de skills que não usa infla um match falso.</li>
+                                            <li>Marque sua(s) senioridade(s) e área para não receber vagas de outro nível ou cargo.</li>
+                                            <li>Use <i>keywords obrigatórias</i> para exigir algo essencial (ex.: sua linguagem principal).</li>
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Importar do LinkedIn */}
                             <div className="card" style={{ marginBottom: 18, borderColor: 'var(--color-accent-light)' }}>

@@ -48,7 +48,11 @@ router.get('/:id', requireAuth, async (req, res) => {
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${req.user.Id}`;
     const appliedRows = await sql`select "JobId" from "Applications" where "UserId" = ${req.user.Id}`;
     const appliedSet = new Set(appliedRows.map((r) => r.JobId));
-    const { email, ...safe } = shapeJob(job, profile, appliedSet);
+    // Segurança: NUNCA devolve o email de contato; no plano free também oculta a
+    // descrição (o post traz o email no texto). Mesmo critério do /matches.
+    const isFree = (req.user.Plan || 'free') === 'free';
+    const { email, description, ...rest } = shapeJob(job, profile, appliedSet);
+    const safe = isFree ? rest : { ...rest, description };
     res.json({ job: safe });
 });
 

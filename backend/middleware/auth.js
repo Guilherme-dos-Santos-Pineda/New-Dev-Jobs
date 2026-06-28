@@ -12,6 +12,16 @@ import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 const cache = new Map(); // token -> { authUser, exp }
 const TTL = 60 * 1000;
 
+// Remove entradas expiradas (tokens que rotacionaram e nunca mais voltam ficariam
+// presos no Map). Throttled: varre no máx. a cada TTL, em um cache-miss.
+let lastSweep = 0;
+function sweepCache() {
+    const now = Date.now();
+    if (now - lastSweep < TTL) return;
+    lastSweep = now;
+    for (const [token, v] of cache) if (v.exp <= now) cache.delete(token);
+}
+
 async function loadUserRow(authUser) {
     let [row] = await sql`select * from "Users" where "Id" = ${authUser.id}`;
     if (!row) {
@@ -36,10 +46,12 @@ export async function attachUser(req, _res, next) {
             if (cached && cached.exp > Date.now()) {
                 authUser = cached.authUser;
             } else {
+                if (cached) cache.delete(token); // expirado: remove p/ não acumular
                 const { data, error } = await supabaseAdmin.auth.getUser(token);
                 if (!error && data?.user) {
                     authUser = data.user;
                     cache.set(token, { authUser, exp: Date.now() + TTL });
+                    sweepCache();
                 }
             }
             if (authUser) req.user = await loadUserRow(authUser);

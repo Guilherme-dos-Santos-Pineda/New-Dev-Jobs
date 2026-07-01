@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -324,7 +324,7 @@ export default function Subscription() {
                 <div className="spacer" />
                 <span className="muted">
                     {t('Precisa de um plano personalizado?')}{' '}
-                    <Link to="/app/feedback" style={{ color: 'var(--color-accent)', fontWeight: 600 }}>{t('Fale com a gente')}</Link>
+                    <a href="mailto:newdevoficial@gmail.com" style={{ color: 'var(--color-accent)', fontWeight: 600 }}>{t('Fale com o suporte')}</a>
                 </span>
             </div>
         </div>

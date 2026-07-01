@@ -240,9 +240,19 @@
         line-height: 1;
     }
     .theme-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
-    .lang-toggle { width: auto; gap: 6px; padding: 0 10px; font-size: 13px; font-weight: 600; }
-    .lang-toggle i { font-size: 16px; }
-    .lang-toggle .lang-code { font-family: 'IBM Plex Mono', monospace; letter-spacing: .5px; }
+    .lang-switch {
+        display: inline-flex; height: 38px; border-radius: 10px; overflow: hidden;
+        border: 1px solid var(--color-border); background: var(--color-bg-secondary);
+    }
+    .lang-switch .lang-opt {
+        background: none; border: none; cursor: pointer;
+        padding: 0 11px; font-size: 12.5px; font-weight: 600;
+        font-family: 'IBM Plex Mono', monospace; letter-spacing: .5px;
+        color: var(--color-text-secondary); line-height: 1; transition: background .15s ease, color .15s ease;
+    }
+    .lang-switch .lang-opt + .lang-opt { border-left: 1px solid var(--color-border); }
+    .lang-switch .lang-opt:hover { color: var(--color-text); }
+    .lang-switch .lang-opt.active { background: var(--color-accent); color: var(--color-on-accent); }
     html .theme-toggle .icon-sun { display: none; }
     html .theme-toggle .icon-moon { display: inline; }
     html.dark .theme-toggle .icon-sun { display: inline; }
@@ -715,10 +725,10 @@
             </ul>
 
             <div class="nav-actions">
-                <button class="theme-toggle lang-toggle" onclick="toggleLang()" aria-label="Language / Idioma">
-                    <i class="ti ti-world" aria-hidden="true"></i>
-                    <span class="lang-code">EN</span>
-                </button>
+                <div class="lang-switch" role="group" aria-label="Language / Idioma">
+                    <button type="button" class="lang-opt" data-lang="pt" onclick="setLang('pt')">PT</button>
+                    <button type="button" class="lang-opt" data-lang="en" onclick="setLang('en')">EN</button>
+                </div>
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
                     <i class="ti ti-sun icon-sun"></i>
                     <i class="ti ti-moon icon-moon"></i>
@@ -1046,13 +1056,13 @@
             });
             document.documentElement.lang = lang === 'en' ? 'en' : 'pt-BR';
             document.title = lang === 'en' ? I18N_EN.title : (_origPT.__title || document.title);
-            const code = document.querySelector('.lang-toggle .lang-code');
-            if (code) code.textContent = lang === 'en' ? 'PT' : 'EN'; // mostra o idioma-alvo
+            const active = lang === 'en' ? 'en' : 'pt';
+            document.querySelectorAll('.lang-opt').forEach((b) => {
+                b.classList.toggle('active', b.getAttribute('data-lang') === active);
+            });
             localStorage.setItem('lang', lang);
         }
-        function toggleLang() {
-            applyLang(localStorage.getItem('lang') === 'en' ? 'pt' : 'en');
-        }
+        function setLang(lang) { applyLang(lang === 'en' ? 'en' : 'pt'); }
         (function initLang() {
             _origPT.__title = document.title;
             const saved = localStorage.getItem('lang');

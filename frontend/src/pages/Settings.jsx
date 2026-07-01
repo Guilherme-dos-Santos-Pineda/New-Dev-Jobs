@@ -211,6 +211,14 @@ export default function EmailSettings() {
                     </div>
                 )}
 
+                {/* Selo de confiança — legítimo: o app OAuth passou pela verificação do Google */}
+                <a className="google-verified" href="https://support.google.com/cloud/answer/13463073" target="_blank" rel="noopener"
+                    title="Este app passou pela verificação de segurança do Google (OAuth). Acesso restrito ao envio (gmail.send).">
+                    <i className="ti ti-brand-google" aria-hidden="true" />
+                    <span><b>App verificado pelo Google</b><br /><span className="gv-sub">Acesso restrito a envio · nunca lemos seus emails</span></span>
+                    <i className="ti ti-discount-check-filled gv-check" aria-hidden="true" />
+                </a>
+
                 {/* Enviar email de teste */}
                 <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border-light)' }}>
                     <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Enviar email de teste</div>

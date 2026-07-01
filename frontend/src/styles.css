@@ -303,6 +303,20 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     background: var(--grad-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
 .stat .stat-sub { font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px; }
+
+/* Selo "App verificado pelo Google" (confiança no fluxo de conexão) */
+.google-verified {
+    display: flex; align-items: center; gap: 11px;
+    margin-top: 16px; padding: 10px 14px;
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    background: var(--color-bg-secondary); color: var(--color-text-secondary);
+    font-size: 12.5px; line-height: 1.4; transition: border-color var(--transition);
+}
+.google-verified:hover { border-color: var(--color-accent-muted); }
+.google-verified .ti-brand-google { font-size: 20px; color: var(--color-text); flex-shrink: 0; }
+.google-verified b { color: var(--color-text); font-weight: 600; }
+.google-verified .gv-sub { color: var(--color-text-tertiary); }
+.google-verified .gv-check { margin-left: auto; font-size: 21px; color: var(--color-success); flex-shrink: 0; }
 .stat .stat-delta { font-size: 12px; font-weight: 600; color: var(--color-success); margin-top: 4px; }
 
 /* Ranking */

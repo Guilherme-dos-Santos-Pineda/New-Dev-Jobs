@@ -649,8 +649,11 @@
     }
 
     @media (max-width: 768px) {
-        nav { padding: 12px 16px; }
-        .menu-toggle-label { display: flex; }
+        nav { padding: 12px 16px; flex-wrap: nowrap; }
+        /* Logo à esquerda; ações + hambúrguer agrupados à direita (o space-between
+           jogava o hambúrguer para o meio da tela). */
+        .nav-actions { order: 2; margin-left: auto; }
+        .menu-toggle-label { display: flex; order: 3; margin-left: 2px; padding: 8px 4px; }
         .nav-links {
             display: none;
             position: absolute; top: 100%; left: 0; right: 0;
@@ -681,6 +684,11 @@
         .ticker { grid-template-columns: 1fr 1fr; padding: 18px; }
         .privacy { flex-direction: column; padding: 22px; gap: 14px; }
         .hv-float { right: 8px; }
+        /* Nav compacta: botão "entrar" vira só ícone p/ caber sem overflow */
+        nav { padding: 12px; gap: 8px; }
+        .nav-actions { gap: 8px; }
+        .nav-cta-txt { display: none; }
+        .nav-cta { padding: 8px 10px; }
     }
 </style>
 </head>
@@ -715,7 +723,7 @@
                     <i class="ti ti-sun icon-sun"></i>
                     <i class="ti ti-moon icon-moon"></i>
                 </button>
-                <button class="nav-cta" onclick="go('/login')" data-i18n="nav.login"><i class="ti ti-login-2" aria-hidden="true"></i> entrar</button>
+                <button class="nav-cta" onclick="go('/login')" data-i18n="nav.login"><i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">entrar</span></button>
             </div>
         </nav>
 
@@ -952,7 +960,7 @@
             'nav.how': 'how it works',
             'nav.pricing': 'pricing',
             'nav.docs': 'docs',
-            'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> sign in',
+            'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">sign in</span>',
             'hero.tag': 'job application automation',
             'hero.h1': 'Your application<br>arrives <span class="accent">before</span><br><strong>everyone else.</strong>',
             'hero.sub': 'We monitor recruiter posts on LinkedIn, extract jobs that include a contact email, and send your resume automatically — from your own Gmail account.',

@@ -254,7 +254,10 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
         color: var(--color-text-tertiary);
     }
     .bottom-nav a i { font-size: 21px; }
-    .bottom-nav a span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    /* nowrap é obrigatório para o text-overflow: ellipsis funcionar — sem ele,
+       labels longos ("Candidaturas", "Assinatura") quebram em 2 linhas e
+       desalinham a altura dos itens da barra. */
+    .bottom-nav a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; width: 100%; text-align: center; }
     .bottom-nav a.active { color: var(--color-accent); }
 }
 

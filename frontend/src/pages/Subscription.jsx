@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -9,9 +9,25 @@ import { useT } from '../lib/i18n.jsx';
 const money = (cents, currency = 'brl') =>
     ((cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: (currency || 'brl').toUpperCase() });
 const fmtDate = (ms) => new Date(ms).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+const fmtDateTime = (ms) => {
+    const d = new Date(ms);
+    return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+};
 
 const SUB_BADGE = { active: 'ok', trialing: 'info', past_due: 'danger', unpaid: 'danger', canceled: 'neutral' };
 const SUB_LABEL = { active: 'ativa', trialing: 'teste', past_due: 'pagamento pendente', unpaid: 'não paga', canceled: 'cancelada' };
+
+// Status de fatura do Stripe → rótulo + tom do badge.
+const INV_STATUS = {
+    paid: { label: 'Pago', cls: 'ok', kind: 'approved' },
+    open: { label: 'Pendente', cls: 'warn', kind: 'pending' },
+    draft: { label: 'Rascunho', cls: 'neutral', kind: 'pending' },
+    void: { label: 'Cancelado', cls: 'neutral', kind: 'other' },
+    uncollectible: { label: 'Não paga', cls: 'danger', kind: 'other' },
+};
+const invStatus = (s) => INV_STATUS[s] || { label: s || '—', cls: 'neutral', kind: 'other' };
+const METHOD_LABEL = { card: 'Cartão', pix: 'PIX', boleto: 'Boleto' };
+const PROVIDER_LABEL = { stripe: 'Stripe', woovi: 'Woovi' };
 
 export default function Subscription() {
     const { user, refreshUser } = useAuth();
@@ -19,6 +35,12 @@ export default function Subscription() {
     const toast = useToast();
     const [params, setParams] = useSearchParams();
     const [busy, setBusy] = useState('');
+
+    // Filtros do histórico
+    const [fStatus, setFStatus] = useState('all');
+    const [fMethod, setFMethod] = useState('all');
+    const [fPeriod, setFPeriod] = useState('all');
+    const [query, setQuery] = useState('');
 
     const { data: plansData, loading: loadingPlans } = useCachedResource('billing:plans', () => api.getPlans());
     const { data: histData, loading: loadingHist, refresh: refreshHist } = useCachedResource('billing:history', () => api.billingHistory());
@@ -31,6 +53,8 @@ export default function Subscription() {
     const current = user?.plan || 'free';
     const usage = user?.usage;
     const hasSub = invoices.length > 0 || current !== 'free';
+    const planLabel = (id) => plans.find((p) => p.id === id)?.label || (id ? id : '—');
+    const currentPlan = plans.find((p) => p.id === current);
 
     // Retorno do checkout
     useEffect(() => {
@@ -52,15 +76,44 @@ export default function Subscription() {
         catch (e) { toast.show(e.message, 'error'); setBusy(''); }
     }
 
+    // Estatísticas (sobre todo o histórico, independem dos filtros)
+    const stats = useMemo(() => {
+        let approved = 0, pending = 0, totalPaid = 0;
+        for (const i of invoices) {
+            const k = invStatus(i.status).kind;
+            if (k === 'approved') { approved++; totalPaid += i.amount || 0; }
+            else if (k === 'pending') pending++;
+        }
+        return { total: invoices.length, approved, pending, totalPaid };
+    }, [invoices]);
+
+    // Faturas filtradas (status / método / período / busca)
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        const now = Date.now();
+        const periodMs = { '30': 30, '90': 90, '365': 365 }[fPeriod];
+        return invoices.filter((i) => {
+            if (fStatus !== 'all' && i.status !== fStatus) return false;
+            if (fMethod !== 'all' && (i.method || 'card') !== fMethod) return false;
+            if (periodMs && (now - i.date) / 86400000 > periodMs) return false;
+            if (q) {
+                const hay = `${i.id} ${money(i.amount, i.currency)} ${(i.amount || 0) / 100}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+    }, [invoices, fStatus, fMethod, fPeriod, query]);
+
     const pct = usage ? Math.min(100, Math.round((usage.usedToday / Math.max(1, usage.dailyLimit)) * 100)) : 0;
     const daysLeft = subscription?.currentPeriodEnd
         ? Math.max(0, Math.ceil((subscription.currentPeriodEnd - Date.now()) / 86400000)) : null;
+    const hasFilter = fStatus !== 'all' || fMethod !== 'all' || fPeriod !== 'all' || !!query.trim();
 
     return (
-        <div className="page" style={{ maxWidth: 980 }}>
+        <div className="page" style={{ maxWidth: 1080 }}>
             <div className="page-head">
-                <h1>{t('Assinatura')}</h1>
-                <p>{t('Gerencie seu plano, uso e pagamentos.')}</p>
+                <h1>{t('Assinatura e pagamentos')}</h1>
+                <p>{t('Gerencie seu plano e veja todo o histórico de pagamentos.')}</p>
             </div>
 
             {/* Resumo do plano atual + uso */}
@@ -71,7 +124,7 @@ export default function Subscription() {
                         <div className="muted" style={{ fontSize: 12 }}>{t('Plano atual')}</div>
                         <div className="row" style={{ alignItems: 'center', gap: 8 }}>
                             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}>
-                                {plans.find((p) => p.id === current)?.label || current}
+                                {currentPlan?.label || current}
                             </div>
                             {subscription && <span className={`badge ${SUB_BADGE[subscription.status] || 'neutral'}`}>{t(SUB_LABEL[subscription.status] || subscription.status)}</span>}
                         </div>
@@ -103,9 +156,125 @@ export default function Subscription() {
                 )}
             </div>
 
+            {/* Histórico de pagamentos */}
+            <div className="card fade-in" style={{ marginBottom: 22 }}>
+                <div className="row" style={{ alignItems: 'center', marginBottom: 14 }}>
+                    <div className="section-title" style={{ margin: 0 }}><i className="ti ti-receipt" /> {t('Histórico de pagamentos')}</div>
+                    <div className="spacer" />
+                    <button className="btn ghost sm" onClick={refreshHist} title={t('Atualizar')}><i className="ti ti-refresh" /> {t('Atualizar')}</button>
+                </div>
+
+                {/* Estatísticas */}
+                <div className="pay-stats">
+                    <div className="pay-stat">
+                        <div className="ps-l"><i className="ti ti-list-numbers" /> {t('Total de pagamentos')}</div>
+                        <div className="ps-v">{stats.total}</div>
+                    </div>
+                    <div className="pay-stat ok">
+                        <div className="ps-l"><i className="ti ti-circle-check" /> {t('Aprovados')}</div>
+                        <div className="ps-v">{stats.approved}</div>
+                    </div>
+                    <div className="pay-stat warn">
+                        <div className="ps-l"><i className="ti ti-clock" /> {t('Pendentes')}</div>
+                        <div className="ps-v">{stats.pending}</div>
+                    </div>
+                    <div className="pay-stat">
+                        <div className="ps-l"><i className="ti ti-cash" /> {t('Total pago')}</div>
+                        <div className="ps-v">{money(stats.totalPaid)}</div>
+                    </div>
+                </div>
+
+                {/* Filtros */}
+                <div className="pay-filters">
+                    <div className="f-field">
+                        <label>{t('Status')}</label>
+                        <select className="select" value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+                            <option value="all">{t('Todos')}</option>
+                            <option value="paid">{t('Pago')}</option>
+                            <option value="open">{t('Pendente')}</option>
+                            <option value="void">{t('Cancelado')}</option>
+                        </select>
+                    </div>
+                    <div className="f-field">
+                        <label>{t('Método')}</label>
+                        <select className="select" value={fMethod} onChange={(e) => setFMethod(e.target.value)}>
+                            <option value="all">{t('Todos')}</option>
+                            <option value="card">{t('Cartão')}</option>
+                        </select>
+                    </div>
+                    <div className="f-field">
+                        <label>{t('Período')}</label>
+                        <select className="select" value={fPeriod} onChange={(e) => setFPeriod(e.target.value)}>
+                            <option value="all">{t('Todo o período')}</option>
+                            <option value="30">{t('Últimos 30 dias')}</option>
+                            <option value="90">{t('Últimos 90 dias')}</option>
+                            <option value="365">{t('Últimos 12 meses')}</option>
+                        </select>
+                    </div>
+                    <div className="f-field f-grow">
+                        <label>{t('Buscar')}</label>
+                        <input className="input" value={query} onChange={(e) => setQuery(e.target.value)}
+                            placeholder={t('ID da transação ou valor…')} />
+                    </div>
+                </div>
+
+                {/* Tabela */}
+                {loadingHist ? (
+                    <div className="inv-grid">{[0, 1].map((i) => <div key={i} className="skeleton sk-card" style={{ height: 70 }} />)}</div>
+                ) : invoices.length === 0 ? (
+                    <div className="empty" style={{ padding: 28 }}><i className="ti ti-receipt-off" />{t('Nenhum pagamento ainda.')}</div>
+                ) : (
+                    <div className="pay-table-wrap">
+                        <table className="pay-table">
+                            <thead>
+                                <tr>
+                                    <th>{t('ID da Transação')}</th><th>{t('Data do Pagamento')}</th><th>{t('Valor')}</th>
+                                    <th>{t('Método')}</th><th>{t('Status')}</th><th>{t('Plano')}</th><th>{t('Provedor')}</th><th>{t('Ações')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.length === 0 ? (
+                                    <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-text-tertiary)', padding: 24 }}>{t('Nenhum pagamento para os filtros.')}</td></tr>
+                                ) : filtered.map((i) => {
+                                    const st = invStatus(i.status);
+                                    return (
+                                        <tr key={i.id}>
+                                            <td className="mono pay-id" title={i.id}>{i.id}</td>
+                                            <td style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(i.date)}</td>
+                                            <td className="mono" style={{ whiteSpace: 'nowrap' }}>{money(i.amount, i.currency)}</td>
+                                            <td>{METHOD_LABEL[i.method] || t('Cartão')}</td>
+                                            <td><span className={`badge ${st.cls}`}>{t(st.label)}</span></td>
+                                            <td>{planLabel(i.plan)}</td>
+                                            <td>{PROVIDER_LABEL[i.provider] || '—'}</td>
+                                            <td>
+                                                {i.url || i.pdf ? (
+                                                    <div className="row" style={{ gap: 6 }}>
+                                                        {i.url && <a className="btn ghost sm" href={i.url} target="_blank" rel="noopener" title={t('Ver fatura')}><i className="ti ti-external-link" /></a>}
+                                                        {i.pdf && <a className="btn ghost sm" href={i.pdf} target="_blank" rel="noopener" title={t('Baixar PDF')}><i className="ti ti-download" /></a>}
+                                                    </div>
+                                                ) : <span className="muted">—</span>}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+                {hasFilter && invoices.length > 0 && (
+                    <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>
+                        {t('Mostrando {n} de {total}', { n: filtered.length, total: invoices.length })}
+                    </div>
+                )}
+            </div>
+
             {/* Planos */}
+            <div className="section-title" style={{ marginBottom: 4 }}><i className="ti ti-rocket" /> {t('Planos')}</div>
+            <p className="muted" style={{ fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+                {t('Automatize suas candidaturas e ganhe tempo. Faça upgrade quando precisar de mais.')}
+            </p>
             {!stripeEnabled && <div className="notice danger"><i className="ti ti-alert-circle" />{t('Pagamentos não configurados no servidor.')}</div>}
-            <div className="cards-grid" style={{ marginBottom: 22 }}>
+            <div className="cards-grid" style={{ marginBottom: 18 }}>
                 {loadingPlans
                     ? [0, 1, 2].map((i) => <div key={i} className="skeleton sk-card" />)
                     : plans.map((p, i) => {
@@ -119,23 +288,24 @@ export default function Subscription() {
                                     {isCurrent && <span className="badge ok" style={{ marginLeft: 'auto' }}>{t('atual')}</span>}
                                     {!isCurrent && featured && <span className="badge info" style={{ marginLeft: 'auto' }}>{t('mais popular')}</span>}
                                 </div>
+                                {p.desc && <div className="plan-desc">{p.desc}</div>}
                                 <div className="plan-price-row">
                                     <span className="plan-price-v">{p.price ? `R$${p.price}` : 'R$0'}</span>
                                     <span className="plan-price-p">{p.period}</span>
                                 </div>
+                                {p.price > 0 && <div className="plan-note"><i className="ti ti-calendar-check" /> {t('cobrança mensal · cancele quando quiser')}</div>}
                                 <ul className="plan-feat-list">
                                     {(p.features || []).map((f) => <li key={f}><i className="ti ti-check" />{f}</li>)}
                                 </ul>
                                 {isCurrent ? (
                                     <button className="btn block sm" disabled>{t('Plano atual')}</button>
                                 ) : current !== 'free' ? (
-                                    // Já tem assinatura paga → trocar pelo portal do Stripe (evita 2ª assinatura).
                                     <button className="btn block sm" disabled={busy === 'portal' || !stripeEnabled} onClick={manage}>
                                         {busy === 'portal' ? t('Abrindo…') : (<><i className="ti ti-arrows-exchange" /> {p.id === 'free' ? t('Cancelar / downgrade') : t('Trocar para {plan}', { plan: p.label })}</>)}
                                     </button>
                                 ) : p.purchasable ? (
                                     <button className="btn primary block sm" disabled={!!busy || !stripeEnabled} onClick={() => upgrade(p.id)}>
-                                        {busy === p.id ? t('Redirecionando…') : (<><i className="ti ti-arrow-up-circle" /> {t('Assinar {plan}', { plan: p.label })}</>)}
+                                        {busy === p.id ? t('Redirecionando…') : (<><i className="ti ti-arrow-up-circle" /> {t('Fazer upgrade')}</>)}
                                     </button>
                                 ) : (
                                     <button className="btn block sm" disabled>{p.id === 'free' ? t('Plano grátis') : t('Indisponível')}</button>
@@ -145,28 +315,17 @@ export default function Subscription() {
                     })}
             </div>
 
-            {/* Histórico de pagamentos */}
-            <div className="card fade-in">
-                <div className="section-title"><i className="ti ti-receipt" /> {t('Histórico de pagamentos')}</div>
-                {loadingHist ? (
-                    <div className="inv-grid">{[0, 1].map((i) => <div key={i} className="skeleton sk-card" style={{ height: 70 }} />)}</div>
-                ) : invoices.length === 0 ? (
-                    <div className="empty" style={{ padding: 28 }}><i className="ti ti-receipt-off" />{t('Nenhum pagamento ainda.')}</div>
-                ) : (
-                    <div className="inv-grid">
-                        {invoices.map((inv) => (
-                            <div key={inv.id} className="inv-card">
-                                <div className="inv-ico"><i className="ti ti-receipt" /></div>
-                                <div className="inv-main">
-                                    <div className="inv-amount">{money(inv.amount, inv.currency)}</div>
-                                    <div className="muted" style={{ fontSize: 12 }}>{fmtDate(inv.date)}</div>
-                                </div>
-                                <span className={`badge ${inv.status === 'paid' ? 'ok' : 'neutral'}`}>{inv.status === 'paid' ? t('pago') : inv.status}</span>
-                                {inv.url && <a className="btn ghost sm" href={inv.url} target="_blank" rel="noopener" title="Ver fatura"><i className="ti ti-external-link" /></a>}
-                            </div>
-                        ))}
-                    </div>
-                )}
+            {/* Rodapé: plano atual + contato */}
+            <div className="sub-foot">
+                <span className="muted">
+                    {t('Seu plano atual')}: <b style={{ color: 'var(--color-text)' }}>{currentPlan?.label || current}</b>
+                    {' · '}{currentPlan ? money((currentPlan.price || 0) * 100) : money(0)}/{t('mês')}
+                </span>
+                <div className="spacer" />
+                <span className="muted">
+                    {t('Precisa de um plano personalizado?')}{' '}
+                    <Link to="/app/feedback" style={{ color: 'var(--color-accent)', fontWeight: 600 }}>{t('Fale com a gente')}</Link>
+                </span>
             </div>
         </div>
     );

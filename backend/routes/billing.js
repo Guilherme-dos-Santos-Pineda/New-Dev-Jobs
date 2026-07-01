@@ -22,7 +22,7 @@ router.get('/plans', (_req, res) => {
         stripeEnabled: stripeConfigured,
         plans: Object.entries(PLANS).map(([id, p]) => ({
             id, label: p.label, dailyLimit: p.dailyLimit, allowManual: p.allowManual, priority: p.priority,
-            price: p.price, period: p.period, popular: p.popular, features: p.features,
+            price: p.price, period: p.period, popular: p.popular, desc: p.desc, features: p.features,
             purchasable: id !== 'free' && Boolean(priceIdForPlan(id)),
         })),
     });
@@ -69,6 +69,10 @@ router.get('/history', requireAuth, async (req, res) => {
             invoices: list.data.map((i) => ({
                 id: i.id, amount: i.amount_paid, currency: i.currency, status: i.status,
                 date: i.created * 1000, url: i.hosted_invoice_url, pdf: i.invoice_pdf,
+                // Derivados p/ a tabela de histórico. O provedor atual é o Stripe
+                // (cobrança no cartão); o plano vem do preço da linha da fatura.
+                provider: 'stripe', method: 'card',
+                plan: planFromPriceId(i.lines?.data?.[0]?.price?.id) || null,
             })),
         });
     } catch (e) {

@@ -8,16 +8,19 @@ export const PLANS = {
     free: {
         label: 'Free', dailyLimit: 7, allowManual: false, priority: 0,
         price: 0, period: 'para sempre grátis', popular: false,
+        desc: 'Para começar: envios diários limitados e matching básico.',
         features: ['7 candidaturas por dia', '1 perfil de busca', 'matching básico', 'sem cartão de crédito'],
     },
     starter: {
         label: 'Starter', dailyLimit: 70, allowManual: true, priority: 5,
         price: 80, period: '/mês · 70 emails por dia', popular: true,
+        desc: 'Ideal para quem está começando: mais envios e filtragem.',
         features: ['70 candidaturas por dia', 'filtragem antes do envio', 'matching com IA', 'histórico de candidaturas', 'suporte por email'],
     },
     pro: {
         label: 'Pro', dailyLimit: 200, allowManual: true, priority: 10,
         price: 189, period: '/mês · 200 emails por dia', popular: false,
+        desc: 'Para quem quer dominar o mercado: alto volume e recursos avançados.',
         features: ['200 candidaturas por dia', 'tudo do starter', 'tracking de abertura', 'multi-contas', 'agendamento automático', 'suporte prioritário'],
     },
 };

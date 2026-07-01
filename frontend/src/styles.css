@@ -776,6 +776,38 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .plan-feat-list li i { color: var(--color-accent); font-size: 14px; margin-top: 1px; flex-shrink: 0; }
 .plan-featured { background: var(--color-featured-bg); border-color: var(--color-accent-dark); box-shadow: var(--glow-accent); }
 .plan-featured .plan-tag, .plan-featured .plan-price-v { color: var(--color-featured-text); }
+.plan-desc { font-size: 12.5px; color: var(--color-text-secondary); margin-top: 8px; line-height: 1.45; min-height: 34px; }
+.plan-featured .plan-desc { color: var(--color-featured-text); opacity: 0.85; }
+.plan-note { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--color-text-tertiary); margin: -8px 0 14px; }
+.plan-note i { font-size: 14px; }
+
+/* ---- Histórico de pagamentos: estatísticas + filtros + tabela ---- */
+.pay-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.pay-stat { border: 1px solid var(--color-border-light); border-radius: var(--radius); padding: 12px 14px; background: var(--color-bg); }
+.pay-stat .ps-l { font-size: 11.5px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 6px; }
+.pay-stat .ps-v { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-top: 5px; }
+.pay-stat.ok .ps-v { color: var(--color-success); }
+.pay-stat.warn .ps-v { color: var(--color-warn); }
+
+.pay-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 14px; }
+.pay-filters .f-field { display: flex; flex-direction: column; gap: 4px; }
+.pay-filters .f-field label { font-size: 11px; color: var(--color-text-tertiary); }
+.pay-filters .f-field .select, .pay-filters .f-field .input { height: 36px; }
+.pay-filters .f-grow { flex: 1; min-width: 180px; }
+
+.pay-table-wrap { overflow-x: auto; border: 1px solid var(--color-border-light); border-radius: var(--radius); }
+.pay-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 780px; }
+.pay-table th { text-align: left; font-weight: 600; color: var(--color-text-secondary); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; background: var(--color-bg-secondary); white-space: nowrap; }
+.pay-table td { padding: 11px 12px; border-top: 1px solid var(--color-border-light); vertical-align: middle; }
+.pay-table tbody tr:hover { background: var(--color-bg-secondary); }
+.pay-table .pay-id { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-tertiary); }
+
+.sub-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 8px; padding: 16px; border: 1px solid var(--color-border-light); border-radius: var(--radius); background: var(--color-bg); font-size: 13px; }
+
+@media (max-width: 640px) {
+    .pay-stats { grid-template-columns: repeat(2, 1fr); }
+    .pay-filters .f-field { flex: 1; min-width: 130px; }
+}
 
 /* Cards de candidatura (estilo do mockup da landing) */
 .app-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }

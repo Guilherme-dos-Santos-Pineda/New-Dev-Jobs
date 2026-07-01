@@ -8,6 +8,7 @@ regra existente, não acrescente uma nova que a contradiga.
 - `backend/` — API Express (`server.js`) + worker (`worker.js`, fila pg-boss: envios + scraper + agendador de robôs). Postgres via `lib/sql.js`.
 - `frontend/` — React + Vite (app/dashboard).
 - `pages/` — site estático. A **landing (`index.html`) tem PT/EN** (toggle próprio, ver i18n abaixo). **docs/termos/privacidade** ficam **só em PT** por enquanto.
+  - **SEO**: domínio canônico **`https://landing.newdevjobs.xyz`**. Cada página tem `canonical`+`robots`+Open Graph; a home tem JSON-LD (`SoftwareApplication`). `robots.txt` e `sitemap.xml` na raiz. Ao **adicionar/renomear página**, atualize o `sitemap.xml` e o `canonical` dela. Imagem de compartilhamento: `og-image.png` (gerado de `og-image.svg` via `npx sharp-cli -i og-image.svg -o og-image.png resize 1200 630`).
 - `supabase/migrations/` — schema versionado.
 - Detalhes completos no [README.md](README.md). Histórico em [CHANGELOG.md](CHANGELOG.md).
 

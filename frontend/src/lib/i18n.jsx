@@ -51,7 +51,7 @@ const EN = {
     'A senha deve ter ao menos 6 caracteres.': 'Password must be at least 6 characters.',
 
     // --- Dashboard ---
-    'Olá, {name} 👋': 'Hi, {name} 👋',
+    'Olá, {name}': 'Hi, {name}',
     'Seu radar de oportunidades, em tempo real.': 'Your opportunity radar, in real time.',
     'Procurar Vagas': 'Find jobs',
     'Vagas hoje': 'Jobs today',

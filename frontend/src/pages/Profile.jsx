@@ -223,7 +223,7 @@ export default function Profile() {
                             {/* Importar do LinkedIn */}
                             <div className="card" style={{ marginBottom: 18, borderColor: 'var(--color-accent-light)' }}>
                                 <div className="row" style={{ alignItems: 'center', gap: 10 }}>
-                                    <div className="feat-ico" style={{ width: 34, height: 34, marginBottom: 0 }}><i className="ti ti-sparkles" /></div>
+                                    <div className="feat-ico" style={{ width: 34, height: 34, marginBottom: 0 }}><i className="ti ti-file-cv" /></div>
                                     <div style={{ fontWeight: 600 }}>Importar currículo do LinkedIn</div>
                                     <span className="badge warn" style={{ marginLeft: 'auto' }}>Opcional</span>
                                 </div>

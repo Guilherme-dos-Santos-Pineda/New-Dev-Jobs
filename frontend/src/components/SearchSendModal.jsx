@@ -73,7 +73,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                 {phase === 'choose' && (
                     <>
                         <div className="modal-head">
-                            <i className="ti ti-sparkles" style={{ color: 'var(--color-accent)', fontSize: 20 }} />
+                            <i className="ti ti-send" style={{ color: 'var(--color-accent)', fontSize: 20 }} />
                             <h3>{t('Como deseja enviar os e-mails?')}</h3>
                             <button className="close" onClick={onClose} disabled={starting}><i className="ti ti-x" /></button>
                         </div>

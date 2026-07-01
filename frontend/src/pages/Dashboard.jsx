@@ -70,7 +70,7 @@ export default function Dashboard() {
 
     const kpis = m ? [
         { label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}`, spark: data.sparkJobs },
-        { label: t('Vagas compatíveis'), icon: 'ti-sparkles', value: nf(m.compatible), sub: t('prontas para enviar') },
+        { label: t('Vagas compatíveis'), icon: 'ti-checklist', value: nf(m.compatible), sub: t('prontas para enviar') },
         { label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
         { label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
         { label: t('Currículos enviados'), icon: 'ti-send', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} ${t('na semana')}`, spark: data.sparkSent, color: 'var(--color-success)' },
@@ -113,7 +113,7 @@ export default function Dashboard() {
         <div className="page">
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
-                    <h1>{t('Olá, {name} 👋', { name: user?.name?.split(' ')[0] || 'dev' })}</h1>
+                    <h1>{t('Olá, {name}', { name: user?.name?.split(' ')[0] || 'dev' })}</h1>
                     <p>{t('Seu radar de oportunidades, em tempo real.')}</p>
                 </div>
                 <div className="spacer" />

@@ -25,6 +25,7 @@ export async function publicUser(user) {
         sendMode: user.SendMode || 'review',
         plan: usage.plan, // string (free|starter|pro) — mantido para compatibilidade
         planLabel: usage.label,
+        planExpiresAt: user.PlanExpiresAt ? new Date(user.PlanExpiresAt).getTime() : null,
         planLimits: { dailyLimit: usage.dailyLimit, allowManual: usage.allowManual },
         usage: { usedToday: usage.usedToday, remainingToday: usage.remainingToday, dailyLimit: usage.dailyLimit },
         isAdmin: config.isAdminEmail(user.Email) || user.Role === 'admin',

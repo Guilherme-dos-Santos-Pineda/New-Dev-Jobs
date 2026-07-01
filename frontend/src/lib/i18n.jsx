@@ -155,6 +155,11 @@ const EN = {
     'Automatize suas candidaturas e ganhe tempo. Faça upgrade quando precisar de mais.':
         'Automate your applications and save time. Upgrade when you need more.',
     'cobrança mensal · cancele quando quiser': 'billed monthly · cancel anytime',
+    'pagamento único · acesso por 30 dias': 'one-time payment · 30 days of access',
+    'acesso até': 'access until',
+    'Renovar {plan}': 'Renew {plan}',
+    '30 dias': '30 days',
+    'grátis': 'free',
     'Fazer upgrade': 'Upgrade',
     'Seu plano atual': 'Your current plan',
     'mês': 'mo',

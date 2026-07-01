@@ -13,13 +13,13 @@ export const PLANS = {
     },
     starter: {
         label: 'Starter', dailyLimit: 70, allowManual: true, priority: 5,
-        price: 80, period: '/mês · 70 emails por dia', popular: true,
+        price: 80, period: 'pagamento único · 30 dias', popular: true,
         desc: 'Ideal para quem está começando: mais envios e filtragem.',
         features: ['70 candidaturas por dia', 'filtragem antes do envio', 'matching com IA', 'histórico de candidaturas', 'suporte por email'],
     },
     pro: {
         label: 'Pro', dailyLimit: 200, allowManual: true, priority: 10,
-        price: 189, period: '/mês · 200 emails por dia', popular: false,
+        price: 189, period: 'pagamento único · 30 dias', popular: false,
         desc: 'Para quem quer dominar o mercado: alto volume e recursos avançados.',
         features: ['200 candidaturas por dia', 'tudo do starter', 'tracking de abertura', 'multi-contas', 'agendamento automático', 'suporte prioritário'],
     },

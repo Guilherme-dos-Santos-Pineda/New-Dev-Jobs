@@ -41,13 +41,21 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
     if (!price) return res.status(503).json({ error: `Preço do plano ${req.body.plan} não configurado (STRIPE_PRICE_*).` });
 
     try {
+        // Detecta o tipo do preço em runtime: recorrente → assinatura; único → pagamento
+        // avulso (libera 30 dias, sem renovação automática). Assim o mesmo código serve
+        // os dois ambientes sem quebrar durante a transição.
+        const priceObj = await stripe.prices.retrieve(price);
+        const mode = priceObj.recurring ? 'subscription' : 'payment';
+        const meta = { userId: req.user.Id, plan: req.body.plan };
         const session = await stripe.checkout.sessions.create({
-            mode: 'subscription',
+            mode,
             line_items: [{ price, quantity: 1 }],
             client_reference_id: req.user.Id,
             customer_email: req.user.Email,
-            metadata: { userId: req.user.Id, plan: req.body.plan },
-            subscription_data: { metadata: { userId: req.user.Id, plan: req.body.plan } },
+            metadata: meta,
+            ...(mode === 'subscription'
+                ? { subscription_data: { metadata: meta } }
+                : { payment_intent_data: { metadata: meta }, customer_creation: 'always' }),
             success_url: `${config.frontendUrl}/app/assinatura?checkout=success`,
             cancel_url: `${config.frontendUrl}/app/assinatura?checkout=cancel`,
         });
@@ -58,25 +66,29 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
     }
 });
 
-// GET /api/billing/history — faturas do Stripe do usuário
+// GET /api/billing/history — pagamentos do usuário (charges cobrem pagamento único
+// E assinatura; invoice.list ficaria vazio no avulso). Status normalizado p/ a UI.
+const CHARGE_STATUS = { succeeded: 'paid', pending: 'pending', failed: 'failed' };
 router.get('/history', requireAuth, async (req, res) => {
     if (!stripeConfigured) return res.json({ invoices: [] });
     const [u] = await sql`select "StripeCustomerId" from "Users" where "Id" = ${req.user.Id}`;
     if (!u?.StripeCustomerId) return res.json({ invoices: [] });
     try {
-        const list = await stripe.invoices.list({ customer: u.StripeCustomerId, limit: 12 });
+        const list = await stripe.charges.list({ customer: u.StripeCustomerId, limit: 20, expand: ['data.payment_intent'] });
         res.json({
-            invoices: list.data.map((i) => ({
-                id: i.id, amount: i.amount_paid, currency: i.currency, status: i.status,
-                date: i.created * 1000, url: i.hosted_invoice_url, pdf: i.invoice_pdf,
-                // Derivados p/ a tabela de histórico. O provedor atual é o Stripe
-                // (cobrança no cartão); o plano vem do preço da linha da fatura.
-                provider: 'stripe', method: 'card',
-                plan: planFromPriceId(i.lines?.data?.[0]?.price?.id) || null,
+            invoices: list.data.map((c) => ({
+                id: c.id,
+                amount: c.amount, currency: c.currency,
+                status: CHARGE_STATUS[c.status] || c.status,
+                date: c.created * 1000,
+                url: c.receipt_url, pdf: null,
+                provider: 'stripe',
+                method: c.payment_method_details?.type || 'card',
+                plan: c.payment_intent?.metadata?.plan || c.metadata?.plan || null,
             })),
         });
     } catch (e) {
-        console.error('Erro ao listar faturas:', e.message);
+        console.error('Erro ao listar pagamentos:', e.message);
         res.json({ invoices: [] });
     }
 });
@@ -129,15 +141,31 @@ router.post('/set-plan', requireAdmin, validate(setPlanSchema), async (req, res)
 });
 
 // Aplica o plano a partir de uma assinatura do Stripe (usado pelo webhook).
+// Assinatura gerencia o próprio ciclo → zera PlanExpiresAt (usado só no avulso).
 async function applySubscription({ userId, plan, customerId, subscriptionId }) {
     if (!userId || !plan) return;
     await sql`
         update "Users" set
             "Plan" = ${plan},
             "StripeCustomerId" = coalesce(${customerId || null}, "StripeCustomerId"),
-            "StripeSubscriptionId" = ${subscriptionId || null}
+            "StripeSubscriptionId" = ${subscriptionId || null},
+            "PlanExpiresAt" = null
         where "Id" = ${userId}`;
     console.log(`💳 plano atualizado via Stripe: user ${userId} → ${plan}`);
+}
+
+// Concede um plano pago por N dias (pagamento ÚNICO). Empilha sobre o tempo
+// restante se ainda ativo, para o usuário não perder dias ao renovar.
+async function grantOneTime({ userId, plan, customerId, days = 30 }) {
+    if (!userId || !plan) return;
+    await sql`
+        update "Users" set
+            "Plan" = ${plan},
+            "StripeCustomerId" = coalesce(${customerId || null}, "StripeCustomerId"),
+            "StripeSubscriptionId" = null,
+            "PlanExpiresAt" = greatest(coalesce("PlanExpiresAt", now()), now()) + make_interval(days => ${days})
+        where "Id" = ${userId}`;
+    console.log(`💳 pagamento único: user ${userId} → ${plan} por ${days} dias`);
 }
 
 // POST /api/billing/webhook — recebe eventos do Stripe (corpo CRU via express.raw no server.js)
@@ -158,13 +186,20 @@ router.post('/webhook', async (req, res) => {
             case 'checkout.session.completed': {
                 const s = event.data.object;
                 const userId = s.client_reference_id || s.metadata?.userId;
-                // plano: do metadata; senão tenta pelo price da subscription expandida
                 let plan = s.metadata?.plan;
-                if (!plan && s.subscription) {
-                    const sub = await stripe.subscriptions.retrieve(s.subscription);
-                    plan = planFromPriceId(sub.items.data[0]?.price?.id);
+                if (s.mode === 'payment') {
+                    // Pagamento único: só libera se realmente pago; concede 30 dias.
+                    if (s.payment_status === 'paid') {
+                        await grantOneTime({ userId, plan, customerId: s.customer, days: 30 });
+                    }
+                } else {
+                    // Assinatura (legado): plano do metadata ou do price da subscription.
+                    if (!plan && s.subscription) {
+                        const sub = await stripe.subscriptions.retrieve(s.subscription);
+                        plan = planFromPriceId(sub.items.data[0]?.price?.id);
+                    }
+                    await applySubscription({ userId, plan, customerId: s.customer, subscriptionId: s.subscription });
                 }
-                await applySubscription({ userId, plan, customerId: s.customer, subscriptionId: s.subscription });
                 break;
             }
             case 'customer.subscription.updated': {

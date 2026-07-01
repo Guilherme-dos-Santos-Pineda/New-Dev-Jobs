@@ -100,8 +100,22 @@ async function runDueSchedules(boss) {
     return due.length;
 }
 
+// Pagamento único: rebaixa pro Free quem passou da validade (PlanExpiresAt).
+// Só toca em quem tem validade vencida — assinaturas (PlanExpiresAt null) ficam intactas.
+async function revertExpiredPlans() {
+    const rows = await sql`
+        update "Users" set "Plan" = 'free', "PlanExpiresAt" = null
+        where "Plan" <> 'free' and "PlanExpiresAt" is not null and "PlanExpiresAt" < now()
+        returning "Id"`;
+    if (rows.length) console.log(`⤓ ${rows.length} plano(s) expirado(s) → Free`);
+    return rows.length;
+}
+
 function startScheduler(boss) {
-    const tick = () => runDueSchedules(boss).catch((e) => console.error('scheduler tick falhou:', e.message));
+    const tick = () => {
+        runDueSchedules(boss).catch((e) => console.error('scheduler tick falhou:', e.message));
+        revertExpiredPlans().catch((e) => console.error('revertExpiredPlans falhou:', e.message));
+    };
     tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
     return setInterval(tick, 60000);
 }

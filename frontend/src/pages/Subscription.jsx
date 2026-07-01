@@ -52,7 +52,7 @@ export default function Subscription() {
     const subscription = subData?.subscription || null;
     const current = user?.plan || 'free';
     const usage = user?.usage;
-    const hasSub = invoices.length > 0 || current !== 'free';
+    const planExpiresAt = user?.planExpiresAt || null; // pagamento único: validade do plano
     const planLabel = (id) => plans.find((p) => p.id === id)?.label || (id ? id : '—');
     const currentPlan = plans.find((p) => p.id === current);
 
@@ -107,6 +107,8 @@ export default function Subscription() {
     const pct = usage ? Math.min(100, Math.round((usage.usedToday / Math.max(1, usage.dailyLimit)) * 100)) : 0;
     const daysLeft = subscription?.currentPeriodEnd
         ? Math.max(0, Math.ceil((subscription.currentPeriodEnd - Date.now()) / 86400000)) : null;
+    const expDaysLeft = planExpiresAt ? Math.max(0, Math.ceil((planExpiresAt - Date.now()) / 86400000)) : null;
+    const currentPurchasable = plans.find((p) => p.id === current)?.purchasable;
     const hasFilter = fStatus !== 'all' || fMethod !== 'all' || fPeriod !== 'all' || !!query.trim();
 
     return (
@@ -128,17 +130,27 @@ export default function Subscription() {
                             </div>
                             {subscription && <span className={`badge ${SUB_BADGE[subscription.status] || 'neutral'}`}>{t(SUB_LABEL[subscription.status] || subscription.status)}</span>}
                         </div>
-                        {subscription?.currentPeriodEnd && (
+                        {planExpiresAt ? (
+                            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                                <i className="ti ti-calendar-check" /> {t('acesso até')} {fmtDate(planExpiresAt)}
+                                {expDaysLeft != null && <> · <b>{expDaysLeft}</b> {t(expDaysLeft === 1 ? 'dia restante' : 'dias restantes')}</>}
+                            </div>
+                        ) : subscription?.currentPeriodEnd ? (
                             <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
                                 {subscription.cancelAtPeriodEnd
                                     ? <><i className="ti ti-calendar-x" /> {t('cancela em')} {fmtDate(subscription.currentPeriodEnd)} {t('(acesso até lá)')}</>
                                     : <><i className="ti ti-calendar-repeat" /> {t('renova em')} {fmtDate(subscription.currentPeriodEnd)}</>}
-                                {daysLeft != null && <> · <b>{daysLeft}</b> {t(daysLeft === 1 ? 'dia restante' : 'dias restantes')} <span style={{ opacity: 0.7 }}>{t('(ciclo de 1 mês)')}</span></>}
+                                {daysLeft != null && <> · <b>{daysLeft}</b> {t(daysLeft === 1 ? 'dia restante' : 'dias restantes')}</>}
                             </div>
-                        )}
+                        ) : null}
                     </div>
                     <div className="spacer" />
-                    {hasSub && stripeEnabled && (
+                    {planExpiresAt && stripeEnabled && currentPurchasable && (
+                        <button className="btn primary" disabled={!!busy} onClick={() => upgrade(current)}>
+                            <i className="ti ti-refresh" /> {busy === current ? t('Redirecionando…') : t('Renovar {plan}', { plan: currentPlan?.label || current })}
+                        </button>
+                    )}
+                    {subscription && stripeEnabled && (
                         <button className="btn" disabled={busy === 'portal'} onClick={manage}>
                             <i className="ti ti-settings" /> {busy === 'portal' ? t('Abrindo…') : t('Gerenciar / Cancelar')}
                         </button>
@@ -293,19 +305,15 @@ export default function Subscription() {
                                     <span className="plan-price-v">{p.price ? `R$${p.price}` : 'R$0'}</span>
                                     <span className="plan-price-p">{p.period}</span>
                                 </div>
-                                {p.price > 0 && <div className="plan-note"><i className="ti ti-calendar-check" /> {t('cobrança mensal · cancele quando quiser')}</div>}
+                                {p.price > 0 && <div className="plan-note"><i className="ti ti-calendar-check" /> {t('pagamento único · acesso por 30 dias')}</div>}
                                 <ul className="plan-feat-list">
                                     {(p.features || []).map((f) => <li key={f}><i className="ti ti-check" />{f}</li>)}
                                 </ul>
                                 {isCurrent ? (
                                     <button className="btn block sm" disabled>{t('Plano atual')}</button>
-                                ) : current !== 'free' ? (
-                                    <button className="btn block sm" disabled={busy === 'portal' || !stripeEnabled} onClick={manage}>
-                                        {busy === 'portal' ? t('Abrindo…') : (<><i className="ti ti-arrows-exchange" /> {p.id === 'free' ? t('Cancelar / downgrade') : t('Trocar para {plan}', { plan: p.label })}</>)}
-                                    </button>
                                 ) : p.purchasable ? (
                                     <button className="btn primary block sm" disabled={!!busy || !stripeEnabled} onClick={() => upgrade(p.id)}>
-                                        {busy === p.id ? t('Redirecionando…') : (<><i className="ti ti-arrow-up-circle" /> {t('Fazer upgrade')}</>)}
+                                        {busy === p.id ? t('Redirecionando…') : (<><i className="ti ti-arrow-up-circle" /> {current !== 'free' ? t('Trocar para {plan}', { plan: p.label }) : t('Fazer upgrade')}</>)}
                                     </button>
                                 ) : (
                                     <button className="btn block sm" disabled>{p.id === 'free' ? t('Plano grátis') : t('Indisponível')}</button>
@@ -319,7 +327,7 @@ export default function Subscription() {
             <div className="sub-foot">
                 <span className="muted">
                     {t('Seu plano atual')}: <b style={{ color: 'var(--color-text)' }}>{currentPlan?.label || current}</b>
-                    {' · '}{currentPlan ? money((currentPlan.price || 0) * 100) : money(0)}/{t('mês')}
+                    {currentPlan?.price ? <> · {money(currentPlan.price * 100)} <span style={{ opacity: 0.7 }}>({t('30 dias')})</span></> : <> · {t('grátis')}</>}
                 </span>
                 <div className="spacer" />
                 <span className="muted">

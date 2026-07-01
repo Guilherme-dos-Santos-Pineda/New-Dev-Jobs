@@ -87,6 +87,22 @@ const EN = {
     'Envios concluídos': 'Sends finished',
     'Parar': 'Stop',
     'Conclua sua configuração': 'Finish your setup',
+    'Quanto mais completo o perfil, mais certeiras são as vagas que você recebe.':
+        'The more complete your profile, the more accurate the jobs you receive.',
+    'Escolha sua área profissional': 'Choose your professional area',
+    'Define quais vagas você recebe (ex.: um QA não recebe vaga de Dev).':
+        "Defines which jobs you receive (e.g. a QA won't get Dev roles).",
+    'Escolher área': 'Choose area',
+    'Adicione suas skills e keywords': 'Add your skills and keywords',
+    'Calculam o match de cada vaga com o seu perfil.': "They compute each job's match with your profile.",
+    'Adicionar skills': 'Add skills',
+    'Envie seu currículo (PDF)': 'Upload your resume (PDF)',
+    'É o PDF anexado nas suas candidaturas.': "It's the PDF attached to your applications.",
+    'Enviar CV': 'Upload resume',
+    'Conecte sua conta Google': 'Connect your Google account',
+    'Os emails são enviados do seu Gmail.': 'Emails are sent from your Gmail.',
+    'Conectar Google': 'Connect Google',
+    'recomendado': 'recommended',
 
     // --- Candidaturas ---
     'Histórico de currículos enviados automaticamente.': 'History of resumes sent automatically.',

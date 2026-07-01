@@ -7,16 +7,17 @@ regra existente, não acrescente uma nova que a contradiga.
 ## Arquitetura (resumo)
 - `backend/` — API Express (`server.js`) + worker (`worker.js`, fila pg-boss: envios + scraper + agendador de robôs). Postgres via `lib/sql.js`.
 - `frontend/` — React + Vite (app/dashboard).
-- `pages/` — site estático (landing + docs/termos/privacidade). **Fica só em PT.**
+- `pages/` — site estático. A **landing (`index.html`) tem PT/EN** (toggle próprio, ver i18n abaixo). **docs/termos/privacidade** ficam **só em PT** por enquanto.
 - `supabase/migrations/` — schema versionado.
 - Detalhes completos no [README.md](README.md). Histórico em [CHANGELOG.md](CHANGELOG.md).
 
-## i18n (PT/EN) — só no app, NÃO na landing
-- Motor: [frontend/src/lib/i18n.jsx](frontend/src/lib/i18n.jsx). **A chave é o texto em português**; o dicionário `EN` traduz. String sem tradução cai no PT (fallback) — nunca quebra.
+## i18n (PT/EN)
+- **App** (`frontend/`): motor em [frontend/src/lib/i18n.jsx](frontend/src/lib/i18n.jsx). **A chave é o texto em português**; o dicionário `EN` traduz. String sem tradução cai no PT (fallback) — nunca quebra.
 - Para traduzir: envolva a string em `t('texto em português')` e **adicione a entrada PT→EN no objeto `EN`** do i18n.jsx.
 - **Não duplique chaves.** Procure no dicionário antes de adicionar.
 - Interpolação: `t('Olá, {name} 👋', { name })`. Evite fragmentar frases (grammar quebra); prefira a frase inteira como chave.
 - Seletor PT/EN vive no `Layout` (sidebar + barra mobile). Persiste em `localStorage('lang')`.
+- **Landing** (`pages/index.html`): i18n próprio e independente do app — PT é o HTML original (marcado com `data-i18n="chave"`), o dicionário `I18N_EN` no `<script>` traz só o EN. Toggle 🌐 no header, detecta idioma do navegador, persiste na **mesma** `localStorage('lang')`. Ao adicionar texto novo: ponha `data-i18n` no elemento e a entrada em `I18N_EN` (valor pode conter HTML, ex.: ícones). docs/termos/privacidade seguem só em PT.
 - O template de email tem PT/EN próprio no backend (`services/templates.js` → `DEFAULTS`).
 
 ## Migrations

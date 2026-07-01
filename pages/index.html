@@ -240,6 +240,9 @@
         line-height: 1;
     }
     .theme-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .lang-toggle { width: auto; gap: 6px; padding: 0 10px; font-size: 13px; font-weight: 600; }
+    .lang-toggle i { font-size: 16px; }
+    .lang-toggle .lang-code { font-family: 'IBM Plex Mono', monospace; letter-spacing: .5px; }
     html .theme-toggle .icon-sun { display: none; }
     html .theme-toggle .icon-moon { display: inline; }
     html.dark .theme-toggle .icon-sun { display: inline; }
@@ -698,31 +701,35 @@
             </label>
 
             <ul class="nav-links">
-                <li><a href="#como-funciona">como funciona</a></li>
-                <li><a href="#precos">preços</a></li>
-                <li><a href="docs.html">documentação</a></li>
+                <li><a href="#como-funciona" data-i18n="nav.how">como funciona</a></li>
+                <li><a href="#precos" data-i18n="nav.pricing">preços</a></li>
+                <li><a href="docs.html" data-i18n="nav.docs">documentação</a></li>
             </ul>
 
             <div class="nav-actions">
+                <button class="theme-toggle lang-toggle" onclick="toggleLang()" aria-label="Language / Idioma">
+                    <i class="ti ti-world" aria-hidden="true"></i>
+                    <span class="lang-code">EN</span>
+                </button>
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
                     <i class="ti ti-sun icon-sun"></i>
                     <i class="ti ti-moon icon-moon"></i>
                 </button>
-                <button class="nav-cta" onclick="go('/login')"><i class="ti ti-login-2" aria-hidden="true"></i> entrar</button>
+                <button class="nav-cta" onclick="go('/login')" data-i18n="nav.login"><i class="ti ti-login-2" aria-hidden="true"></i> entrar</button>
             </div>
         </nav>
 
         <!-- ==================== HERO ==================== -->
         <section class="hero">
             <div class="hero-copy">
-                <div class="hero-tag">automação de candidaturas</div>
-                <h1>Sua candidatura<br>chega <span class="accent">antes</span><br>de <strong>todo mundo.</strong></h1>
-                <p class="hero-sub">Monitoramos posts de recrutadores no LinkedIn, extraímos vagas com email de contato e enviamos seu currículo automaticamente — usando a sua própria conta Gmail.</p>
+                <div class="hero-tag" data-i18n="hero.tag">automação de candidaturas</div>
+                <h1 data-i18n="hero.h1">Sua candidatura<br>chega <span class="accent">antes</span><br>de <strong>todo mundo.</strong></h1>
+                <p class="hero-sub" data-i18n="hero.sub">Monitoramos posts de recrutadores no LinkedIn, extraímos vagas com email de contato e enviamos seu currículo automaticamente — usando a sua própria conta Gmail.</p>
                 <div class="hero-actions">
-                    <button class="btn-p" onclick="go('/signup')"><i class="ti ti-rocket" aria-hidden="true"></i> começar grátis</button>
-                    <button class="btn-s" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})">ver como funciona</button>
+                    <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-rocket" aria-hidden="true"></i> começar grátis</button>
+                    <button class="btn-s" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})" data-i18n="hero.cta2">ver como funciona</button>
                 </div>
-                <p class="hero-note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 candidaturas grátis por dia. Sem cartão de crédito.</p>
+                <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 candidaturas grátis por dia. Sem cartão de crédito.</p>
             </div>
 
             <!-- Mockup do produto -->
@@ -737,12 +744,12 @@
                             <div class="hv-avatar"><i class="ti ti-building"></i></div>
                             <div>
                                 <div class="hv-role">Dev Backend Pleno · .NET</div>
-                                <div class="hv-meta">Acme Tech · remoto · há 3 min</div>
+                                <div class="hv-meta" data-i18n="hv.meta1">Acme Tech · remoto · há 3 min</div>
                             </div>
                         </div>
-                        <span class="hv-score">match 94%</span>
+                        <span class="hv-score" data-i18n="hv.score1">match 94%</span>
                     </div>
-                    <div class="hv-status">
+                    <div class="hv-status" data-i18n="hv.status">
                         <i class="ti ti-circle-check"></i>
                         <span>currículo enviado · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via seu Gmail</span></span>
                     </div>
@@ -753,12 +760,12 @@
                             <div class="hv-avatar"><i class="ti ti-building"></i></div>
                             <div>
                                 <div class="hv-role">Engenheiro Node.js</div>
-                                <div class="hv-meta">Nimbus · híbrido · há 11 min</div>
+                                <div class="hv-meta" data-i18n="hv.meta2">Nimbus · híbrido · há 11 min</div>
                             </div>
                         </div>
-                        <span class="hv-score">match 88%</span>
+                        <span class="hv-score" data-i18n="hv.score2">match 88%</span>
                     </div>
-                    <div class="hv-status">
+                    <div class="hv-status" data-i18n="hv.status2">
                         <i class="ti ti-circle-check"></i>
                         <span>currículo enviado · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via seu Gmail</span></span>
                     </div>
@@ -767,7 +774,7 @@
                     <i class="ti ti-send"></i>
                     <div>
                         <div class="hv-float-n">+12</div>
-                        <div class="hv-float-l">enviadas hoje</div>
+                        <div class="hv-float-l" data-i18n="hv.float">enviadas hoje</div>
                     </div>
                 </div>
             </div>
@@ -776,38 +783,38 @@
         <!-- ==================== TICKER ==================== -->
         <div class="section" style="padding-top:0;">
             <div class="ticker">
-                <div class="tick-item"><span class="tick-n mono">45k+</span><span class="tick-l">vagas/mês monitoradas</span></div>
-                <div class="tick-item"><span class="tick-n mono">92%</span><span class="tick-l">taxa de entrega</span></div>
-                <div class="tick-item"><span class="tick-n mono">0</span><span class="tick-l">senhas armazenadas</span></div>
-                <div class="tick-item"><span class="tick-n mono">−150h</span><span class="tick-l">economizadas por mês</span></div>
+                <div class="tick-item"><span class="tick-n mono">45k+</span><span class="tick-l" data-i18n="tick.1">vagas/mês monitoradas</span></div>
+                <div class="tick-item"><span class="tick-n mono">92%</span><span class="tick-l" data-i18n="tick.2">taxa de entrega</span></div>
+                <div class="tick-item"><span class="tick-n mono">0</span><span class="tick-l" data-i18n="tick.3">senhas armazenadas</span></div>
+                <div class="tick-item"><span class="tick-n mono">−150h</span><span class="tick-l" data-i18n="tick.4">economizadas por mês</span></div>
             </div>
         </div>
 
         <!-- ==================== COMO FUNCIONA ==================== -->
         <section class="section" id="como-funciona">
-            <div class="sec-eyebrow">como funciona</div>
-            <h2 class="sec-h">Configure uma vez.<br><strong>Candidate-se sempre.</strong></h2>
-            <p class="sec-sub">Três passos e sua busca entra em piloto automático.</p>
+            <div class="sec-eyebrow" data-i18n="how.eyebrow">como funciona</div>
+            <h2 class="sec-h" data-i18n="how.h">Configure uma vez.<br><strong>Candidate-se sempre.</strong></h2>
+            <p class="sec-sub" data-i18n="how.sub">Três passos e sua busca entra em piloto automático.</p>
             <div class="steps">
                 <div class="step">
                     <span class="step-n mono">01</span>
                     <div class="step-body">
-                        <h3>Monte seu perfil técnico</h3>
-                        <p>Informe sua stack, nível de senioridade, modalidade e pretensão. Faça upload do seu currículo em PDF.</p>
+                        <h3 data-i18n="how.s1.h">Monte seu perfil técnico</h3>
+                        <p data-i18n="how.s1.p">Informe sua stack, nível de senioridade, modalidade e pretensão. Faça upload do seu currículo em PDF.</p>
                     </div>
                 </div>
                 <div class="step">
                     <span class="step-n mono">02</span>
                     <div class="step-body">
-                        <h3>Conecte seu Gmail</h3>
-                        <p>Autorize apenas o escopo de envio. Você aparece como remetente para o recrutador. Nunca lemos seus emails.</p>
+                        <h3 data-i18n="how.s2.h">Conecte seu Gmail</h3>
+                        <p data-i18n="how.s2.p">Autorize apenas o escopo de envio. Você aparece como remetente para o recrutador. Nunca lemos seus emails.</p>
                     </div>
                 </div>
                 <div class="step">
                     <span class="step-n mono">03</span>
                     <div class="step-body">
-                        <h3>Receba candidaturas automáticas</h3>
-                        <p>IA faz o matching entre seu perfil e a vaga. Emails personalizados são enviados direto para o recrutador.</p>
+                        <h3 data-i18n="how.s3.h">Receba candidaturas automáticas</h3>
+                        <p data-i18n="how.s3.p">IA faz o matching entre seu perfil e a vaga. Emails personalizados são enviados direto para o recrutador.</p>
                     </div>
                 </div>
             </div>
@@ -815,88 +822,88 @@
 
         <!-- ==================== FUNCIONALIDADES ==================== -->
         <section class="section">
-            <div class="sec-eyebrow">funcionalidades</div>
-            <h2 class="sec-h"><strong>Tudo</strong> que você precisa<br>para se destacar.</h2>
+            <div class="sec-eyebrow" data-i18n="feat.eyebrow">funcionalidades</div>
+            <h2 class="sec-h" data-i18n="feat.h"><strong>Tudo</strong> que você precisa<br>para se destacar.</h2>
             <div class="feat-grid">
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-brand-linkedin" aria-hidden="true"></i></div>
-                    <h3>scraping de posts</h3>
-                    <p>Monitora recrutadores no LinkedIn em tempo real. Posts novos com email são capturados em minutos.</p>
+                    <h3 data-i18n="feat.1.h">scraping de posts</h3>
+                    <p data-i18n="feat.1.p">Monitora recrutadores no LinkedIn em tempo real. Posts novos com email são capturados em minutos.</p>
                 </div>
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-cpu" aria-hidden="true"></i></div>
-                    <h3>matching por IA</h3>
-                    <p>Score de compatibilidade entre seu perfil e a vaga. Só envia quando faz sentido.</p>
+                    <h3 data-i18n="feat.2.h">matching por IA</h3>
+                    <p data-i18n="feat.2.p">Score de compatibilidade entre seu perfil e a vaga. Só envia quando faz sentido.</p>
                 </div>
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-mail-forward" aria-hidden="true"></i></div>
-                    <h3>email pelo seu Gmail</h3>
-                    <p>Enviado da sua conta. O recrutador vê seu nome, não o nome de uma ferramenta.</p>
+                    <h3 data-i18n="feat.3.h">email pelo seu Gmail</h3>
+                    <p data-i18n="feat.3.p">Enviado da sua conta. O recrutador vê seu nome, não o nome de uma ferramenta.</p>
                 </div>
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-chart-line" aria-hidden="true"></i></div>
-                    <h3>dashboard completo</h3>
-                    <p>Acompanhe envios, matches e histórico. Pause, filtre ou ajuste a qualquer momento.</p>
+                    <h3 data-i18n="feat.4.h">dashboard completo</h3>
+                    <p data-i18n="feat.4.p">Acompanhe envios, matches e histórico. Pause, filtre ou ajuste a qualquer momento.</p>
                 </div>
             </div>
         </section>
 
         <!-- ==================== PREÇOS ==================== -->
         <section class="section" id="precos">
-            <div class="sec-eyebrow">preços</div>
-            <h2 class="sec-h">Simples e<br><strong>transparente.</strong></h2>
-            <p class="sec-sub">Comece grátis. Faça upgrade quando precisar de mais.</p>
+            <div class="sec-eyebrow" data-i18n="price.eyebrow">preços</div>
+            <h2 class="sec-h" data-i18n="price.h">Simples e<br><strong>transparente.</strong></h2>
+            <p class="sec-sub" data-i18n="price.sub">Comece grátis. Faça upgrade quando precisar de mais.</p>
             <div class="plans">
                 <div class="plan">
                     <div class="plan-label">free</div>
                     <div class="plan-price">R$0</div>
-                    <div class="plan-per">para sempre grátis</div>
+                    <div class="plan-per" data-i18n="price.free.per">para sempre grátis</div>
                     <ul class="plan-feats">
-                        <li><i class="ti ti-check" aria-hidden="true"></i>7 candidaturas por dia</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>1 perfil de busca</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>matching básico</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>sem cartão de crédito</li>
+                        <li data-i18n="price.free.1"><i class="ti ti-check" aria-hidden="true"></i>7 candidaturas por dia</li>
+                        <li data-i18n="price.free.2"><i class="ti ti-check" aria-hidden="true"></i>1 perfil de busca</li>
+                        <li data-i18n="price.free.3"><i class="ti ti-check" aria-hidden="true"></i>matching básico</li>
+                        <li data-i18n="price.free.4"><i class="ti ti-check" aria-hidden="true"></i>sem cartão de crédito</li>
                     </ul>
-                    <button class="plan-btn" onclick="go('/signup')">começar grátis</button>
+                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.free.btn">começar grátis</button>
                 </div>
                 <div class="plan featured">
-                    <div class="pop-badge">mais popular</div>
+                    <div class="pop-badge" data-i18n="price.popular">mais popular</div>
                     <div class="plan-label">starter</div>
                     <div class="plan-price">R$80</div>
-                    <div class="plan-per">/mês · 70 emails por dia</div>
+                    <div class="plan-per" data-i18n="price.starter.per">/mês · 70 emails por dia</div>
                     <ul class="plan-feats">
-                        <li><i class="ti ti-check" aria-hidden="true"></i>70 candidaturas por dia</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>filtragem antes do envio</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>matching com IA</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>histórico de candidaturas</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>suporte por email</li>
+                        <li data-i18n="price.starter.1"><i class="ti ti-check" aria-hidden="true"></i>70 candidaturas por dia</li>
+                        <li data-i18n="price.starter.2"><i class="ti ti-check" aria-hidden="true"></i>filtragem antes do envio</li>
+                        <li data-i18n="price.starter.3"><i class="ti ti-check" aria-hidden="true"></i>matching com IA</li>
+                        <li data-i18n="price.starter.4"><i class="ti ti-check" aria-hidden="true"></i>histórico de candidaturas</li>
+                        <li data-i18n="price.starter.5"><i class="ti ti-check" aria-hidden="true"></i>suporte por email</li>
                     </ul>
-                    <button class="plan-btn" onclick="go('/signup')">assinar starter</button>
+                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.starter.btn">assinar starter</button>
                 </div>
                 <div class="plan">
                     <div class="plan-label">pro</div>
                     <div class="plan-price">R$189</div>
-                    <div class="plan-per">/mês · 200 emails por dia</div>
+                    <div class="plan-per" data-i18n="price.pro.per">/mês · 200 emails por dia</div>
                     <ul class="plan-feats">
-                        <li><i class="ti ti-check" aria-hidden="true"></i>200 candidaturas por dia</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>tudo do starter</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>tracking de abertura</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>multi-contas</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>agendamento automático</li>
-                        <li><i class="ti ti-check" aria-hidden="true"></i>suporte prioritário</li>
+                        <li data-i18n="price.pro.1"><i class="ti ti-check" aria-hidden="true"></i>200 candidaturas por dia</li>
+                        <li data-i18n="price.pro.2"><i class="ti ti-check" aria-hidden="true"></i>tudo do starter</li>
+                        <li data-i18n="price.pro.3"><i class="ti ti-check" aria-hidden="true"></i>tracking de abertura</li>
+                        <li data-i18n="price.pro.4"><i class="ti ti-check" aria-hidden="true"></i>multi-contas</li>
+                        <li data-i18n="price.pro.5"><i class="ti ti-check" aria-hidden="true"></i>agendamento automático</li>
+                        <li data-i18n="price.pro.6"><i class="ti ti-check" aria-hidden="true"></i>suporte prioritário</li>
                     </ul>
-                    <button class="plan-btn" onclick="go('/signup')">assinar pro</button>
+                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.pro.btn">assinar pro</button>
                 </div>
             </div>
             <div class="privacy">
                 <i class="ti ti-shield-check" aria-hidden="true"></i>
                 <div>
-                    <h3>sua privacidade é prioridade</h3>
+                    <h3 data-i18n="privacy.h">sua privacidade é prioridade</h3>
                     <ul>
-                        <li>usamos apenas o escopo gmail.send — somente envio</li>
-                        <li>nunca lemos, excluímos ou modificamos seus emails</li>
-                        <li>você pode revogar o acesso a qualquer momento</li>
-                        <li>nenhuma senha armazenada em nossos servidores</li>
+                        <li data-i18n="privacy.1">usamos apenas o escopo gmail.send — somente envio</li>
+                        <li data-i18n="privacy.2">nunca lemos, excluímos ou modificamos seus emails</li>
+                        <li data-i18n="privacy.3">você pode revogar o acesso a qualquer momento</li>
+                        <li data-i18n="privacy.4">nenhuma senha armazenada em nossos servidores</li>
                     </ul>
                 </div>
             </div>
@@ -904,20 +911,20 @@
 
         <!-- ==================== CTA ==================== -->
         <div class="cta-bar">
-            <h2>Pronto para <strong>automatizar</strong><br>sua busca por emprego?</h2>
-            <p>Configure em menos de 5 minutos. 7 candidaturas grátis todo dia.</p>
-            <button class="btn-white" onclick="go('/signup')">começar agora — é grátis</button>
+            <h2 data-i18n="cta.h">Pronto para <strong>automatizar</strong><br>sua busca por emprego?</h2>
+            <p data-i18n="cta.p">Configure em menos de 5 minutos. 7 candidaturas grátis todo dia.</p>
+            <button class="btn-white" onclick="go('/signup')" data-i18n="cta.btn">começar agora — é grátis</button>
         </div>
 
         <!-- ==================== FOOTER ==================== -->
         <footer>
             <span class="footer-logo">newdevjobs</span>
             <span style="display:flex;gap:18px;flex-wrap:wrap;">
-                <a href="docs.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;">documentação</a>
-                <a href="termos.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;">termos de uso</a>
-                <a href="privacidade.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;">privacidade</a>
+                <a href="docs.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;" data-i18n="footer.docs">documentação</a>
+                <a href="termos.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;" data-i18n="footer.terms">termos de uso</a>
+                <a href="privacidade.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;" data-i18n="footer.privacy">privacidade</a>
             </span>
-            <span class="footer-note">feito para devs brasileiros · 2026</span>
+            <span class="footer-note" data-i18n="footer.note">feito para devs brasileiros · 2026</span>
         </footer>
 
     </div>
@@ -936,6 +943,114 @@
             return 'https://' + root; // app no apex (ex.: https://newdevjobs.xyz)
         }
         function go(path) { location.href = appBase() + path; }
+
+        // ===================== i18n (PT padrão · EN opcional) =====================
+        // PT é o conteúdo original do HTML (capturado uma vez e restaurado ao voltar);
+        // o dicionário abaixo só traz as traduções EN. Chave = atributo data-i18n.
+        const I18N_EN = {
+            title: 'newdevjobs — automated job applications',
+            'nav.how': 'how it works',
+            'nav.pricing': 'pricing',
+            'nav.docs': 'docs',
+            'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> sign in',
+            'hero.tag': 'job application automation',
+            'hero.h1': 'Your application<br>arrives <span class="accent">before</span><br><strong>everyone else.</strong>',
+            'hero.sub': 'We monitor recruiter posts on LinkedIn, extract jobs that include a contact email, and send your resume automatically — from your own Gmail account.',
+            'hero.cta1': '<i class="ti ti-rocket" aria-hidden="true"></i> start free',
+            'hero.cta2': 'see how it works',
+            'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> 7 free applications per day. No credit card.',
+            'hv.meta1': 'Acme Tech · remote · 3 min ago',
+            'hv.score1': 'match 94%',
+            'hv.status': '<i class="ti ti-circle-check"></i> <span>resume sent · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via your Gmail</span></span>',
+            'hv.meta2': 'Nimbus · hybrid · 11 min ago',
+            'hv.score2': 'match 88%',
+            'hv.status2': '<i class="ti ti-circle-check"></i> <span>resume sent · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via your Gmail</span></span>',
+            'hv.float': 'sent today',
+            'tick.1': 'jobs/mo monitored',
+            'tick.2': 'delivery rate',
+            'tick.3': 'passwords stored',
+            'tick.4': 'saved per month',
+            'how.eyebrow': 'how it works',
+            'how.h': 'Set it up once.<br><strong>Apply forever.</strong>',
+            'how.sub': 'Three steps and your search goes on autopilot.',
+            'how.s1.h': 'Build your tech profile',
+            'how.s1.p': 'Tell us your stack, seniority, work model and salary range. Upload your resume as a PDF.',
+            'how.s2.h': 'Connect your Gmail',
+            'how.s2.p': 'Authorize the send scope only. You appear as the sender to the recruiter. We never read your emails.',
+            'how.s3.h': 'Get automatic applications',
+            'how.s3.p': 'AI matches your profile to each job. Personalized emails are sent straight to the recruiter.',
+            'feat.eyebrow': 'features',
+            'feat.h': '<strong>Everything</strong> you need<br>to stand out.',
+            'feat.1.h': 'post scraping',
+            'feat.1.p': 'Monitors recruiters on LinkedIn in real time. New posts with an email are captured within minutes.',
+            'feat.2.h': 'AI matching',
+            'feat.2.p': 'A compatibility score between your profile and the job. It only sends when it makes sense.',
+            'feat.3.h': 'email from your Gmail',
+            'feat.3.p': 'Sent from your account. The recruiter sees your name, not the name of a tool.',
+            'feat.4.h': 'full dashboard',
+            'feat.4.p': 'Track sends, matches and history. Pause, filter or adjust at any time.',
+            'price.eyebrow': 'pricing',
+            'price.h': 'Simple and<br><strong>transparent.</strong>',
+            'price.sub': 'Start free. Upgrade when you need more.',
+            'price.free.per': 'free forever',
+            'price.free.1': '<i class="ti ti-check" aria-hidden="true"></i>7 applications per day',
+            'price.free.2': '<i class="ti ti-check" aria-hidden="true"></i>1 search profile',
+            'price.free.3': '<i class="ti ti-check" aria-hidden="true"></i>basic matching',
+            'price.free.4': '<i class="ti ti-check" aria-hidden="true"></i>no credit card',
+            'price.free.btn': 'start free',
+            'price.popular': 'most popular',
+            'price.starter.per': '/mo · 70 emails per day',
+            'price.starter.1': '<i class="ti ti-check" aria-hidden="true"></i>70 applications per day',
+            'price.starter.2': '<i class="ti ti-check" aria-hidden="true"></i>filtering before sending',
+            'price.starter.3': '<i class="ti ti-check" aria-hidden="true"></i>AI matching',
+            'price.starter.4': '<i class="ti ti-check" aria-hidden="true"></i>application history',
+            'price.starter.5': '<i class="ti ti-check" aria-hidden="true"></i>email support',
+            'price.starter.btn': 'subscribe to starter',
+            'price.pro.per': '/mo · 200 emails per day',
+            'price.pro.1': '<i class="ti ti-check" aria-hidden="true"></i>200 applications per day',
+            'price.pro.2': '<i class="ti ti-check" aria-hidden="true"></i>everything in starter',
+            'price.pro.3': '<i class="ti ti-check" aria-hidden="true"></i>open tracking',
+            'price.pro.4': '<i class="ti ti-check" aria-hidden="true"></i>multi-account',
+            'price.pro.5': '<i class="ti ti-check" aria-hidden="true"></i>automatic scheduling',
+            'price.pro.6': '<i class="ti ti-check" aria-hidden="true"></i>priority support',
+            'price.pro.btn': 'subscribe to pro',
+            'privacy.h': 'your privacy is a priority',
+            'privacy.1': 'we use only the gmail.send scope — sending only',
+            'privacy.2': 'we never read, delete or modify your emails',
+            'privacy.3': 'you can revoke access at any time',
+            'privacy.4': 'no passwords stored on our servers',
+            'cta.h': 'Ready to <strong>automate</strong><br>your job search?',
+            'cta.p': 'Set it up in under 5 minutes. 7 free applications every day.',
+            'cta.btn': 'start now — it\'s free',
+            'footer.docs': 'docs',
+            'footer.terms': 'terms of use',
+            'footer.privacy': 'privacy',
+            'footer.note': 'made for developers · 2026',
+        };
+
+        const _origPT = {}; // conteúdo PT original por chave (capturado 1x)
+        function applyLang(lang) {
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                const key = el.getAttribute('data-i18n');
+                if (!(key in _origPT)) _origPT[key] = el.innerHTML;
+                if (lang === 'en' && I18N_EN[key] != null) el.innerHTML = I18N_EN[key];
+                else el.innerHTML = _origPT[key];
+            });
+            document.documentElement.lang = lang === 'en' ? 'en' : 'pt-BR';
+            document.title = lang === 'en' ? I18N_EN.title : (_origPT.__title || document.title);
+            const code = document.querySelector('.lang-toggle .lang-code');
+            if (code) code.textContent = lang === 'en' ? 'PT' : 'EN'; // mostra o idioma-alvo
+            localStorage.setItem('lang', lang);
+        }
+        function toggleLang() {
+            applyLang(localStorage.getItem('lang') === 'en' ? 'pt' : 'en');
+        }
+        (function initLang() {
+            _origPT.__title = document.title;
+            const saved = localStorage.getItem('lang');
+            const lang = saved || ((navigator.language || '').toLowerCase().startsWith('pt') ? 'pt' : 'en');
+            applyLang(lang);
+        })();
 
         function toggleTheme() {
             const html = document.documentElement;

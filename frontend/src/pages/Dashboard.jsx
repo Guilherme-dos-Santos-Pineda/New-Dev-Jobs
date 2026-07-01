@@ -80,9 +80,30 @@ export default function Dashboard() {
     ] : [];
 
     const steps = [
-        { done: !!profile, label: 'Monte seu perfil técnico', to: '/app/perfil', cta: 'Completar perfil' },
-        { done: !!profile?.hasCv, label: 'Envie seu currículo (PDF)', to: '/app/perfil?section=contact', cta: 'Enviar CV' },
-        { done: user?.googleConnected, label: 'Conecte sua conta Google', to: '/app/perfil?tab=email', cta: 'Conectar Google' },
+        {
+            done: !!profile?.areas?.length, icon: 'ti-briefcase', highlight: true,
+            label: 'Escolha sua área profissional',
+            hint: 'Define quais vagas você recebe (ex.: um QA não recebe vaga de Dev).',
+            to: '/app/perfil?section=work', cta: 'Escolher área',
+        },
+        {
+            done: !!profile?.skills?.length, icon: 'ti-tags',
+            label: 'Adicione suas skills e keywords',
+            hint: 'Calculam o match de cada vaga com o seu perfil.',
+            to: '/app/perfil?section=skills', cta: 'Adicionar skills',
+        },
+        {
+            done: !!profile?.hasCv, icon: 'ti-paperclip',
+            label: 'Envie seu currículo (PDF)',
+            hint: 'É o PDF anexado nas suas candidaturas.',
+            to: '/app/perfil?section=contact', cta: 'Enviar CV',
+        },
+        {
+            done: user?.googleConnected, icon: 'ti-brand-google',
+            label: 'Conecte sua conta Google',
+            hint: 'Os emails são enviados do seu Gmail.',
+            to: '/app/perfil?tab=email', cta: 'Conectar Google',
+        },
     ];
     const pending = steps.filter((s) => !s.done);
     const q = queue;
@@ -126,14 +147,23 @@ export default function Dashboard() {
             {/* Onboarding */}
             {!loading && pending.length > 0 && (
                 <div className="card fade-in" style={{ marginBottom: 22 }}>
-                    <div className="section-title">Conclua sua configuração ({steps.length - pending.length}/{steps.length})</div>
+                    <div className="section-title">{t('Conclua sua configuração')} ({steps.length - pending.length}/{steps.length})</div>
+                    <p className="muted" style={{ fontSize: 12.5, marginTop: -6, marginBottom: 14 }}>
+                        {t('Quanto mais completo o perfil, mais certeiras são as vagas que você recebe.')}
+                    </p>
                     <div className="job-list">
                         {steps.map((s, i) => (
-                            <div key={i} className="row" style={{ alignItems: 'center' }}>
-                                <i className={`ti ${s.done ? 'ti-circle-check-filled' : 'ti-circle'}`} style={{ fontSize: 20, color: s.done ? 'var(--color-success)' : 'var(--color-text-tertiary)' }} />
-                                <span style={{ textDecoration: s.done ? 'line-through' : 'none', color: s.done ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{s.label}</span>
-                                <div className="spacer" />
-                                {!s.done && <Link to={s.to} className="btn sm">{s.cta}</Link>}
+                            <div key={i} className="row" style={{ alignItems: 'flex-start', gap: 12, padding: '10px 0', borderTop: i ? '1px solid var(--color-border-light)' : 'none' }}>
+                                <i className={`ti ${s.done ? 'ti-circle-check-filled' : s.icon}`}
+                                    style={{ fontSize: 22, marginTop: 1, flexShrink: 0, color: s.done ? 'var(--color-success)' : (s.highlight ? 'var(--color-accent)' : 'var(--color-text-tertiary)') }} />
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div className="row" style={{ alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontWeight: 600, textDecoration: s.done ? 'line-through' : 'none', color: s.done ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{t(s.label)}</span>
+                                        {s.highlight && !s.done && <span className="badge ok">{t('recomendado')}</span>}
+                                    </div>
+                                    {!s.done && <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{t(s.hint)}</div>}
+                                </div>
+                                {!s.done && <Link to={s.to} className="btn sm" style={{ flexShrink: 0 }}>{t(s.cta)}</Link>}
                             </div>
                         ))}
                     </div>

@@ -164,6 +164,7 @@ const EN = {
     'Comunidade no WhatsApp': 'WhatsApp community',
     'Venha fazer parte da comunidade': 'Come join the community',
     'Dicas de vagas, novidades e suporte no WhatsApp.': 'Job tips, updates and support on WhatsApp.',
+    'Entrar no grupo': 'Join the group',
     'Plano atual': 'Current plan',
     'Gerenciar / Cancelar': 'Manage / Cancel',
     'Abrindo…': 'Opening…',

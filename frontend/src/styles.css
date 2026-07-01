@@ -383,7 +383,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 }
 .btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn.primary { background: var(--grad-accent); color: #fff; border-color: transparent; box-shadow: var(--glow-accent); }
+.btn.primary { background: var(--grad-accent); color: #fff; border-color: transparent; box-shadow: 0 6px 16px -10px color-mix(in srgb, var(--color-accent) 60%, transparent); }
 .btn.primary:hover { color: #fff; filter: brightness(1.06); transform: translateY(-1px); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover { background: var(--color-bg-secondary); }
@@ -407,6 +407,15 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .input:focus, .select:focus, textarea.input:focus {
     border-color: var(--color-accent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+/* Seta própria (a nativa fica desalinhada e "pra fora"); deixa espaço p/ ela não
+   cobrir o texto. appearance:none remove a nativa. */
+.select {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238B9CB0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
 }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
@@ -792,7 +801,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .pay-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 14px; }
 .pay-filters .f-field { display: flex; flex-direction: column; gap: 4px; }
 .pay-filters .f-field label { font-size: 11px; color: var(--color-text-tertiary); }
-.pay-filters .f-field .select, .pay-filters .f-field .input { height: 36px; }
+.pay-filters .f-field .select, .pay-filters .f-field .input { padding-top: 9px; padding-bottom: 9px; font-size: 13.5px; }
 .pay-filters .f-grow { flex: 1; min-width: 180px; }
 
 .pay-table-wrap { overflow-x: auto; border: 1px solid var(--color-border-light); border-radius: var(--radius); }

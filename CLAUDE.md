@@ -29,7 +29,8 @@ regra existente, não acrescente uma nova que a contradiga.
 ## Testes
 - `npm test` → `node --test backend/test/` (runner nativo do Node, sem dependência).
 - Ao corrigir um bug em lógica pura do backend, **adicione um teste de regressão** em `backend/test/`.
-- Cobertura atual: matching (`computeMatch`), classificação de vaga (`detectArea`/`detectLevel`), filtros (`passesFilters`), título do email (`niceTitle` via `renderEmail`), dedup (`jobHash`).
+- Cobertura atual: matching (`computeMatch`), classificação de vaga (`detectArea`/`detectLevel`), filtros (`passesFilters`), título do email (`niceTitle` via `renderEmail`), dedup (`jobHash`), **billing** (`services/billingLogic.js` — modo do checkout, concessão/expiração de 30 dias, webhook, histórico).
+- **Pagamento é área crítica**: a lógica de decisão fica PURA em `services/billingLogic.js` (sem Stripe/SQL) para ser testável. Ao mexer em cobrança, mantenha a lógica lá e **adicione teste** em `backend/test/billing.test.js`.
 
 ## Scraper / robôs
 - Apify aceita **no máx. 10 `authorUrls` por execução** → fatiar em lotes (já feito em `runMonitoring`).

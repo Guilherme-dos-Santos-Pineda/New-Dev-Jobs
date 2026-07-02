@@ -161,6 +161,7 @@ const EN = {
     '30 dias': '30 days',
     'grátis': 'free',
     'Fazer upgrade': 'Upgrade',
+    'Incluído no seu plano': 'Included in your plan',
     'Seu plano atual': 'Your current plan',
     'mês': 'mo',
     'Precisa de um plano personalizado?': 'Need a custom plan?',

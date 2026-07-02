@@ -7,6 +7,7 @@ import { validate } from '../middleware/validate.js';
 import { PLANS } from '../config/plans.js';
 import { planUsage } from '../services/usage.js';
 import { stripe, stripeConfigured, planFromPriceId, priceIdForPlan } from '../services/stripeClient.js';
+import { checkoutModeForPrice, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
 
 // =========================
 // Comércio / planos (Fase 5+6) — Stripe real
@@ -45,7 +46,7 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
         // avulso (libera 30 dias, sem renovação automática). Assim o mesmo código serve
         // os dois ambientes sem quebrar durante a transição.
         const priceObj = await stripe.prices.retrieve(price);
-        const mode = priceObj.recurring ? 'subscription' : 'payment';
+        const mode = checkoutModeForPrice(priceObj);
         const meta = { userId: req.user.Id, plan: req.body.plan };
         const session = await stripe.checkout.sessions.create({
             mode,
@@ -67,26 +68,14 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
 });
 
 // GET /api/billing/history — pagamentos do usuário (charges cobrem pagamento único
-// E assinatura; invoice.list ficaria vazio no avulso). Status normalizado p/ a UI.
-const CHARGE_STATUS = { succeeded: 'paid', pending: 'pending', failed: 'failed' };
+// E assinatura; invoice.list ficaria vazio no avulso). Mapeamento em billingLogic.
 router.get('/history', requireAuth, async (req, res) => {
     if (!stripeConfigured) return res.json({ invoices: [] });
     const [u] = await sql`select "StripeCustomerId" from "Users" where "Id" = ${req.user.Id}`;
     if (!u?.StripeCustomerId) return res.json({ invoices: [] });
     try {
         const list = await stripe.charges.list({ customer: u.StripeCustomerId, limit: 20, expand: ['data.payment_intent'] });
-        res.json({
-            invoices: list.data.map((c) => ({
-                id: c.id,
-                amount: c.amount, currency: c.currency,
-                status: CHARGE_STATUS[c.status] || c.status,
-                date: c.created * 1000,
-                url: c.receipt_url, pdf: null,
-                provider: 'stripe',
-                method: c.payment_method_details?.type || 'card',
-                plan: c.payment_intent?.metadata?.plan || c.metadata?.plan || null,
-            })),
-        });
+        res.json({ invoices: list.data.map(mapCharge) });
     } catch (e) {
         console.error('Erro ao listar pagamentos:', e.message);
         res.json({ invoices: [] });
@@ -154,18 +143,22 @@ async function applySubscription({ userId, plan, customerId, subscriptionId }) {
     console.log(`💳 plano atualizado via Stripe: user ${userId} → ${plan}`);
 }
 
-// Concede um plano pago por N dias (pagamento ÚNICO). Empilha sobre o tempo
-// restante se ainda ativo, para o usuário não perder dias ao renovar.
+// Concede um plano pago por N dias (pagamento ÚNICO). A nova validade é calculada
+// em JS (computeExpiry — empilha sobre o tempo restante se ainda ativo) para ser a
+// mesma lógica coberta pelos testes.
 async function grantOneTime({ userId, plan, customerId, days = 30 }) {
     if (!userId || !plan) return;
+    const [u] = await sql`select "PlanExpiresAt" from "Users" where "Id" = ${userId}`;
+    const currentMs = u?.PlanExpiresAt ? new Date(u.PlanExpiresAt).getTime() : null;
+    const expiresAt = new Date(computeExpiry(currentMs, days));
     await sql`
         update "Users" set
             "Plan" = ${plan},
             "StripeCustomerId" = coalesce(${customerId || null}, "StripeCustomerId"),
             "StripeSubscriptionId" = null,
-            "PlanExpiresAt" = greatest(coalesce("PlanExpiresAt", now()), now()) + make_interval(days => ${days})
+            "PlanExpiresAt" = ${expiresAt}
         where "Id" = ${userId}`;
-    console.log(`💳 pagamento único: user ${userId} → ${plan} por ${days} dias`);
+    console.log(`💳 pagamento único: user ${userId} → ${plan} por ${days} dias (até ${expiresAt.toISOString()})`);
 }
 
 // POST /api/billing/webhook — recebe eventos do Stripe (corpo CRU via express.raw no server.js)
@@ -185,21 +178,20 @@ router.post('/webhook', async (req, res) => {
         switch (event.type) {
             case 'checkout.session.completed': {
                 const s = event.data.object;
-                const userId = s.client_reference_id || s.metadata?.userId;
-                let plan = s.metadata?.plan;
-                if (s.mode === 'payment') {
-                    // Pagamento único: só libera se realmente pago; concede 30 dias.
-                    if (s.payment_status === 'paid') {
-                        await grantOneTime({ userId, plan, customerId: s.customer, days: 30 });
-                    }
-                } else {
+                const decision = decideCheckoutSession(s);
+                if (decision.action === 'grant') {
+                    // Pagamento único aprovado → concede os dias de acesso.
+                    await grantOneTime({ userId: decision.userId, plan: decision.plan, customerId: s.customer, days: decision.days });
+                } else if (decision.action === 'subscribe') {
                     // Assinatura (legado): plano do metadata ou do price da subscription.
+                    let plan = decision.plan;
                     if (!plan && s.subscription) {
                         const sub = await stripe.subscriptions.retrieve(s.subscription);
                         plan = planFromPriceId(sub.items.data[0]?.price?.id);
                     }
-                    await applySubscription({ userId, plan, customerId: s.customer, subscriptionId: s.subscription });
+                    await applySubscription({ userId: decision.userId, plan, customerId: s.customer, subscriptionId: s.subscription });
                 }
+                // action === 'ignore' → pagamento não concluído, nada a fazer.
                 break;
             }
             case 'customer.subscription.updated': {

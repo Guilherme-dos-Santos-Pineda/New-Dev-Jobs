@@ -816,6 +816,10 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .comm-banner { text-decoration: none; color: inherit; transition: border-color var(--transition), box-shadow var(--transition); }
 .comm-banner:hover { border-color: var(--color-border-medium); box-shadow: var(--shadow-md); }
 
+/* Histórico minimizável: cabeçalho clicável */
+.hist-head { user-select: none; }
+.hist-head:hover .hist-chevron { color: var(--color-accent) !important; }
+
 @media (max-width: 640px) {
     .pay-stats { grid-template-columns: repeat(2, 1fr); }
     .pay-filters .f-field { flex: 1; min-width: 130px; }

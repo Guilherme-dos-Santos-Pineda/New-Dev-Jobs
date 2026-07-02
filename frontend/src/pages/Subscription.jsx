@@ -41,6 +41,7 @@ export default function Subscription() {
     const [fMethod, setFMethod] = useState('all');
     const [fPeriod, setFPeriod] = useState('all');
     const [query, setQuery] = useState('');
+    const [histOpen, setHistOpen] = useState(false); // histórico minimizado por padrão (planos em destaque)
 
     const { data: plansData, loading: loadingPlans } = useCachedResource('billing:plans', () => api.getPlans());
     const { data: histData, loading: loadingHist, refresh: refreshHist } = useCachedResource('billing:history', () => api.billingHistory());
@@ -68,11 +69,6 @@ export default function Subscription() {
     async function upgrade(planId) {
         setBusy(planId);
         try { const { url } = await api.checkout(planId); window.location.href = url; }
-        catch (e) { toast.show(e.message, 'error'); setBusy(''); }
-    }
-    async function manage() {
-        setBusy('portal');
-        try { const { url } = await api.billingPortal(); window.location.href = url; }
         catch (e) { toast.show(e.message, 'error'); setBusy(''); }
     }
 
@@ -108,7 +104,8 @@ export default function Subscription() {
     const daysLeft = subscription?.currentPeriodEnd
         ? Math.max(0, Math.ceil((subscription.currentPeriodEnd - Date.now()) / 86400000)) : null;
     const expDaysLeft = planExpiresAt ? Math.max(0, Math.ceil((planExpiresAt - Date.now()) / 86400000)) : null;
-    const currentPurchasable = plans.find((p) => p.id === current)?.purchasable;
+    const currentPurchasable = currentPlan?.purchasable;
+    const currentPrice = currentPlan?.price || 0; // só permite upgrade (preço maior); sem downgrade
     const hasFilter = fStatus !== 'all' || fMethod !== 'all' || fPeriod !== 'all' || !!query.trim();
 
     return (
@@ -150,11 +147,6 @@ export default function Subscription() {
                             <i className="ti ti-refresh" /> {busy === current ? t('Redirecionando…') : t('Renovar {plan}', { plan: currentPlan?.label || current })}
                         </button>
                     )}
-                    {subscription && stripeEnabled && (
-                        <button className="btn" disabled={busy === 'portal'} onClick={manage}>
-                            <i className="ti ti-settings" /> {busy === 'portal' ? t('Abrindo…') : t('Gerenciar / Cancelar')}
-                        </button>
-                    )}
                 </div>
                 {usage && (
                     <div style={{ marginTop: 18 }}>
@@ -170,9 +162,16 @@ export default function Subscription() {
 
             {/* Histórico de pagamentos */}
             <div className="card fade-in" style={{ marginBottom: 22 }}>
-                <div className="row" style={{ alignItems: 'center', marginBottom: 14 }}>
+                <div className="row hist-head" onClick={() => setHistOpen((o) => !o)} style={{ alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                     <div className="section-title" style={{ margin: 0 }}><i className="ti ti-receipt" /> {t('Histórico de pagamentos')}</div>
+                    {invoices.length > 0 && <span className="badge neutral">{invoices.length}</span>}
                     <div className="spacer" />
+                    {invoices.length > 0 && <span className="muted" style={{ fontSize: 12.5 }}>{money(stats.totalPaid)} {t('pago')}</span>}
+                    <i className={`ti ti-chevron-${histOpen ? 'up' : 'down'} hist-chevron`} style={{ fontSize: 18, color: 'var(--color-text-tertiary)' }} />
+                </div>
+
+                {histOpen && (<div style={{ marginTop: 14 }}>
+                <div className="row" style={{ justifyContent: 'flex-end', marginBottom: 12 }}>
                     <button className="btn ghost sm" onClick={refreshHist} title={t('Atualizar')}><i className="ti ti-refresh" /> {t('Atualizar')}</button>
                 </div>
 
@@ -278,6 +277,7 @@ export default function Subscription() {
                         {t('Mostrando {n} de {total}', { n: filtered.length, total: invoices.length })}
                     </div>
                 )}
+                </div>)}
             </div>
 
             {/* Planos */}
@@ -311,12 +311,12 @@ export default function Subscription() {
                                 </ul>
                                 {isCurrent ? (
                                     <button className="btn block sm" disabled>{t('Plano atual')}</button>
-                                ) : p.purchasable ? (
+                                ) : p.purchasable && p.price > currentPrice ? (
                                     <button className="btn primary block sm" disabled={!!busy || !stripeEnabled} onClick={() => upgrade(p.id)}>
-                                        {busy === p.id ? t('Redirecionando…') : (<><i className="ti ti-arrow-up-circle" /> {current !== 'free' ? t('Trocar para {plan}', { plan: p.label }) : t('Fazer upgrade')}</>)}
+                                        {busy === p.id ? t('Redirecionando…') : (<><i className="ti ti-arrow-up-circle" /> {t('Fazer upgrade')}</>)}
                                     </button>
                                 ) : (
-                                    <button className="btn block sm" disabled>{p.id === 'free' ? t('Plano grátis') : t('Indisponível')}</button>
+                                    <button className="btn block sm" disabled>{p.id === 'free' ? t('Plano grátis') : t('Incluído no seu plano')}</button>
                                 )}
                             </div>
                         );

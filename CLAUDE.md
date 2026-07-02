@@ -41,6 +41,9 @@ regra existente, não acrescente uma nova que a contradiga.
 - Admin = allowlist `ADMIN_EMAILS` **ou** `Users.Role='admin'`. **Sem fallback aberto.**
 - `/jobs` e `/jobs/matches` **nunca** devolvem o email de contato (envio é server-side); plano free também não recebe a descrição.
 - Segredos só no `.env` (gitignored) e no Render — **nunca** no código/commits.
+- `/ranking` **não expõe nome completo** (abrevia: "Primeiro S."). Logout do front chama `POST /api/auth/logout` (purga o token do cache do middleware — sem isso o token deslogado valeria por até 60s).
+- Headers de segurança dos **sites estáticos** (app + landing) vivem no `render.yaml` (`headers:` — X-Frame-Options etc.); o helmet cobre **só a API**.
+- Mensagens de erro de auth no front são **genéricas** (anti-enumeração de email) — ver `frontend/src/lib/authErrors.js`.
 - Botões de ação async com efeito externo: trava síncrona (`useRef`) + feedback (anti duplo-clique).
 
 ## Git / commits

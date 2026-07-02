@@ -79,6 +79,18 @@ services:
     runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
+    # Headers de segurança (o helmet só cobre a API; estáticos precisam disto):
+    # anti-clickjacking + anti-sniffing + referrer mínimo.
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
     routes:
       - type: rewrite
         source: /*
@@ -100,3 +112,13 @@ services:
     runtime: static
     buildCommand: echo "site estático — sem build"
     staticPublishPath: pages
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

@@ -12,6 +12,12 @@ import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 const cache = new Map(); // token -> { authUser, exp }
 const TTL = 60 * 1000;
 
+// Logout: derruba o token do cache na hora. Sem isto, um token deslogado no
+// Supabase ainda seria aceito por até TTL (60s) — janela pequena, mas fechável.
+export function purgeToken(token) {
+    if (token) cache.delete(token);
+}
+
 // Remove entradas expiradas (tokens que rotacionaram e nunca mais voltam ficariam
 // presos no Map). Throttled: varre no máx. a cada TTL, em um cache-miss.
 let lastSweep = 0;

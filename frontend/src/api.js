@@ -76,6 +76,7 @@ export function classifyApiError(err) {
 export const api = {
     // auth (identidade vem do Supabase; aqui só dados do app)
     me: () => request('GET', '/auth/me'),
+    logout: () => request('POST', '/auth/logout'),
     googleAuthUrl: () => request('GET', '/auth/google/url'),
     disconnectGoogle: () => request('POST', '/auth/disconnect-google'),
     updateSettings: (data) => request('PUT', '/auth/settings', data),

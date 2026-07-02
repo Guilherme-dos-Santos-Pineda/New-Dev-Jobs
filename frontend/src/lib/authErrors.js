@@ -1,6 +1,7 @@
 const MAP = {
     'Invalid login credentials': 'Email ou senha inválidos.',
-    'User already registered': 'Este email já está cadastrado.',
+    // Mensagem genérica (anti-enumeração): não confirma se o email existe.
+    'User already registered': 'Não foi possível criar a conta com estes dados. Se você já tem cadastro, entre ou use "Esqueci minha senha".',
     'Email not confirmed': 'Confirme seu email antes de entrar.',
     'Password should be at least 6 characters': 'A senha deve ter ao menos 6 caracteres.',
     'Unable to validate email address: invalid format': 'Email inválido.',

@@ -59,6 +59,9 @@ export function AuthProvider({ children }) {
     }, [loadUser]);
 
     const logout = useCallback(async () => {
+        // Avisa o backend ANTES do signOut (depois o token já não vale) para ele
+        // derrubar o token do cache na hora. Best-effort: logout local não depende disso.
+        try { await api.logout(); } catch { /* backend fora não impede o logout */ }
         await supabase?.auth.signOut();
         setUser(null);
         setSession(null);

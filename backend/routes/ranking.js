@@ -4,6 +4,16 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
+// Minimização de PII: o ranking é visível a todos os logados, então expõe só
+// "PrimeiroNome S." em vez do nome completo (o próprio usuário se acha pelo "me").
+export function abbreviateName(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'Usuário';
+    const [first, ...rest] = parts;
+    const last = rest.at(-1);
+    return last ? `${first} ${last[0].toUpperCase()}.` : first;
+}
+
 // GET /api/ranking — Top 10 usuários por e-mails enviados HOJE
 router.get('/', requireAuth, async (req, res) => {
     const rows = await sql`
@@ -15,7 +25,7 @@ router.get('/', requireAuth, async (req, res) => {
         limit 10`;
     const ranking = rows.map((r, i) => ({
         position: i + 1,
-        name: r.Name || 'Usuário',
+        name: abbreviateName(r.Name),
         sent: r.sent,
         me: r.Id === req.user.Id,
     }));

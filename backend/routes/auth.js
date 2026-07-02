@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import sql from '../lib/sql.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, purgeToken } from '../middleware/auth.js';
 import { config } from '../config.js';
 import { getAuthUrl, consumeState, exchangeCodeAndStore, disconnect } from '../services/google.js';
 import { planUsage } from '../services/usage.js';
@@ -81,6 +81,12 @@ router.post('/disconnect-google', requireAuth, async (req, res) => {
     res.json({ user: await publicUser(await getUser(req.user.Id)) });
 });
 
-router.post('/logout', (_req, res) => res.json({ ok: true }));
+// Logout: o Supabase invalida a sessão no signOut do frontend; aqui derrubamos o
+// token do cache do middleware para o backend recusá-lo imediatamente (sem esperar o TTL).
+router.post('/logout', (req, res) => {
+    const header = req.headers.authorization || '';
+    purgeToken(header.startsWith('Bearer ') ? header.slice(7) : null);
+    res.json({ ok: true });
+});
 
 export default router;

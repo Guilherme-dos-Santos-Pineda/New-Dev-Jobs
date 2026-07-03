@@ -6,6 +6,7 @@ import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
 import { aiState } from '../services/ai.js';
+import { apifyPoolState, resetApifyPool } from '../services/apifyPool.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 import { removeCv } from '../lib/cvStorage.js';
 
@@ -477,7 +478,12 @@ router.get('/ai-stats', requireAdmin, async (_req, res) => {
         from "ScraperRuns" where "Type" = 'monitoring'`;
     dedup.taxaDuplicacao = (dedup.novos + dedup.duplicados) ? Math.round((dedup.duplicados / (dedup.novos + dedup.duplicados)) * 100) : 0;
     const runs = await sql`select * from "ScraperRuns" order by "CreatedAt" desc limit 10`;
-    res.json({ raw, jobs, dedup, ai: aiState(), runs: runs.map(shapeRun) });
+    res.json({ raw, jobs, dedup, ai: aiState(), apify: apifyPoolState(), runs: runs.map(shapeRun) });
+});
+
+// POST /api/admin/apify/reset — limpa as marcações de "sem crédito" das contas Apify.
+router.post('/apify/reset', requireAdmin, (_req, res) => {
+    res.json({ apify: resetApifyPool() });
 });
 
 export default router;

@@ -1,8 +1,8 @@
 import crypto from 'crypto';
-import { ApifyClient } from 'apify-client';
 import sql from '../lib/sql.js';
 import { config } from '../config.js';
 import { analyzeContent } from './ai.js';
+import { runActor } from './apifyPool.js';
 
 // =========================
 // Scraper DevScout (Apify) — escreve no Postgres
@@ -20,11 +20,6 @@ const knownSkills = [
 ];
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
-
-function apifyClient() {
-    if (!config.apify.token) throw new Error('APIFY_TOKEN não configurado (veja .env)');
-    return new ApifyClient({ token: config.apify.token });
-}
 
 // Hash de dedup de vaga: empresa|cargo|email (normalizado).
 export function jobHash(company, title, email) {
@@ -150,7 +145,6 @@ export async function runDiscovery({ queries, location = 'Brazil', locations, ma
     const titles = (queries && queries.length ? queries : ['Tech Recruiter', 'Talent Acquisition']);
     // países/locais: aceita array (locations) ou um único (location)
     const locs = (locations && locations.length) ? locations : (location ? [location] : []);
-    const client = apifyClient();
 
     // Input do actor harvestapi/linkedin-profile-search:
     // searchQuery (string), currentJobTitles (array), maxItems, locations, profileScraperMode,
@@ -165,8 +159,7 @@ export async function runDiscovery({ queries, location = 'Brazil', locations, ma
         ...(startPage ? { startPage } : {}),
     };
 
-    const run = await client.actor(config.apify.profileActorId).call(input);
-    const { items } = await client.dataset(run.defaultDatasetId).listItems();
+    const { items } = await runActor(config.apify.profileActorId, input);
 
     let added = 0, existing = 0, withEmail = 0;
     for (const it of items) {
@@ -238,7 +231,6 @@ export async function runMonitoring({
         throw new Error('Nenhum dos recrutadores selecionados tem perfil do LinkedIn (não monitoráveis). Escolha recrutadores com URL do LinkedIn.');
     }
 
-    const client = apifyClient();
     const baseInput = {
         searchQueries,
         maxPosts,
@@ -266,9 +258,9 @@ export async function runMonitoring({
     const items = [];
     for (const batch of batches) {
         const input = batch ? { ...baseInput, authorUrls: batch } : baseInput;
-        const run = await client.actor(config.apify.postActorId).call(input);
-        const ds = await client.dataset(run.defaultDatasetId).listItems();
-        items.push(...ds.items);
+        // runActor rotaciona entre contas Apify se o crédito de uma esgotar no meio.
+        const { items: batchItems } = await runActor(config.apify.postActorId, input);
+        items.push(...batchItems);
     }
 
     // found = encontrados; novos/duplicados = vagas; descartadosIA/semEmail/rejeitados; aiUsed

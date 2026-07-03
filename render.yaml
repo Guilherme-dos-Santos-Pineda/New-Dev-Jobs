@@ -28,6 +28,13 @@ envVarGroups:
         sync: false
       - key: APIFY_TOKEN
         sync: false
+      # Contas Apify extras (fallback do crédito grátis ~$5/mês). Opcionais.
+      - key: APIFY_TOKEN_2
+        sync: false
+      - key: APIFY_TOKEN_3
+        sync: false
+      - key: APIFY_TOKEN_4
+        sync: false
       - key: APIFY_PROFILE_ACTOR_ID
         sync: false
       - key: APIFY_POST_ACTOR_ID

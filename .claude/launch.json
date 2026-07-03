@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "serve", "pages", "-l", "4321"],
       "port": 4321
+    },
+    {
+      "name": "troll-quiz",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "../troll-quiz", "-l", "5178"],
+      "port": 5178
     }
   ]
 }

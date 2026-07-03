@@ -8,7 +8,8 @@ const {
     PORT = '3001',
     EMAIL_MODE = '', // 'mock' força o modo simulado mesmo com credenciais
     ADMIN_EMAILS = '', // emails (separados por vírgula) com acesso de admin
-    // Apify (scraper)
+    // Apify (scraper) — pool de contas p/ rotação do crédito grátis (~$5/mês por conta):
+    // APIFY_TOKEN é o primário; APIFY_TOKEN_2..5 são fallbacks (opcionais).
     APIFY_TOKEN = '',
     APIFY_PROFILE_ACTOR_ID = '', // LinkedIn Profile Search Scraper (descoberta)
     APIFY_POST_ACTOR_ID = 'buIWk2uOUzTmcLsuB', // LinkedIn Post Search Scraper (monitoramento)
@@ -30,6 +31,13 @@ const {
 } = process.env;
 
 const adminEmails = ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+// Pool de tokens Apify: primário + numerados (APIFY_TOKEN_2..5), deduplicado.
+const apifyTokens = [...new Set([
+    APIFY_TOKEN,
+    process.env.APIFY_TOKEN_2, process.env.APIFY_TOKEN_3,
+    process.env.APIFY_TOKEN_4, process.env.APIFY_TOKEN_5,
+].map((t) => (t || '').trim()).filter(Boolean))];
 
 // Integração real só fica ativa se houver Client ID + Secret.
 const googleConfigured = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
@@ -55,10 +63,11 @@ export const config = {
     },
     emailMode, // 'gmail' | 'mock'
     apify: {
-        token: APIFY_TOKEN,
+        token: APIFY_TOKEN,        // compat (conta primária)
+        tokens: apifyTokens,       // pool (primária + fallbacks), para rotação de crédito
         profileActorId: APIFY_PROFILE_ACTOR_ID,
         postActorId: APIFY_POST_ACTOR_ID,
-        configured: Boolean(APIFY_TOKEN),
+        configured: apifyTokens.length > 0,
     },
     stripe: {
         secretKey: STRIPE_SECRET_KEY,

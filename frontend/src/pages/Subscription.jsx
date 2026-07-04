@@ -126,6 +126,11 @@ export default function Subscription() {
                                 {currentPlan?.label || current}
                             </div>
                             {subscription && <span className={`badge ${SUB_BADGE[subscription.status] || 'neutral'}`}>{t(SUB_LABEL[subscription.status] || subscription.status)}</span>}
+                            {expDaysLeft != null && (
+                                <span className={`badge ${expDaysLeft <= 3 ? 'danger' : expDaysLeft <= 7 ? 'warn' : 'ok'}`} style={{ fontSize: 12 }}>
+                                    <i className="ti ti-clock-hour-4" /> {expDaysLeft === 0 ? t('expira hoje') : <><b>{expDaysLeft}</b> {t(expDaysLeft === 1 ? 'dia restante' : 'dias restantes')}</>}
+                                </span>
+                            )}
                         </div>
                         {planExpiresAt ? (
                             <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>

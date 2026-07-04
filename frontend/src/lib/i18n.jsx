@@ -157,6 +157,7 @@ const EN = {
     'cobrança mensal · cancele quando quiser': 'billed monthly · cancel anytime',
     'pagamento único · acesso por 30 dias': 'one-time payment · 30 days of access',
     'acesso até': 'access until',
+    'expira hoje': 'expires today',
     'Renovar {plan}': 'Renew {plan}',
     '30 dias': '30 days',
     'grátis': 'free',

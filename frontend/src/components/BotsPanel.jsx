@@ -48,6 +48,8 @@ export default function BotsPanel() {
     const [selSched, setSelSched] = useState(() => new Set()); // ids selecionados (ações em massa)
     const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
     const [runDetail, setRunDetail] = useState(null);    // run aberto no modal
+    const [runningSched, setRunningSched] = useState(''); // id do robô disparado "agora"
+    const [watchUntil, setWatchUntil] = useState(0);     // segue puxando execuções até este epoch
 
     const load = useCallback(async () => {
         try {
@@ -62,6 +64,33 @@ export default function BotsPanel() {
     }, [toast]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Mantém "Execuções recentes" vivo sem F5: enquanto houver run em andamento
+    // (ou logo após disparar um robô), puxa a lista a cada 4s e avisa ao concluir.
+    useEffect(() => {
+        const active = runs.some((r) => r.status === 'queued' || r.status === 'running');
+        if (!active && Date.now() > watchUntil) return;
+        const iv = setInterval(async () => {
+            try {
+                const { runs: fresh } = await api.adminScraperRuns();
+                setRuns((prev) => {
+                    // avisa quando um run que estava rodando termina
+                    const done = fresh.find((r) => (r.status === 'done' || r.status === 'failed')
+                        && prev.some((p) => p.id === r.id && (p.status === 'queued' || p.status === 'running')));
+                    if (done) {
+                        toast.show(done.status === 'done'
+                            ? `Robô concluído · ${fmtStats(done.stats)}`
+                            : `Robô falhou: ${done.error || 'erro'}`, done.status === 'done' ? 'success' : 'error');
+                        setRunningSched('');
+                    }
+                    return fresh;
+                });
+                const stillActive = fresh.some((r) => r.status === 'queued' || r.status === 'running');
+                if (!stillActive && Date.now() > watchUntil) { setRunningSched(''); clearInterval(iv); }
+            } catch { /* ignore */ }
+        }, 4000);
+        return () => clearInterval(iv);
+    }, [runs, watchUntil]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Carrega recrutadores monitoráveis (com LinkedIn) para o seletor do modo 'selected'.
     const loadPicker = useCallback(async (q, status) => {
@@ -111,6 +140,7 @@ export default function BotsPanel() {
         try {
             await api.adminCreateSchedule({ name, type, intervalMinutes: Number(schedInterval[type]) || 360, params: buildParams(type) });
             toast.show('Robô agendado criado — começa no próximo ciclo.');
+            setWatchUntil(Date.now() + 90000);
             load();
         } catch (e) { toast.show(e.message, 'error'); }
     }
@@ -119,8 +149,13 @@ export default function BotsPanel() {
         catch (e) { toast.show(e.message, 'error'); }
     }
     async function runScheduleNow(s) {
-        try { await api.adminUpdateSchedule(s.id, { runNow: true }); toast.show('Vai rodar em até 1 min.'); load(); }
-        catch (e) { toast.show(e.message, 'error'); }
+        setRunningSched(s.id);
+        try {
+            await api.adminUpdateSchedule(s.id, { runNow: true });
+            toast.show(`"${s.name}" enfileirado — rodando em até 1 min…`);
+            setWatchUntil(Date.now() + 90000); // segue puxando ~90s até o run aparecer/terminar
+            await load();
+        } catch (e) { toast.show(e.message, 'error'); setRunningSched(''); }
     }
     async function deleteSchedule(s) {
         if (!window.confirm(`Excluir o robô "${s.name}"?`)) return;
@@ -136,6 +171,7 @@ export default function BotsPanel() {
         try {
             const { affected } = await api.adminBulkSchedules(action, ids.length ? ids : undefined);
             toast.show(`${verb}: ${affected} robô(s).`);
+            if (action === 'activate') setWatchUntil(Date.now() + 90000); // acompanha os que vão rodar
             setSelSched(new Set());
             load();
         } catch (e) { toast.show(e.message, 'error'); }
@@ -375,12 +411,18 @@ export default function BotsPanel() {
                                         <td className="muted" style={{ fontSize: 12 }}>{s.active ? fmtWhen(s.nextRunAt) : '—'}</td>
                                         <td className="muted" style={{ fontSize: 12 }}>{fmtWhen(s.lastRunAt)}</td>
                                         <td>
-                                            <button className={`badge ${s.active ? 'ok' : 'neutral'}`} style={{ cursor: 'pointer', border: 'none' }} onClick={() => toggleSchedule(s)}>
-                                                {s.active ? 'ligado' : 'pausado'}
-                                            </button>
+                                            {runningSched === s.id ? (
+                                                <span className="badge warn"><i className="ti ti-loader-2 spin" /> rodando</span>
+                                            ) : (
+                                                <button className={`badge ${s.active ? 'ok' : 'neutral'}`} style={{ cursor: 'pointer', border: 'none' }} onClick={() => toggleSchedule(s)}>
+                                                    {s.active ? 'ligado' : 'pausado'}
+                                                </button>
+                                            )}
                                         </td>
                                         <td className="col-actions">
-                                            <button className="btn ghost sm" title="Rodar agora" onClick={() => runScheduleNow(s)}><i className="ti ti-player-play" /></button>
+                                            <button className="btn ghost sm" title="Rodar agora" disabled={runningSched === s.id} onClick={() => runScheduleNow(s)}>
+                                                <i className={`ti ${runningSched === s.id ? 'ti-loader-2 spin' : 'ti-player-play'}`} />
+                                            </button>
                                             <button className="btn ghost sm" title="Excluir" onClick={() => deleteSchedule(s)}><i className="ti ti-trash" /></button>
                                         </td>
                                     </tr>

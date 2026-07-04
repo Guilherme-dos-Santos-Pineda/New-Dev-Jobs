@@ -94,3 +94,30 @@ export function resetApifyPool() {
     for (const a of accounts) { a.exhaustedUntil = 0; a.lastError = null; }
     return apifyPoolState();
 }
+
+// Gasto REAL do mês por conta (via API da Apify), para o relatório de custos.
+// Cacheado 60s (é 1 chamada de rede por conta). Free tier = US$5/conta/mês.
+const FREE_USD = 5;
+let usageCache = { at: 0, data: null };
+export async function apifyUsage() {
+    if (usageCache.data && Date.now() - usageCache.at < 60000) return usageCache.data;
+    const out = [];
+    for (const a of accounts) {
+        let usedUsd = null, error = null;
+        try {
+            const mu = await new ApifyClient({ token: a.token }).user().monthlyUsage();
+            usedUsd = Number(mu?.totalUsageCreditsUsdAfterVolumeDiscount ?? 0);
+        } catch (e) { error = String(e.message || 'erro').slice(0, 60); }
+        out.push({
+            label: a.label, tokenHint: a.token ? `…${a.token.slice(-4)}` : '—',
+            usedUsd, freeUsd: FREE_USD,
+            remainingUsd: usedUsd == null ? null : Math.max(0, FREE_USD - usedUsd),
+            error,
+        });
+    }
+    const totalUsed = out.reduce((s, x) => s + (x.usedUsd || 0), 0);
+    const totalFree = accounts.length * FREE_USD;
+    const data = { accounts: out, totalUsed, totalFree, totalRemaining: Math.max(0, totalFree - totalUsed) };
+    usageCache = { at: Date.now(), data };
+    return data;
+}

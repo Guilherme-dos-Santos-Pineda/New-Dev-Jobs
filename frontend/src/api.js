@@ -166,6 +166,7 @@ export const api = {
     adminRawBulk: (action, status) => request('POST', '/admin/raw/bulk', { action, status }),
     adminAiStats: () => request('GET', '/admin/ai-stats'),
     adminApifyReset: () => request('POST', '/admin/apify/reset'),
+    adminReport: () => request('GET', '/admin/report'),
 
     // billing / planos
     getPlans: () => request('GET', '/billing/plans'),

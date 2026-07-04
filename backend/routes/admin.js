@@ -6,7 +6,7 @@ import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
 import { aiState } from '../services/ai.js';
-import { apifyPoolState, resetApifyPool } from '../services/apifyPool.js';
+import { apifyPoolState, resetApifyPool, apifyUsage } from '../services/apifyPool.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 import { removeCv } from '../lib/cvStorage.js';
 
@@ -484,6 +484,54 @@ router.get('/ai-stats', requireAdmin, async (_req, res) => {
 // POST /api/admin/apify/reset — limpa as marcações de "sem crédito" das contas Apify.
 router.post('/apify/reset', requireAdmin, (_req, res) => {
     res.json({ apify: resetApifyPool() });
+});
+
+// GET /api/admin/report — relatório de custo/vagas: gasto real Apify × vagas coletadas.
+router.get('/report', requireAdmin, async (_req, res) => {
+    const [jobs] = await sql`
+        select count(*)::int as total,
+               count(*) filter (where "CreatedAt"::date = current_date)::int as today,
+               count(*) filter (where "CreatedAt" >= now() - interval '7 days')::int as week,
+               count(*) filter (where "CreatedAt" >= date_trunc('month', now()))::int as month,
+               count(*) filter (where "Email" is not null and "Email" <> '')::int as with_email
+        from "Jobs"`;
+    // Runs de monitoramento no mês corrente (agrega os Stats)
+    const [runs] = await sql`
+        select count(*)::int as runs,
+               count(*) filter (where "Status"='failed')::int as failed,
+               coalesce(sum(("Stats"->>'found')::int),0)::int as found,
+               coalesce(sum(("Stats"->>'novos')::int),0)::int as novos,
+               coalesce(sum(("Stats"->>'duplicados')::int),0)::int as duplicados,
+               coalesce(sum(("Stats"->>'descartadosIA')::int),0)::int as descartados,
+               coalesce(sum(("Stats"->>'semEmail')::int),0)::int as sem_email
+        from "ScraperRuns" where "Type"='monitoring' and "CreatedAt" >= date_trunc('month', now())`;
+    // Timeline: vagas coletadas por dia (últimos 14 dias)
+    const series = await sql`
+        select to_char(d,'DD/MM') as day, count(j."Id")::int as c
+        from generate_series(current_date - interval '13 days', current_date, interval '1 day') d
+        left join "Jobs" j on j."CreatedAt"::date = d::date
+        group by d order by d`;
+
+    let apify = null;
+    try { apify = await apifyUsage(); } catch (e) { apify = { error: e.message }; }
+
+    // Custo/vaga usa a contagem REAL de vagas do mês (tabela Jobs), não runs.novos
+    // (as Stats dos runs subestimam — runs sem crédito/falhos não gravam stats).
+    const jobsMonth = jobs.month || 0;
+    const used = apify?.totalUsed || 0;
+    const costPerJob = jobsMonth > 0 && used > 0 ? used / jobsMonth : null;
+    const projectedLeft = costPerJob ? Math.floor((apify?.totalRemaining || 0) / costPerJob) : null;
+    const useRate = runs.found > 0 ? Math.round((runs.novos / runs.found) * 100) : 0; // funil (parcial)
+
+    res.json({
+        jobs, runs, apify,
+        timeline: series.map((s) => ({ day: s.day, c: s.c })),
+        efficiency: {
+            jobsMonth, costPerJob, projectedLeft, useRate,
+            novosRecorded: runs.novos, // registrado nos runs (parcial)
+            jobsPerDollar: costPerJob ? Math.round(1 / costPerJob) : null,
+        },
+    });
 });
 
 export default router;

@@ -110,7 +110,7 @@ export default function AdminReport() {
                     <div className="empty" style={{ padding: 20 }}><i className="ti ti-chart-line" />Sem coletas nos últimos 14 dias.</div>
                 ) : (
                     <>
-                        <div style={{ height: 64 }}><Sparkline data={spark} height={64} /></div>
+                        <div className="spark" style={{ height: 64, marginTop: 6 }}><Sparkline data={spark} height={64} /></div>
                         <div className="row" style={{ justifyContent: 'space-between', fontSize: 10.5, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
                             <span>{timeline[0]?.day}</span>
                             <span>{timeline[Math.floor(timeline.length / 2)]?.day}</span>

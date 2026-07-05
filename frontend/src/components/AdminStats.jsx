@@ -19,11 +19,6 @@ export default function AdminStats() {
     }
     useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    async function resetApify() {
-        try { await api.adminApifyReset(); toast.show('Contas Apify liberadas'); load(); }
-        catch (e) { toast.show(e.message, 'error'); }
-    }
-
     if (loading) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;
     if (!data) return null;
 
@@ -71,34 +66,41 @@ export default function AdminStats() {
                 </div>
             )}
 
-            {apify && (
-                <div className="card" style={{ marginBottom: 18 }}>
-                    <div className="row" style={{ alignItems: 'center', marginBottom: 10 }}>
-                        <div className="section-title" style={{ margin: 0 }}><i className="ti ti-robot" /> Contas Apify (rotação de crédito)</div>
-                        <span className={`badge ${apify.healthy > 0 ? 'ok' : 'danger'}`} style={{ marginLeft: 10 }}>{apify.healthy}/{apify.total} com crédito</span>
-                        <div className="spacer" />
-                        <button className="btn ghost sm" onClick={resetApify} title="Libera contas marcadas como sem crédito (ex.: virou o mês)"><i className="ti ti-refresh" /> Liberar</button>
-                    </div>
-                    {apify.total === 0 ? (
-                        <div className="muted" style={{ fontSize: 12.5 }}>Nenhuma conta configurada. Defina <code>APIFY_TOKEN</code> (e <code>APIFY_TOKEN_2..5</code> para fallback).</div>
-                    ) : (
-                        <div className="job-list">
-                            {apify.accounts.map((a) => (
-                                <div key={a.label} className="row" style={{ alignItems: 'center', gap: 10, padding: '7px 0', borderTop: '1px solid var(--color-border-light)' }}>
-                                    <span className={`badge ${a.exhausted ? 'danger' : 'ok'}`}>{a.exhausted ? 'sem crédito' : 'ok'}</span>
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 600 }}>{a.label} <span className="mono muted" style={{ fontWeight: 400 }}>{a.tokenHint}</span></div>
-                                        <div className="muted" style={{ fontSize: 11.5 }}>
-                                            {a.calls} chamada(s){a.lastUsedAt ? ` · último uso ${fmtDate(a.lastUsedAt)}` : ''}{a.exhausted && a.resetsAt ? ` · renova ${fmtDate(a.resetsAt)}` : ''}{a.lastError ? ` · ${a.lastError.slice(0, 40)}` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+            {apify && apify.accounts && (() => {
+                const usdf = (n) => (n == null ? '—' : `US$${Number(n).toFixed(2)}`);
+                const withCredit = apify.accounts.filter((a) => (a.remainingUsd ?? 0) > 0.05).length;
+                return (
+                    <div className="card" style={{ marginBottom: 18 }}>
+                        <div className="row" style={{ alignItems: 'center', marginBottom: 10 }}>
+                            <div className="section-title" style={{ margin: 0 }}><i className="ti ti-robot" /> Contas Apify (uso real do mês)</div>
+                            <span className={`badge ${withCredit > 0 ? 'ok' : 'danger'}`} style={{ marginLeft: 10 }}>{withCredit}/{apify.accounts.length} com crédito</span>
+                            <div className="spacer" />
+                            <span className="mono muted" style={{ fontSize: 12 }}>{usdf(apify.totalUsed)} / {usdf(apify.totalFree)}</span>
                         </div>
-                    )}
-                    <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>A rotação usa uma conta por vez; quando o crédito (~$5/mês) esgota, pula para a próxima automaticamente.</div>
-                </div>
-            )}
+                        {apify.accounts.length === 0 ? (
+                            <div className="muted" style={{ fontSize: 12.5 }}>Nenhuma conta configurada. Defina <code>APIFY_TOKEN</code> (e <code>APIFY_TOKEN_2..5</code> para fallback).</div>
+                        ) : (
+                            <div className="job-list">
+                                {apify.accounts.map((a) => {
+                                    const exhausted = (a.remainingUsd ?? 0) <= 0.05;
+                                    const pct = a.usedUsd == null ? 0 : Math.min(100, Math.round((a.usedUsd / a.freeUsd) * 100));
+                                    return (
+                                        <div key={a.label} style={{ padding: '8px 0', borderTop: '1px solid var(--color-border-light)' }}>
+                                            <div className="row" style={{ alignItems: 'center', gap: 10 }}>
+                                                <span className={`badge ${a.error ? 'neutral' : exhausted ? 'danger' : 'ok'}`}>{a.error ? 'erro' : exhausted ? 'sem crédito' : 'ok'}</span>
+                                                <div style={{ fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0 }}>{a.label} <span className="mono muted" style={{ fontWeight: 400 }}>{a.tokenHint}</span></div>
+                                                <span className="mono muted" style={{ fontSize: 12 }}>{a.error ? a.error.slice(0, 24) : `${usdf(a.usedUsd)} / ${usdf(a.freeUsd)}`}</span>
+                                            </div>
+                                            {!a.error && <div className="progress" style={{ height: 5, marginTop: 5 }}><span style={{ width: `${pct}%`, background: exhausted ? 'var(--color-danger)' : undefined }} /></div>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>Gasto real via API da Apify (free tier US$5/conta/mês). A rotação usa uma conta por vez e pula quando o crédito esgota. Detalhes e projeção na aba <b>Relatório</b>.</div>
+                    </div>
+                );
+            })()}
 
             <div className="row" style={{ alignItems: 'flex-start' }}>
                 <div className="card" style={{ flex: 1, minWidth: 280 }}>

@@ -6,7 +6,7 @@ import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
 import { aiState } from '../services/ai.js';
-import { apifyPoolState, resetApifyPool, apifyUsage } from '../services/apifyPool.js';
+import { resetApifyPool, apifyUsage } from '../services/apifyPool.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 import { removeCv } from '../lib/cvStorage.js';
 
@@ -478,7 +478,11 @@ router.get('/ai-stats', requireAdmin, async (_req, res) => {
         from "ScraperRuns" where "Type" = 'monitoring'`;
     dedup.taxaDuplicacao = (dedup.novos + dedup.duplicados) ? Math.round((dedup.duplicados / (dedup.novos + dedup.duplicados)) * 100) : 0;
     const runs = await sql`select * from "ScraperRuns" order by "CreatedAt" desc limit 10`;
-    res.json({ raw, jobs, dedup, ai: aiState(), apify: apifyPoolState(), runs: runs.map(shapeRun) });
+    // apify: uso REAL do mês (via API da Apify) — o estado em memória do pool não
+    // serve aqui porque o scraper roda no worker (outro processo), não na API.
+    let apify = null;
+    try { apify = await apifyUsage(); } catch { apify = null; }
+    res.json({ raw, jobs, dedup, ai: aiState(), apify, runs: runs.map(shapeRun) });
 });
 
 // POST /api/admin/apify/reset — limpa as marcações de "sem crédito" das contas Apify.

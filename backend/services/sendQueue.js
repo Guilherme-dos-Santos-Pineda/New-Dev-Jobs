@@ -20,36 +20,35 @@ function gapSeconds() {
 const SEND_OPTS = { retryLimit: 3, retryDelay: 60, retryBackoff: true, expireInSeconds: 120 };
 
 export async function enqueue(userId, jobIds) {
-    // Grava o lote no SendQueue (novo lote substitui o anterior)
-    const rows = await sql.begin(async (tx) => {
-        await tx`delete from "SendQueue" where "UserId" = ${userId}`;
-        const inserted = [];
-        for (const jid of jobIds) {
-            const [r] = await tx`
-                insert into "SendQueue" ("UserId", "JobId", "Status")
-                values (${userId}, ${jid}, 'queued')
-                returning "Id", "JobId"`;
-            inserted.push(r);
-        }
-        return inserted;
+    if (!jobIds.length) { await sql`delete from "SendQueue" where "UserId" = ${userId}`; return getStatus(userId); }
+
+    // Espaçamento cumulativo calculado em JS (o 1º é imediato). ScheduledAt já vem
+    // no insert — evita 1 UPDATE por item.
+    const now = Date.now();
+    let cumulative = 0;
+    const plan = jobIds.map((jid) => {
+        const startAfter = cumulative;
+        cumulative += gapSeconds();
+        return { UserId: userId, JobId: jid, Status: 'queued', ScheduledAt: new Date(now + startAfter * 1000), _startAfter: startAfter };
     });
 
-    // Agenda cada item no pg-boss com startAfter cumulativo (o 1º é imediato)
+    // Grava o lote em UMA query (novo lote substitui o anterior).
+    const rows = await sql.begin(async (tx) => {
+        await tx`delete from "SendQueue" where "UserId" = ${userId}`;
+        return tx`insert into "SendQueue" ${tx(plan.map(({ _startAfter, ...r }) => r), 'UserId', 'JobId', 'Status', 'ScheduledAt')} returning "Id", "JobId"`;
+    });
+
+    // Agenda no pg-boss EM PARALELO (independentes) — cada um com seu startAfter.
     const boss = await getBoss();
-    let cumulative = 0;
-    for (const r of rows) {
-        const startAfter = cumulative; // segundos a partir de agora
-        await sql`update "SendQueue" set "ScheduledAt" = now() + (${startAfter} * interval '1 second') where "Id" = ${r.Id}`;
-        if (boss) {
-            await boss.send(
-                SEND_QUEUE,
-                { userId, queueId: Number(r.Id), jobId: Number(r.JobId) },
-                { ...SEND_OPTS, startAfter },
-            );
-        }
-        cumulative += gapSeconds();
+    if (boss) {
+        await Promise.all(rows.map((r, i) => boss.send(
+            SEND_QUEUE,
+            { userId, queueId: Number(r.Id), jobId: Number(r.JobId) },
+            { ...SEND_OPTS, startAfter: plan[i]._startAfter },
+        )));
+    } else {
+        console.warn('⚠️  pg-boss indisponível — itens enfileirados mas não serão processados (DATABASE_URL?)');
     }
-    if (!boss) console.warn('⚠️  pg-boss indisponível — itens enfileirados mas não serão processados (DATABASE_URL?)');
 
     return getStatus(userId);
 }

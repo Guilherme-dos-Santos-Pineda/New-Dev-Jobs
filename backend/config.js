@@ -45,9 +45,14 @@ const googleConfigured = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 // Envio real via Gmail só quando configurado e não forçado a mock.
 const emailMode = EMAIL_MODE === 'mock' || !googleConfigured ? 'mock' : 'gmail';
 
+// URL pública da própria API (para o link de descadastro das campanhas). Deriva do
+// GOOGLE_REDIRECT_URI (que aponta pra API) ou cai no localhost.
+const apiUrl = GOOGLE_REDIRECT_URI.match(/^(https?:\/\/[^/]+)/)?.[1] || `http://localhost:${PORT}`;
+
 export const config = {
     port: Number(PORT),
     frontendUrl: FRONTEND_URL,
+    apiUrl,
     google: {
         clientId: GOOGLE_CLIENT_ID,
         clientSecret: GOOGLE_CLIENT_SECRET,

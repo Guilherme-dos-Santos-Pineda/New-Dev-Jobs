@@ -167,6 +167,10 @@ export const api = {
     adminAiStats: () => request('GET', '/admin/ai-stats'),
     adminApifyReset: () => request('POST', '/admin/apify/reset'),
     adminReport: () => request('GET', '/admin/report'),
+    adminCampaigns: () => request('GET', '/admin/campaigns'),
+    adminCreateCampaign: (payload) => request('POST', '/admin/campaigns', payload),
+    adminCampaignStatus: (id, status) => request('POST', `/admin/campaigns/${id}/status`, { status }),
+    adminDeleteCampaign: (id) => request('DELETE', `/admin/campaigns/${id}`),
 
     // billing / planos
     getPlans: () => request('GET', '/billing/plans'),

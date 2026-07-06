@@ -5,6 +5,7 @@ import { applyToJob, ApplyError } from './services/sender.js';
 import { runDiscovery, runMonitoring } from './services/scraper.js';
 import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
+import { tickCampaigns } from './services/campaigns.js';
 
 // =========================
 // Worker de envio (processo separado: `npm run worker`)
@@ -115,6 +116,7 @@ function startScheduler(boss) {
     const tick = () => {
         runDueSchedules(boss).catch((e) => console.error('scheduler tick falhou:', e.message));
         revertExpiredPlans().catch((e) => console.error('revertExpiredPlans falhou:', e.message));
+        tickCampaigns().catch((e) => console.error('tickCampaigns falhou:', e.message));
     };
     tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
     return setInterval(tick, 60000);

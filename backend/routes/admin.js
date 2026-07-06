@@ -7,6 +7,7 @@ import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
 import { aiState } from '../services/ai.js';
 import { resetApifyPool, apifyUsage } from '../services/apifyPool.js';
+import { createCampaign, listCampaigns, setCampaignStatus, deleteCampaign } from '../services/campaigns.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 import { removeCv } from '../lib/cvStorage.js';
 
@@ -488,6 +489,33 @@ router.get('/ai-stats', requireAdmin, async (_req, res) => {
 // POST /api/admin/apify/reset — limpa as marcações de "sem crédito" das contas Apify.
 router.post('/apify/reset', requireAdmin, (_req, res) => {
     res.json({ apify: resetApifyPool() });
+});
+
+// ---------- Campanhas (email marketing) ----------
+router.get('/campaigns', requireAdmin, async (_req, res) => {
+    res.json({ campaigns: await listCampaigns() });
+});
+const campaignSchema = z.object({
+    name: z.string().min(1).max(120),
+    subject: z.string().min(1).max(200),
+    body: z.string().min(1).max(20000),
+    fromEmail: z.string().email(),
+    dailyCap: z.coerce.number().int().min(1).max(500).optional(),
+    gapMin: z.coerce.number().int().min(30).max(600).optional(),
+    gapMax: z.coerce.number().int().min(30).max(600).optional(),
+    emails: z.array(z.string()).min(1).max(20000),
+});
+router.post('/campaigns', requireAdmin, validate(campaignSchema), async (req, res) => {
+    try { res.status(201).json(await createCampaign(req.body)); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+});
+router.post('/campaigns/:id/status', requireAdmin, async (req, res) => {
+    try { await setCampaignStatus(req.params.id, req.body?.status); res.json({ ok: true }); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+});
+router.delete('/campaigns/:id', requireAdmin, async (req, res) => {
+    await deleteCampaign(req.params.id);
+    res.json({ ok: true });
 });
 
 // GET /api/admin/report — relatório de custo/vagas: gasto real Apify × vagas coletadas.

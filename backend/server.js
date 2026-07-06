@@ -19,6 +19,7 @@ import emailRoutes from './routes/email.js';
 import adminRoutes from './routes/admin.js';
 import billingRoutes from './routes/billing.js';
 import dashboardRoutes from './routes/dashboard.js';
+import publicRoutes from './routes/public.js';
 import { getBoss } from './lib/boss.js';
 
 const app = express();
@@ -55,6 +56,8 @@ app.use('/api/profile/import-linkedin', strictLimiter); // parse de PDF (CPU)
 app.use(attachUser);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'newdevjobs-api' }));
+
+app.use('/api/public', publicRoutes); // rotas sem auth (ex.: descadastro de campanha)
 
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);

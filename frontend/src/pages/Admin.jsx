@@ -10,6 +10,7 @@ import AdminRecruiters from '../components/AdminRecruiters.jsx';
 import AdminRawContent from '../components/AdminRawContent.jsx';
 import AdminStats from '../components/AdminStats.jsx';
 import AdminReport from '../components/AdminReport.jsx';
+import AdminCampaigns from '../components/AdminCampaigns.jsx';
 import AdminUsers from '../components/AdminUsers.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
@@ -86,6 +87,7 @@ export default function Admin() {
                     ['raw', 'Conteúdo bruto', 'ti-file-text'],
                     ['stats', 'Estatísticas', 'ti-chart-bar'],
                     ['report', 'Relatório', 'ti-report-analytics'],
+                    ['campanhas', 'Campanhas', 'ti-mail-forward'],
                 ].map(([id, label, icon]) => (
                     <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
                         <i className={`ti ${icon}`} /> {label}
@@ -100,6 +102,7 @@ export default function Admin() {
             {tab === 'raw' && <AdminRawContent />}
             {tab === 'stats' && <AdminStats />}
             {tab === 'report' && <AdminReport />}
+            {tab === 'campanhas' && <AdminCampaigns />}
 
             {tab === 'geral' && (<>
             {/* ---- Números da plataforma ---- */}

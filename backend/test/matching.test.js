@@ -49,3 +49,24 @@ test('computeMatch: sem áreas declaradas, não há penalidade de área', () => 
     const r = computeMatch(profile, devJob);
     assert.equal(r.areaMismatch, false);
 });
+
+test('computeMatch: vaga irrelevante SEM skills (motorista p/ dev) fica < corte de auto-envio', () => {
+    const dev = { Skills: ['JavaScript', 'React', 'C#', 'Go'], Levels: ['pleno', 'senior'], Areas: ['dev'] };
+    const busDriver = { JobTitle: 'Motorista de Ônibus', Description: 'Vaga para motorista, governo municipal. CNH categoria D.', Skills: [] };
+    const r = computeMatch(dev, busDriver);
+    assert.ok(r.score < 50, `deveria ficar abaixo de 50 (auto-envio), veio ${r.score}`);
+});
+
+test('computeMatch: "go" não casa "governo" (limite de palavra)', () => {
+    const dev = { Skills: ['Go'], Levels: ['pleno'] };
+    const job = { JobTitle: 'Auxiliar', Description: 'trabalho no governo, atendimento ao público', Skills: [] };
+    const r = computeMatch(dev, job);
+    assert.ok(r.score < 50, `governo não é match de Go, veio ${r.score}`);
+});
+
+test('computeMatch: vaga sem skills mas com a stack no texto pontua mais', () => {
+    const dev = { Skills: ['React', 'Node.js'], Levels: ['pleno'] };
+    const relevante = { JobTitle: 'Vaga Desenvolvedor', Description: 'Buscamos alguém com React e Node.js', Skills: [] };
+    const irrelevante = { JobTitle: 'Motorista', Description: 'entregas na cidade', Skills: [] };
+    assert.ok(computeMatch(dev, relevante).score > computeMatch(dev, irrelevante).score);
+});

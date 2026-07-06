@@ -48,7 +48,7 @@ export function computeMatch(profile, job) {
     const userSkills = parseSkills(profile?.Skills).map((s) => s.toLowerCase());
     const jobSkills = parseSkills(job?.Skills);
 
-    let skillScore = 50; // neutro quando não há skills declaradas na vaga
+    let skillScore = 50; // neutro (usada só quando o usuário não declarou skills)
     const matched = [];
     const missing = [];
 
@@ -58,6 +58,20 @@ export function computeMatch(profile, job) {
             else missing.push(skill);
         }
         skillScore = Math.round((matched.length / jobSkills.length) * 100);
+    } else if (userSkills.length) {
+        // Vaga SEM skills declaradas: mede a relevância pelo TEXTO (título+descrição).
+        // Se nenhuma skill do usuário aparece, é provavelmente off-target (ex.: vaga de
+        // motorista para um dev) → score BAIXO, não o neutro 50 (que dispararia o
+        // auto-envio ≥50%). Limite de palavra evita "go" casar "governo".
+        const text = `${job?.JobTitle || ''} ${job?.Description || ''}`.toLowerCase();
+        const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const hits = userSkills.filter((s) => {
+            if (s.length < 2) return false;
+            const re = /[^a-z0-9]/.test(s) ? new RegExp(esc(s)) : new RegExp(`\\b${esc(s)}\\b`);
+            return re.test(text);
+        });
+        for (const s of hits) matched.push(s);
+        skillScore = hits.length > 0 ? Math.min(100, 45 + hits.length * 15) : 15;
     }
 
     // Ajuste por senioridade (múltiplos níveis aceitos)

@@ -114,8 +114,11 @@ export async function tickCampaigns() {
 
             const html = withUnsubscribe(String(c.Body).replace(/\{email\}/g, rcp.Email), rcp.Token);
             const text = String(c.Body).replace(/\{email\}/g, rcp.Email).replace(/<[^>]+>/g, ' ');
+            // List-Unsubscribe (1 clique): exigido pelo Gmail p/ envio em volume — melhora entrega.
+            const unsubUrl = `${config.apiUrl}/api/public/unsubscribe?token=${rcp.Token}`;
+            const headers = { 'List-Unsubscribe': `<${unsubUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
             try {
-                await sendApplicationEmail({ userId: sender.Id, from: sender.GoogleEmail || sender.Email, to: rcp.Email, subject: c.Subject, html, text });
+                await sendApplicationEmail({ userId: sender.Id, from: sender.GoogleEmail || sender.Email, to: rcp.Email, subject: c.Subject, html, text, headers });
                 await sql`update "CampaignRecipients" set "Status"='sent', "SentAt"=now() where "Id"=${rcp.Id}`;
                 console.log(`📣 campanha ${c.Id}: enviado para ${rcp.Email} (${sentToday + 1}/${c.DailyCap} hoje)`);
             } catch (e) {

@@ -9,7 +9,7 @@ import { authorizedClient, isInvalidGrant, markGoogleDisconnected } from './goog
 // Modo 'gmail': envia de verdade pela conta do usuário (escopo gmail.send).
 // Modo 'mock' : apenas registra no console (dev sem credenciais).
 
-function buildMime({ from, to, subject, html, text, attachmentContent, filename }) {
+function buildMime({ from, to, subject, html, text, attachmentContent, filename, headers }) {
     const attachments = [];
     if (attachmentContent) {
         attachments.push({
@@ -18,7 +18,8 @@ function buildMime({ from, to, subject, html, text, attachmentContent, filename 
             contentType: 'application/pdf',
         });
     }
-    const composer = new MailComposer({ from, to, subject, text, html, attachments });
+    // headers extras (ex.: List-Unsubscribe nas campanhas) — melhora entrega/anti-spam.
+    const composer = new MailComposer({ from, to, subject, text, html, attachments, ...(headers ? { headers } : {}) });
     return composer.compile().build(); // Promise<Buffer>
 }
 
@@ -30,7 +31,7 @@ function toBase64Url(buffer) {
  * Envia o email da candidatura.
  * @returns { provider, messageId, sentAt, to }
  */
-export async function sendApplicationEmail({ userId, from, to, subject, html, text, attachmentContent, filename }) {
+export async function sendApplicationEmail({ userId, from, to, subject, html, text, attachmentContent, filename, headers }) {
     if (config.emailMode === 'mock') {
         await new Promise((r) => setTimeout(r, 120));
         console.log('📧 [MOCK] Email de candidatura');
@@ -45,7 +46,7 @@ export async function sendApplicationEmail({ userId, from, to, subject, html, te
     const auth = await authorizedClient(userId);
     const gmail = google.gmail({ version: 'v1', auth });
 
-    const mime = await buildMime({ from, to, subject, html, text, attachmentContent, filename });
+    const mime = await buildMime({ from, to, subject, html, text, attachmentContent, filename, headers });
     const raw = toBase64Url(mime);
 
     let data;

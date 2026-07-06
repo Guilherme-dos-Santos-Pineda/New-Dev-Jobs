@@ -13,6 +13,14 @@ h1{font-size:18px;margin:0 0 8px}p{color:#9DA7B3;font-size:14px;margin:0}</style
 <body><div class="card"><h1>${title}</h1><p>${msg}</p></div></body></html>`;
 }
 
+// POST /api/public/unsubscribe?token=... — 1 clique (List-Unsubscribe-Post do Gmail).
+router.post('/unsubscribe', async (req, res) => {
+    const token = String(req.query.token || req.body?.token || '');
+    if (!/^[0-9a-f-]{36}$/i.test(token)) return res.status(400).json({ error: 'token inválido' });
+    try { await unsubscribeByToken(token); res.json({ ok: true }); }
+    catch { res.status(500).json({ error: 'erro' }); }
+});
+
 // GET /api/public/unsubscribe?token=...
 router.get('/unsubscribe', async (req, res) => {
     const token = String(req.query.token || '');

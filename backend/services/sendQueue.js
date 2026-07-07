@@ -38,14 +38,18 @@ export async function enqueue(userId, jobIds) {
         return tx`insert into "SendQueue" ${tx(plan.map(({ _startAfter, ...r }) => r), 'UserId', 'JobId', 'Status', 'ScheduledAt')} returning "Id", "JobId"`;
     });
 
-    // Agenda no pg-boss EM PARALELO (independentes) — cada um com seu startAfter.
+    // Agenda no pg-boss SEQUENCIALMENTE — o pool do pg-boss é pequeno (2) e o
+    // pooler do Supabase limita ~15 conexões no total; disparar em paralelo (ex.:
+    // 150+ de uma vez) estourava o pool e derrubava o request com 500.
     const boss = await getBoss();
     if (boss) {
-        await Promise.all(rows.map((r, i) => boss.send(
-            SEND_QUEUE,
-            { userId, queueId: Number(r.Id), jobId: Number(r.JobId) },
-            { ...SEND_OPTS, startAfter: plan[i]._startAfter },
-        )));
+        for (let i = 0; i < rows.length; i += 1) {
+            await boss.send(
+                SEND_QUEUE,
+                { userId, queueId: Number(rows[i].Id), jobId: Number(rows[i].JobId) },
+                { ...SEND_OPTS, startAfter: plan[i]._startAfter },
+            );
+        }
     } else {
         console.warn('⚠️  pg-boss indisponível — itens enfileirados mas não serão processados (DATABASE_URL?)');
     }

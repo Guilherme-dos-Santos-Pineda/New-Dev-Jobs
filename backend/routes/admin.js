@@ -499,7 +499,11 @@ const campaignSchema = z.object({
     name: z.string().min(1).max(120),
     subject: z.string().min(1).max(200),
     body: z.string().min(1).max(20000),
-    fromEmail: z.string().email(),
+    // aceita email puro ("x@y.com") OU o formato do Resend ("Nome <x@y.com>")
+    fromEmail: z.string().min(3).max(200).refine(
+        (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) || /<[^\s@]+@[^\s@]+\.[^\s@]+>\s*$/.test(v.trim()),
+        'Remetente inválido (use "email@dominio" ou "Nome <email@dominio>").',
+    ),
     dailyCap: z.coerce.number().int().min(1).max(500).optional(),
     gapMin: z.coerce.number().int().min(30).max(600).optional(),
     gapMax: z.coerce.number().int().min(30).max(600).optional(),

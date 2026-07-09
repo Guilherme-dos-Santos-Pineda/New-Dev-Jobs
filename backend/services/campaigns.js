@@ -1,6 +1,7 @@
 import sql from '../lib/sql.js';
 import { config } from '../config.js';
 import { sendApplicationEmail } from './mailer.js';
+import { sendResendEmail, resendConfigured } from './resend.js';
 
 // =========================================================================
 // Email marketing / campanhas: envio ESPAÇADO (anti-bloqueio), teto diário e
@@ -104,26 +105,37 @@ export async function tickCampaigns() {
                 order by r."Id" asc limit 1`;
             if (!rcp) { await sql`update "Campaigns" set "Status"='done', "UpdatedAt"=now() where "Id"=${c.Id}`; continue; }
 
-            // conta remetente (Google conectado)
-            const [sender] = await sql`select "Id","GoogleEmail","Email" from "Users" where lower("GoogleEmail")=lower(${c.FromEmail}) and "GoogleConnected"=true limit 1`;
-            if (!sender) {
-                await sql`update "Campaigns" set "Status"='paused', "UpdatedAt"=now() where "Id"=${c.Id}`;
-                console.warn(`⚠️  campanha ${c.Id}: remetente ${c.FromEmail} não está conectado ao Google — pausada.`);
-                continue;
-            }
-
             const html = withUnsubscribe(String(c.Body).replace(/\{email\}/g, rcp.Email), rcp.Token);
             const text = String(c.Body).replace(/\{email\}/g, rcp.Email).replace(/<[^>]+>/g, ' ');
             // List-Unsubscribe (1 clique): exigido pelo Gmail p/ envio em volume — melhora entrega.
             const unsubUrl = `${config.apiUrl}/api/public/unsubscribe?token=${rcp.Token}`;
             const headers = { 'List-Unsubscribe': `<${unsubUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
+
+            // Preferência: Resend (domínio autenticado → cai na inbox). Fallback: Gmail
+            // da conta conectada. Sem nenhum dos dois → pausa a campanha.
+            let sender = null;
+            if (!resendConfigured) {
+                [sender] = await sql`select "Id","GoogleEmail","Email" from "Users" where lower("GoogleEmail")=lower(${c.FromEmail}) and "GoogleConnected"=true limit 1`;
+                if (!sender) {
+                    await sql`update "Campaigns" set "Status"='paused', "UpdatedAt"=now() where "Id"=${c.Id}`;
+                    console.warn(`⚠️  campanha ${c.Id}: sem Resend e remetente ${c.FromEmail} não conectado ao Google — pausada.`);
+                    continue;
+                }
+            }
             try {
-                await sendApplicationEmail({ userId: sender.Id, from: sender.GoogleEmail || sender.Email, to: rcp.Email, subject: c.Subject, html, text, headers });
+                if (resendConfigured) {
+                    await sendResendEmail({ from: c.FromEmail, to: rcp.Email, subject: c.Subject, html, text, headers });
+                } else {
+                    await sendApplicationEmail({ userId: sender.Id, from: sender.GoogleEmail || sender.Email, to: rcp.Email, subject: c.Subject, html, text, headers });
+                }
                 await sql`update "CampaignRecipients" set "Status"='sent', "SentAt"=now() where "Id"=${rcp.Id}`;
-                console.log(`📣 campanha ${c.Id}: enviado para ${rcp.Email} (${sentToday + 1}/${c.DailyCap} hoje)`);
+                console.log(`📣 campanha ${c.Id}: enviado para ${rcp.Email} via ${resendConfigured ? 'Resend' : 'Gmail'} (${sentToday + 1}/${c.DailyCap})`);
             } catch (e) {
                 await sql`update "CampaignRecipients" set "Status"='failed', "Error"=${String(e.message || 'erro').slice(0, 200)} where "Id"=${rcp.Id}`;
-                if (e.code === 'GOOGLE_REAUTH') { await sql`update "Campaigns" set "Status"='paused' where "Id"=${c.Id}`; }
+                // Falha de envio costuma ser sistêmica (domínio Resend não verificado,
+                // API key ruim, Gmail expirado) → pausa a campanha p/ não queimar a lista.
+                await sql`update "Campaigns" set "Status"='paused', "UpdatedAt"=now() where "Id"=${c.Id}`;
+                console.warn(`⚠️  campanha ${c.Id} pausada após falha: ${String(e.message).slice(0, 100)}`);
             }
         } catch (e) {
             console.error(`campanha ${c.Id} tick falhou:`, e.message);

@@ -13,8 +13,7 @@ Arquitetura em produção:
 - Conta Render, Stripe (chaves), Apify (token + actor IDs), Google Cloud (OAuth client).
 
 ## 1. Banco (Supabase)
-Aplique as migrations em ordem no **SQL Editor** (ou via Supabase CLI), caso recrie o banco:
-`supabase/migrations/0001_init.sql` → `0002_sendqueue_scheduledat.sql` → `0003_scraper_billing.sql`.
+Aplique **todas** as migrations em ordem (`0001` → `0011`) no **SQL Editor** (ou via Supabase CLI / `node backend/scripts/apply-migration.mjs <arquivo>`), caso recrie o banco.
 Crie o bucket **privado** `cvs` em Storage (se ainda não existe).
 
 ## 2. Stripe (produtos + preços)
@@ -33,7 +32,9 @@ Copie os `STRIPE_PRICE_STARTER` / `STRIPE_PRICE_PRO` impressos para o env group.
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI=https://<api>.onrender.com/api/auth/google/callback`
    - `FRONTEND_URL=https://<frontend>.onrender.com`, `ADMIN_EMAILS`
    - `APIFY_TOKEN`, `APIFY_PROFILE_ACTOR_ID=M2FMdjRVeF1HPGFcc`, `APIFY_POST_ACTOR_ID=buIWk2uOUzTmcLsuB`
-   - `STRIPE_SECRET_KEY`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO` (gerados no passo 2; `STRIPE_WEBHOOK_SECRET` vem no passo 5)
+   - `APIFY_TOKEN_2` / `APIFY_TOKEN_3` / `APIFY_TOKEN_4` — contas extras (fallback do crédito grátis, opcionais; rotação automática)
+   - `RESEND_API_KEY` — email marketing / campanhas (domínio verificado no Resend; senão a campanha cai no Gmail conectado)
+   - `STRIPE_SECRET_KEY`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO` — **preços ONE-TIME** (pagamento único de 30 dias, não recorrente). `STRIPE_WEBHOOK_SECRET` vem no passo 5
    - **IA (Groq):** `GROQ_API_KEY`, `GROQ_MODEL=llama-3.3-70b-versatile`, `AI_ENABLED=true`,
      `AI_MIN_CONFIDENCE=70`, `AI_MAX_CALLS_PER_RUN=40` (sem isso, o scraper usa só o fallback regex)
 3. No serviço **frontend**, preencha as `VITE_*`:

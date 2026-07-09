@@ -18,7 +18,7 @@ export default function AdminCampaigns() {
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({
         name: 'Divulgação newdevjobs',
-        fromEmail: 'newdevoficial@gmail.com',
+        fromEmail: 'newdevjobs <contato@newdevjobs.xyz>',
         subject: 'Novidade pra quem é dev: candidaturas no automático 🚀',
         body: DEFAULT_BODY,
         dailyCap: 50,
@@ -65,7 +65,7 @@ export default function AdminCampaigns() {
         <>
             <div className="notice warn" style={{ marginBottom: 14 }}>
                 <i className="ti ti-alert-triangle" />
-                <span>Envio espaçado (60–120s) e com teto diário para não derrubar a conta Gmail. Um <b>link de descadastro</b> é adicionado automaticamente. Envie só para quem <b>consentiu</b> (LGPD). A conta remetente precisa estar <b>conectada ao Google</b> no perfil dela.</span>
+                <span>Envio espaçado (60–120s) e com teto diário. <b>Link de descadastro</b> automático + header List-Unsubscribe. Envie só para quem <b>consentiu</b> (LGPD). O remetente usa o <b>Resend</b> (domínio autenticado) — o <b>domínio precisa estar verificado</b> no Resend (SPF/DKIM), senão a campanha pausa. Se o Resend não estiver configurado, cai no Gmail da conta conectada.</span>
             </div>
 
             {/* Criar campanha */}

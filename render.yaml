@@ -39,6 +39,8 @@ envVarGroups:
         sync: false
       - key: APIFY_POST_ACTOR_ID
         value: buIWk2uOUzTmcLsuB
+      - key: RESEND_API_KEY
+        sync: false   # email marketing / campanhas (dominio verificado no Resend)
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

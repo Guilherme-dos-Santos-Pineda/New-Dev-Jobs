@@ -2,6 +2,35 @@
 
 Registro das alterações relevantes. Datas no formato AAAA-MM-DD.
 
+## 2026-07 — Lançamento: billing, escala do scraper e admin
+
+### Cobrança (pagamento único)
+- Modelo mudou de assinatura recorrente para **pagamento único de 30 dias** (paga → 30 dias → volta pro Free). Migration `0010` (`PlanExpiresAt`); worker rebaixa os expirados; checkout detecta o tipo do preço em runtime (recorrente→assinatura, único→payment). **Sem cancelamento e sem downgrade** na UI.
+- Lógica de decisão PURA e testada em `services/billingLogic.js` (`backend/test/billing.test.js`).
+- Página **Assinatura** reformulada: histórico de pagamentos (estatísticas + filtros + tabela, via *charges*), planos em destaque com histórico minimizável, **contador de dias restantes**.
+
+### Scraper (escala + custo)
+- **Pool de contas Apify** com rotação/fallback automático do crédito grátis (`services/apifyPool.js`): usa uma conta por vez e pula quando o crédito esgota. `APIFY_TOKEN_2..5`.
+- Robôs por perfil (suporte/QA/dev) — `seed-robots-roles.mjs`.
+- Fila: `enqueue` em **lote** (corrige travamento do auto-envio) e `boss.send` **sequencial** (corrige 500 por estouro do pool de conexões).
+
+### Admin
+- Aba **Relatório**: gasto real da Apify (via API) × vagas coletadas, custo por vaga e projeção.
+- Card **Contas Apify** com uso real (US$/mês por conta). Feedback ao rodar robôs (polling + indicador "rodando").
+- Aba **Campanhas** (email marketing): envio espaçado (60–120s, teto diário), **descadastro** + header `List-Unsubscribe`, envio via **Resend** (domínio autenticado) com fallback Gmail. Migration `0011`.
+
+### Segurança
+- Headers nos sites estáticos (`render.yaml`); logout purga o token do cache; mensagem de signup genérica (anti-enumeração); `/ranking` abrevia o nome; `/jobs/:id` oculta a descrição no plano free.
+
+### Matching
+- Classificação de área extraída p/ `services/classify.js`, mais robusta (QA ≠ Dev). Vaga **sem skills e off-target não dispara auto-envio** (corrige o "email pra vaga de motorista").
+
+### Landing / SEO
+- Toggle **PT/EN**; SEO completo (meta description, Open Graph, JSON-LD, `sitemap.xml`, `robots.txt`, `og-image`); link da **comunidade no WhatsApp**.
+
+### Docs
+- `DEPLOY.md` atualizado (migrations `0001→0011`, `APIFY_TOKEN_2..4`, `RESEND_API_KEY`, preços one-time). Removidos `HANDOFF.md` e `backend/README.md` (obsoletos).
+
 ## 2026-06 — Pós-feedback de beta
 
 - **Sessão caindo:** `request()` trata 401 refrescando a sessão do Supabase e repetindo a chamada uma vez — não desloga mais quando o access token expira mas o refresh ainda é válido.

@@ -13,6 +13,8 @@ const {
     APIFY_TOKEN = '',
     APIFY_PROFILE_ACTOR_ID = '', // LinkedIn Profile Search Scraper (descoberta)
     APIFY_POST_ACTOR_ID = 'buIWk2uOUzTmcLsuB', // LinkedIn Post Search Scraper (monitoramento)
+    // Resend (email marketing / campanhas — dominio autenticado, melhor entrega)
+    RESEND_API_KEY = '',
     // Stripe (billing)
     STRIPE_SECRET_KEY = '',
     STRIPE_WEBHOOK_SECRET = '',
@@ -73,6 +75,10 @@ export const config = {
         profileActorId: APIFY_PROFILE_ACTOR_ID,
         postActorId: APIFY_POST_ACTOR_ID,
         configured: apifyTokens.length > 0,
+    },
+    resend: {
+        apiKey: RESEND_API_KEY,
+        configured: Boolean(RESEND_API_KEY),
     },
     stripe: {
         secretKey: STRIPE_SECRET_KEY,

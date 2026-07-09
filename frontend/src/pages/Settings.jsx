@@ -29,7 +29,7 @@ export default function EmailSettings() {
 
     const [connecting, setConnecting] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
-    const [testTo, setTestTo] = useState('garmecfeels@gmail.com');
+    const [testTo, setTestTo] = useState('');
     const [testing, setTesting] = useState(false);
     const busyRef = useRef({}); // travas síncronas anti duplo-clique por ação
 

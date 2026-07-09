@@ -19,18 +19,37 @@ function gapSeconds() {
 // Retry/backoff do pg-boss para falhas transitórias (rede / Gmail 429/5xx).
 const SEND_OPTS = { retryLimit: 3, retryDelay: 60, retryBackoff: true, expireInSeconds: 120 };
 
+// Monta o plano de envio: espaçamento cumulativo em JS (o 1º é imediato).
+// Puro/testável — recebe o relógio e a função de gap (deterministas no teste).
+export function buildSendPlan(userId, jobIds, now = Date.now(), gapFn = gapSeconds) {
+    let cumulative = 0;
+    return jobIds.map((jid) => {
+        const startAfter = cumulative;
+        cumulative += gapFn();
+        return { UserId: userId, JobId: jid, Status: 'queued', ScheduledAt: new Date(now + startAfter * 1000), _startAfter: startAfter };
+    });
+}
+
+// Agenda no pg-boss SEQUENCIALMENTE (um await por vez). Isolado e com o boss
+// injetado para o teste de regressão do 500: o pool do pg-boss é pequeno (2) e o
+// pooler do Supabase limita ~15 conexões; disparar em paralelo (ex.: 150+ de uma
+// vez, com Promise.all) estourava o pool e derrubava o request com 500. NUNCA
+// troque este for/await por Promise.all.
+export async function scheduleSequentially(boss, userId, rows, plan, opts = SEND_OPTS) {
+    for (let i = 0; i < rows.length; i += 1) {
+        await boss.send(
+            SEND_QUEUE,
+            { userId, queueId: Number(rows[i].Id), jobId: Number(rows[i].JobId) },
+            { ...opts, startAfter: plan[i]._startAfter },
+        );
+    }
+}
+
 export async function enqueue(userId, jobIds) {
     if (!jobIds.length) { await sql`delete from "SendQueue" where "UserId" = ${userId}`; return getStatus(userId); }
 
-    // Espaçamento cumulativo calculado em JS (o 1º é imediato). ScheduledAt já vem
-    // no insert — evita 1 UPDATE por item.
-    const now = Date.now();
-    let cumulative = 0;
-    const plan = jobIds.map((jid) => {
-        const startAfter = cumulative;
-        cumulative += gapSeconds();
-        return { UserId: userId, JobId: jid, Status: 'queued', ScheduledAt: new Date(now + startAfter * 1000), _startAfter: startAfter };
-    });
+    // ScheduledAt já vem no insert — evita 1 UPDATE por item.
+    const plan = buildSendPlan(userId, jobIds);
 
     // Grava o lote em UMA query (novo lote substitui o anterior).
     const rows = await sql.begin(async (tx) => {
@@ -38,21 +57,9 @@ export async function enqueue(userId, jobIds) {
         return tx`insert into "SendQueue" ${tx(plan.map(({ _startAfter, ...r }) => r), 'UserId', 'JobId', 'Status', 'ScheduledAt')} returning "Id", "JobId"`;
     });
 
-    // Agenda no pg-boss SEQUENCIALMENTE — o pool do pg-boss é pequeno (2) e o
-    // pooler do Supabase limita ~15 conexões no total; disparar em paralelo (ex.:
-    // 150+ de uma vez) estourava o pool e derrubava o request com 500.
     const boss = await getBoss();
-    if (boss) {
-        for (let i = 0; i < rows.length; i += 1) {
-            await boss.send(
-                SEND_QUEUE,
-                { userId, queueId: Number(rows[i].Id), jobId: Number(rows[i].JobId) },
-                { ...SEND_OPTS, startAfter: plan[i]._startAfter },
-            );
-        }
-    } else {
-        console.warn('⚠️  pg-boss indisponível — itens enfileirados mas não serão processados (DATABASE_URL?)');
-    }
+    if (boss) await scheduleSequentially(boss, userId, rows, plan);
+    else console.warn('⚠️  pg-boss indisponível — itens enfileirados mas não serão processados (DATABASE_URL?)');
 
     return getStatus(userId);
 }

@@ -504,6 +504,11 @@ const campaignSchema = z.object({
         (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) || /<[^\s@]+@[^\s@]+\.[^\s@]+>\s*$/.test(v.trim()),
         'Remetente inválido (use "email@dominio" ou "Nome <email@dominio>").',
     ),
+    // Reply-To: para onde vão as RESPOSTAS (um email real que você lê). Opcional.
+    replyTo: z.string().max(200).refine(
+        (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+        'Reply-To inválido (use um email, ex.: voce@gmail.com).',
+    ).optional(),
     dailyCap: z.coerce.number().int().min(1).max(500).optional(),
     gapMin: z.coerce.number().int().min(30).max(600).optional(),
     gapMax: z.coerce.number().int().min(30).max(600).optional(),

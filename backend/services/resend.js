@@ -12,12 +12,12 @@ export const resendConfigured = config.resend.configured;
  * @returns { id } do email enviado
  * @throws  Error com a mensagem da API se falhar (ex.: dominio nao verificado)
  */
-export async function sendResendEmail({ from, to, subject, html, text, headers }) {
+export async function sendResendEmail({ from, to, subject, html, text, headers, replyTo }) {
     if (!config.resend.configured) throw new Error('RESEND_API_KEY nao configurada');
     const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${config.resend.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to, subject, html, text, ...(headers ? { headers } : {}) }),
+        body: JSON.stringify({ from, to, subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}), ...(headers ? { headers } : {}) }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {

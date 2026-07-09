@@ -19,6 +19,7 @@ export default function AdminCampaigns() {
     const [form, setForm] = useState({
         name: 'Divulgação newdevjobs',
         fromEmail: 'newdevjobs <contato@newdevjobs.xyz>',
+        replyTo: 'newdevoficial@gmail.com',
         subject: 'Novidade pra quem é dev: candidaturas no automático 🚀',
         body: DEFAULT_BODY,
         dailyCap: 50,
@@ -42,7 +43,8 @@ export default function AdminCampaigns() {
         try {
             const r = await api.adminCreateCampaign({
                 name: form.name, subject: form.subject, body: form.body,
-                fromEmail: form.fromEmail, dailyCap: Number(form.dailyCap) || 50, emails: emailsArr,
+                fromEmail: form.fromEmail, replyTo: form.replyTo?.trim() || undefined,
+                dailyCap: Number(form.dailyCap) || 50, emails: emailsArr,
             });
             toast.show(`Campanha criada: ${r.recipients} destinatário(s)${r.ignored ? ` · ${r.ignored} ignorado(s) (inválido/descadastrado)` : ''}. Clique "Iniciar".`);
             set('emails', '');
@@ -73,9 +75,12 @@ export default function AdminCampaigns() {
                 <div className="section-title"><i className="ti ti-mail-plus" /> Nova campanha</div>
                 <div className="grid-2">
                     <div className="field"><label>Nome (interno)</label><input className="input" value={form.name} onChange={(e) => set('name', e.target.value)} /></div>
-                    <div className="field"><label>Enviar de (conta Google conectada)</label><input className="input" value={form.fromEmail} onChange={(e) => set('fromEmail', e.target.value)} placeholder="newdevoficial@gmail.com" /></div>
+                    <div className="field"><label>Enviar de <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>· domínio verificado no Resend</span></label><input className="input" value={form.fromEmail} onChange={(e) => set('fromEmail', e.target.value)} placeholder="newdevjobs <contato@newdevjobs.xyz>" /></div>
                 </div>
-                <div className="field"><label>Assunto</label><input className="input" value={form.subject} onChange={(e) => set('subject', e.target.value)} /></div>
+                <div className="grid-2">
+                    <div className="field"><label>Assunto</label><input className="input" value={form.subject} onChange={(e) => set('subject', e.target.value)} /></div>
+                    <div className="field"><label>Responder para (Reply-To) <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>· onde caem as respostas</span></label><input className="input" value={form.replyTo} onChange={(e) => set('replyTo', e.target.value)} placeholder="newdevoficial@gmail.com" /></div>
+                </div>
                 <div className="field">
                     <label>Corpo do email (HTML) <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>· use {'{email}'} para personalizar · descadastro é adicionado no fim</span></label>
                     <textarea className="input" rows={9} value={form.body} onChange={(e) => set('body', e.target.value)} style={{ fontFamily: 'monospace', fontSize: 12.5 }} />

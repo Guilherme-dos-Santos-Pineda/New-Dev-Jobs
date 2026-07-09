@@ -23,15 +23,15 @@ function withUnsubscribe(bodyHtml, token) {
 }
 
 // Cria a campanha + destinatários (dedup, e-mails válidos, pula quem já saiu).
-export async function createCampaign({ name, subject, body, fromEmail, dailyCap, gapMin, gapMax, emails }) {
+export async function createCampaign({ name, subject, body, fromEmail, replyTo, dailyCap, gapMin, gapMax, emails }) {
     const clean = [...new Set((emails || []).map((e) => String(e).trim().toLowerCase()).filter((e) => EMAIL_RE.test(e)))];
     if (!clean.length) throw new Error('Nenhum email válido na lista.');
     const optedOut = new Set((await sql`select "Email" from "Unsubscribes" where "Email" = any(${clean})`).map((r) => r.Email));
     const toInsert = clean.filter((e) => !optedOut.has(e));
 
     const [c] = await sql`
-        insert into "Campaigns" ("Name","Subject","Body","FromEmail","DailyCap","GapMinSec","GapMaxSec","Status")
-        values (${name}, ${subject}, ${body}, ${fromEmail}, ${Math.max(1, Math.min(500, Number(dailyCap) || 50))},
+        insert into "Campaigns" ("Name","Subject","Body","FromEmail","ReplyTo","DailyCap","GapMinSec","GapMaxSec","Status")
+        values (${name}, ${subject}, ${body}, ${fromEmail}, ${replyTo?.trim() || null}, ${Math.max(1, Math.min(500, Number(dailyCap) || 50))},
                 ${Math.max(30, Number(gapMin) || 60)}, ${Math.max(30, Number(gapMax) || 120)}, 'draft')
         returning "Id"`;
     if (toInsert.length) {
@@ -41,7 +41,7 @@ export async function createCampaign({ name, subject, body, fromEmail, dailyCap,
 }
 
 const shape = (c) => ({
-    id: Number(c.Id), name: c.Name, subject: c.Subject, body: c.Body, fromEmail: c.FromEmail,
+    id: Number(c.Id), name: c.Name, subject: c.Subject, body: c.Body, fromEmail: c.FromEmail, replyTo: c.ReplyTo,
     dailyCap: c.DailyCap, status: c.Status, createdAt: c.CreatedAt,
     total: Number(c.total), sent: Number(c.sent), pending: Number(c.pending), failed: Number(c.failed), unsub: Number(c.unsub),
     sentToday: Number(c.sent_today),
@@ -110,6 +110,8 @@ export async function tickCampaigns() {
             // List-Unsubscribe (1 clique): exigido pelo Gmail p/ envio em volume — melhora entrega.
             const unsubUrl = `${config.apiUrl}/api/public/unsubscribe?token=${rcp.Token}`;
             const headers = { 'List-Unsubscribe': `<${unsubUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
+            // Reply-To: respostas caem num email real (o "De:" continua no domínio).
+            if (c.ReplyTo) headers['Reply-To'] = c.ReplyTo;
 
             // Preferência: Resend (domínio autenticado → cai na inbox). Fallback: Gmail
             // da conta conectada. Sem nenhum dos dois → pausa a campanha.
@@ -124,7 +126,7 @@ export async function tickCampaigns() {
             }
             try {
                 if (resendConfigured) {
-                    await sendResendEmail({ from: c.FromEmail, to: rcp.Email, subject: c.Subject, html, text, headers });
+                    await sendResendEmail({ from: c.FromEmail, to: rcp.Email, subject: c.Subject, html, text, headers, replyTo: c.ReplyTo });
                 } else {
                     await sendApplicationEmail({ userId: sender.Id, from: sender.GoogleEmail || sender.Email, to: rcp.Email, subject: c.Subject, html, text, headers });
                 }

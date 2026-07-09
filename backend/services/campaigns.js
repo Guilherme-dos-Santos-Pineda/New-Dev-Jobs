@@ -15,11 +15,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function withUnsubscribe(bodyHtml, token) {
     const url = `${config.apiUrl}/api/public/unsubscribe?token=${token}`;
     return `${bodyHtml}
-<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0 12px">
-<p style="font-size:12px;color:#8b9cb0">
-  Você recebeu este email porque demonstrou interesse no newdevjobs.
-  <a href="${url}" style="color:#8b9cb0">Descadastrar</a>.
-</p>`;
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;">
+  <tr><td align="center" style="padding:4px 16px 32px;">
+    <p style="font-size:12px;line-height:20px;color:#9ca3af;margin:0;max-width:600px;">
+      Você recebeu este email porque demonstrou interesse no newdevjobs.
+      <a href="${url}" style="color:#9ca3af;">Descadastrar</a>.
+    </p>
+  </td></tr>
+</table>`;
 }
 
 // Cria a campanha + destinatários (dedup, e-mails válidos, pula quem já saiu).

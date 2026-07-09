@@ -5,11 +5,37 @@ import { useToast } from './Toast.jsx';
 const STATUS_BADGE = { draft: 'neutral', running: 'ok', paused: 'warn', done: 'info' };
 const STATUS_LABEL = { draft: 'rascunho', running: 'enviando', paused: 'pausada', done: 'concluída' };
 
-const DEFAULT_BODY = `<p>Olá 👋</p>
-<p>Você já usou o <b>Reprova Currículo</b> no passado — e temos novidades pra você.</p>
-<p>Lançamos o <b>newdevjobs</b>: um SaaS que <b>monitora vagas de dev no LinkedIn e envia seu currículo automaticamente</b> pela sua própria conta Gmail. Você configura uma vez e as candidaturas rodam no piloto automático.</p>
-<p>👉 Comece grátis: <a href="https://newdevjobs.xyz">newdevjobs.xyz</a> — 7 candidaturas por dia sem cartão.</p>
-<p>Abraço,<br>Equipe newdevjobs</p>`;
+// Template com a cara da landing (gradiente azul→índigo, card, CTA). Feito para
+// EMAIL: tabelas + estilos inline (o que Gmail/Outlook renderizam de verdade).
+// O rodapé de descadastro é anexado automaticamente no envio (withUnsubscribe).
+const DEFAULT_BODY = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">
+<tr><td align="center">
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.08);">
+    <tr><td style="background-color:#2563eb;background:linear-gradient(135deg,#2563eb,#4f46e5);padding:44px 40px;text-align:center;">
+      <div style="font-size:32px;font-weight:bold;color:#ffffff;">🚀 newdevjobs</div>
+      <div style="margin-top:14px;font-size:17px;line-height:28px;color:#dbeafe;">Sua próxima vaga pode chegar<br><b style="color:#ffffff;">antes mesmo de você procurar.</b></div>
+    </td></tr>
+    <tr><td style="padding:40px;">
+      <div style="font-size:24px;font-weight:bold;color:#111827;margin-bottom:16px;">Fala dev 👋</div>
+      <p style="font-size:16px;line-height:28px;color:#4b5563;margin:0 0 16px;">Acabamos de lançar o <b>newdevjobs</b>.</p>
+      <p style="font-size:16px;line-height:28px;color:#4b5563;margin:0 0 8px;">Uma plataforma que <b>monitora vagas publicadas por recrutadores no LinkedIn</b> e envia automaticamente seu currículo usando a <b>sua própria conta Gmail</b>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+        <tr><td style="background:#eff6ff;padding:22px 24px;border-radius:12px;">
+          <div style="font-size:16px;line-height:24px;color:#1e3a8a;margin-bottom:12px;">⚡ Você configura uma única vez</div>
+          <div style="font-size:16px;line-height:24px;color:#1e3a8a;margin-bottom:12px;">🤖 A IA encontra vagas compatíveis</div>
+          <div style="font-size:16px;line-height:24px;color:#1e3a8a;margin-bottom:12px;">📧 Seu currículo é enviado automaticamente</div>
+          <div style="font-size:16px;line-height:24px;color:#1e3a8a;">🎯 Tudo pela sua própria conta Gmail</div>
+        </td></tr>
+      </table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:12px 0 28px;">
+        <a href="https://newdevjobs.xyz" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:16px 32px;border-radius:10px;font-size:17px;font-weight:bold;display:inline-block;">Começar gratuitamente →</a>
+      </td></tr></table>
+      <div style="text-align:center;color:#6b7280;font-size:14px;line-height:26px;">✅ 7 candidaturas por dia<br>✅ Sem cartão de crédito<br>✅ Configuração em menos de 5 minutos</div>
+    </td></tr>
+    <tr><td style="background:#f9fafb;padding:26px;text-align:center;font-size:13px;color:#9ca3af;">Feito por desenvolvedores para desenvolvedores ❤️<br><br><b style="color:#111827;">Equipe newdevjobs</b></td></tr>
+  </table>
+</td></tr>
+</table>`;
 
 export default function AdminCampaigns() {
     const toast = useToast();

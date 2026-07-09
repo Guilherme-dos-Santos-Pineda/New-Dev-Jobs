@@ -15,8 +15,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function withUnsubscribe(bodyHtml, token) {
     const url = `${config.apiUrl}/api/public/unsubscribe?token=${token}`;
     return `${bodyHtml}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F8FB;font-family:'Inter',Arial,Helvetica,sans-serif;">
-  <tr><td align="center" style="padding:4px 16px 32px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:'Inter',Arial,Helvetica,sans-serif;">
+  <tr><td align="center" style="padding:18px 16px 8px;">
     <p style="font-size:12px;line-height:20px;color:#8B9CB0;margin:0;max-width:600px;">
       Você recebeu este email porque demonstrou interesse no newdevjobs.
       <a href="${url}" style="color:#8B9CB0;">Descadastrar</a>.

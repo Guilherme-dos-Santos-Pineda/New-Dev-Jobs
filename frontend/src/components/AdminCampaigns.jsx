@@ -5,34 +5,49 @@ import { useToast } from './Toast.jsx';
 const STATUS_BADGE = { draft: 'neutral', running: 'ok', paused: 'warn', done: 'info' };
 const STATUS_LABEL = { draft: 'rascunho', running: 'enviando', paused: 'pausada', done: 'concluída' };
 
-// Template com a cara da landing (gradiente azul→índigo, card, CTA). Feito para
-// EMAIL: tabelas + estilos inline (o que Gmail/Outlook renderizam de verdade).
+// Template com a identidade REAL da landing (pages/index.html): azul profundo
+// #185FA5→#0C447C, Inter + IBM Plex Mono, headline leve com palavra em destaque
+// e o card de "match" com o selo. Feito para EMAIL: tabelas + estilos inline
+// (Gmail ignora <head>/<style> e webfonts → cai em Arial, e tudo bem).
 // O rodapé de descadastro é anexado automaticamente no envio (withUnsubscribe).
-const DEFAULT_BODY = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">
+const DEFAULT_BODY = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F8FB;padding:32px 16px;font-family:'Inter',Arial,Helvetica,sans-serif;">
 <tr><td align="center">
-  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.08);">
-    <tr><td style="background-color:#2563eb;background:linear-gradient(135deg,#2563eb,#4f46e5);padding:44px 40px;text-align:center;">
-      <div style="font-size:32px;font-weight:bold;color:#ffffff;">🚀 newdevjobs</div>
-      <div style="margin-top:14px;font-size:17px;line-height:28px;color:#dbeafe;">Sua próxima vaga pode chegar<br><b style="color:#ffffff;">antes mesmo de você procurar.</b></div>
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF;border:1px solid #ECF0F5;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(13,17,23,.06);">
+    <tr><td style="padding:20px 32px;border-bottom:1px solid #ECF0F5;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td style="width:30px;"><div style="width:30px;height:30px;border-radius:9px;background:#1F6FEB;background:linear-gradient(135deg,#1F6FEB 0%,#0C447C 100%);text-align:center;line-height:30px;color:#FFFFFF;font-family:'IBM Plex Mono','Courier New',monospace;font-size:15px;font-weight:600;">&rsaquo;</div></td>
+        <td style="padding-left:10px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:15px;font-weight:600;color:#0D1117;letter-spacing:-0.3px;">newdevjobs</td>
+      </tr></table>
     </td></tr>
-    <tr><td style="padding:40px;">
-      <div style="font-size:24px;font-weight:bold;color:#111827;margin-bottom:16px;">Fala dev 👋</div>
-      <p style="font-size:16px;line-height:28px;color:#4b5563;margin:0 0 16px;">Acabamos de lançar o <b>newdevjobs</b>.</p>
-      <p style="font-size:16px;line-height:28px;color:#4b5563;margin:0 0 8px;">Uma plataforma que <b>monitora vagas publicadas por recrutadores no LinkedIn</b> e envia automaticamente seu currículo usando a <b>sua própria conta Gmail</b>.</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
-        <tr><td style="background:#eff6ff;padding:22px 24px;border-radius:12px;">
-          <div style="font-size:16px;line-height:24px;color:#1e3a8a;margin-bottom:12px;">⚡ Você configura uma única vez</div>
-          <div style="font-size:16px;line-height:24px;color:#1e3a8a;margin-bottom:12px;">🤖 A IA encontra vagas compatíveis</div>
-          <div style="font-size:16px;line-height:24px;color:#1e3a8a;margin-bottom:12px;">📧 Seu currículo é enviado automaticamente</div>
-          <div style="font-size:16px;line-height:24px;color:#1e3a8a;">🎯 Tudo pela sua própria conta Gmail</div>
-        </td></tr>
-      </table>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:12px 0 28px;">
-        <a href="https://newdevjobs.xyz" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:16px 32px;border-radius:10px;font-size:17px;font-weight:bold;display:inline-block;">Começar gratuitamente →</a>
-      </td></tr></table>
-      <div style="text-align:center;color:#6b7280;font-size:14px;line-height:26px;">✅ 7 candidaturas por dia<br>✅ Sem cartão de crédito<br>✅ Configuração em menos de 5 minutos</div>
+    <tr><td style="padding:38px 40px 6px;">
+      <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#185FA5;margin-bottom:18px;">&mdash;&nbsp; automação de candidaturas</div>
+      <div style="font-size:34px;line-height:1.12;letter-spacing:-1.2px;font-weight:300;color:#0D1117;margin:0 0 18px;">Sua candidatura chega <span style="color:#185FA5;font-weight:600;">antes</span> de <b style="font-weight:600;">todo mundo.</b></div>
+      <p style="font-size:15.5px;line-height:1.7;color:#4A5568;margin:0 0 26px;">O <b style="color:#0D1117;">newdevjobs</b> monitora vagas publicadas por recrutadores no LinkedIn e envia seu currículo automaticamente &mdash; pela <b style="color:#0D1117;">sua própria conta Gmail</b>. Você configura uma vez e as candidaturas rodam no automático.</p>
+      <a href="https://newdevjobs.xyz" style="background:#1F6FEB;background:linear-gradient(135deg,#1F6FEB 0%,#0C447C 100%);color:#FFFFFF;text-decoration:none;padding:14px 28px;border-radius:12px;font-size:14px;font-weight:600;display:inline-block;">Começar gratuitamente &rarr;</a>
+      <div style="font-size:12.5px;color:#8B9CB0;margin-top:16px;">&#10003; 7 candidaturas por dia &nbsp;&middot;&nbsp; sem cartão de crédito</div>
     </td></tr>
-    <tr><td style="background:#f9fafb;padding:26px;text-align:center;font-size:13px;color:#9ca3af;">Feito por desenvolvedores para desenvolvedores ❤️<br><br><b style="color:#111827;">Equipe newdevjobs</b></td></tr>
+    <tr><td style="padding:26px 40px 40px;">
+      <div style="background:#F6F8FB;border:1px solid #ECF0F5;border-radius:14px;padding:16px;">
+        <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;color:#8B9CB0;padding:2px 4px 12px;">newdevjobs · matches</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid #ECF0F5;border-radius:10px;">
+          <tr><td style="padding:14px 16px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td style="width:34px;vertical-align:top;"><div style="width:34px;height:34px;border-radius:9px;background:#1F6FEB;background:linear-gradient(135deg,#1F6FEB 0%,#0C447C 100%);text-align:center;line-height:34px;color:#FFFFFF;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;">A</div></td>
+              <td style="padding-left:12px;vertical-align:top;">
+                <div style="font-size:13px;font-weight:600;color:#0D1117;">Dev Backend Pleno · .NET</div>
+                <div style="font-size:11px;color:#8B9CB0;margin-top:2px;">Acme Tech · remoto · há 3 min</div>
+              </td>
+              <td align="right" style="vertical-align:top;white-space:nowrap;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:#185FA5;background:#E6F1FB;padding:4px 9px;border-radius:999px;">match 94%</span></td>
+            </tr></table>
+            <div style="font-size:12px;color:#1F9E6B;margin-top:11px;font-family:'IBM Plex Mono','Courier New',monospace;">&#10003; currículo enviado automaticamente</div>
+          </td></tr>
+        </table>
+      </div>
+    </td></tr>
+    <tr><td style="background:#F6F8FB;border-top:1px solid #ECF0F5;padding:22px 32px;text-align:center;">
+      <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:13px;font-weight:600;color:#0D1117;letter-spacing:-0.3px;">newdevjobs</div>
+      <div style="font-size:12px;color:#8B9CB0;margin-top:4px;">Feito por desenvolvedores, para desenvolvedores.</div>
+    </td></tr>
   </table>
 </td></tr>
 </table>`;

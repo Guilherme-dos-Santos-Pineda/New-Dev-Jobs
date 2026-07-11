@@ -58,13 +58,17 @@
     }
     </script>
 
-    <!-- Google Fonts -->
+    <!-- Fontes + ícones: carregados SEM bloquear a renderização (preload→stylesheet).
+         Sem isso o CSS do Tabler/Google Fonts atrasava a LCP em ~5,6s no mobile.
+         Versão do Tabler fixada (@2.47.0) para cache longo (era @latest). -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Tabler Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+    </noscript>
 
 <style>
     /* ============================================
@@ -766,7 +770,7 @@
 
             <!-- Hamburger mobile -->
             <input type="checkbox" id="menu-toggle" class="menu-toggle-input">
-            <label for="menu-toggle" class="menu-toggle-label">
+            <label for="menu-toggle" class="menu-toggle-label" role="button" aria-label="Abrir menu" tabindex="0">
                 <span></span><span></span><span></span>
             </label>
 
@@ -785,7 +789,7 @@
                     <i class="ti ti-sun icon-sun"></i>
                     <i class="ti ti-moon icon-moon"></i>
                 </button>
-                <button class="nav-cta" onclick="go('/login')" data-i18n="nav.login"><i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">entrar</span></button>
+                <button class="nav-cta" onclick="go('/login')" aria-label="Entrar" data-i18n="nav.login"><i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">entrar</span></button>
             </div>
         </nav>
 

@@ -16,7 +16,8 @@ import sql from '../lib/sql.js';
 //   node backend/scripts/rightsize-robots.mjs                 # SIMULA (padrão)
 //   node backend/scripts/rightsize-robots.mjs --commit        # aplica
 //   node backend/scripts/rightsize-robots.mjs --restore --commit   # reativa TODOS
-//   flags: --stacks=Java,Python  --keep-global  --interval=2880  --no-stagger
+//   flags: --stacks=Java,Python  --levels=Júnior,Pleno  --keep-global
+//          --interval=2880  --no-stagger
 // =========================================================================
 
 const arg = (k, def) => { const a = process.argv.find((x) => x.startsWith(`--${k}=`)); return a ? a.split('=')[1] : def; };
@@ -33,18 +34,30 @@ const STACKS = (arg('stacks', '') || '').trim()
     ? arg('stacks', '').split(',').map((s) => s.trim()).filter(Boolean)
     : DEFAULT_STACKS;
 
+// Níveis mantidos. Júnior/Pleno concentram o maior volume de vaga e casam com o
+// público do produto; vazio (--levels=all) mantém todos.
+const DEFAULT_LEVELS = ['Júnior', 'Pleno'];
+const LEVELS = (arg('levels', '') || '').trim().toLowerCase() === 'all'
+    ? null
+    : (arg('levels', '') || '').trim()
+        ? arg('levels', '').split(',').map((s) => s.trim()).filter(Boolean)
+        : DEFAULT_LEVELS;
+
 // Um robô é "salvos" quando monitora recrutadores já cadastrados — melhor
-// sinal por crédito gasto, então fica independente da stack.
+// sinal por crédito gasto, então fica independente de stack/nível.
 const isSaved = (name) => /^Recrutadores salvos|^Saved recruiters/i.test(name);
 const regionOf = (name) => (/·\s*Global\s*$/i.test(name) ? 'global' : /·\s*BR\s*$/i.test(name) ? 'br' : '?');
 const stackOf = (name) => String(name).split(' · ')[0].trim();
+// Nome é "<Stack> · <Nível> · <Região>"; o nível é o pedaço do meio.
+const levelOf = (name) => { const p = String(name).split(' · '); return p.length >= 3 ? p[1].trim() : ''; };
 
 function shouldKeep(r) {
     if (r.Type !== 'monitoring') return false;              // discovery gasta muito mais crédito
     if (isSaved(r.Name)) return true;                        // sempre vale a pena
     const region = regionOf(r.Name);
     if (region === 'global' && !KEEP_GLOBAL) return false;   // foco BR (produto é pt-BR)
-    return STACKS.includes(stackOf(r.Name));
+    if (!STACKS.includes(stackOf(r.Name))) return false;
+    return LEVELS ? LEVELS.includes(levelOf(r.Name)) : true;
 }
 
 const runsPerDay = (rows) => rows.reduce((acc, r) => acc + (r.IntervalMinutes > 0 ? 1440 / r.IntervalMinutes : 0), 0);
@@ -83,7 +96,7 @@ async function main() {
     console.log(`MANTER ativos: ${manter.length}`);
     const porStack = {};
     for (const r of manter) {
-        const k = isSaved(r.Name) ? '(recrutadores salvos)' : `${stackOf(r.Name)} · ${regionOf(r.Name).toUpperCase()}`;
+        const k = isSaved(r.Name) ? '(recrutadores salvos)' : `${stackOf(r.Name)} · ${levelOf(r.Name)} · ${regionOf(r.Name).toUpperCase()}`;
         porStack[k] = (porStack[k] || 0) + 1;
     }
     for (const [k, n] of Object.entries(porStack).sort()) console.log(`   ${String(n).padStart(3)}x  ${k}`);

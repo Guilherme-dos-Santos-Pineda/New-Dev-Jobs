@@ -5,6 +5,10 @@ node_modules/
 .env
 .env.local
 *.env.local
+# Qualquer arquivo terminado em .env (ex.: newdevjobs-secrets.env, exportado do
+# Render). O padrão acima NÃO pegava esses — e um deles tem chaves LIVE.
+# `.env.example` continua versionado (termina em .example, não em .env).
+*.env
 
 # uploads de currículo (disco local — legado)
 uploads/

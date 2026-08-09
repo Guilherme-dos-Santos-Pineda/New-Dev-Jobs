@@ -21,6 +21,7 @@ import billingRoutes from './routes/billing.js';
 import dashboardRoutes from './routes/dashboard.js';
 import publicRoutes from './routes/public.js';
 import { getBoss } from './lib/boss.js';
+import { startWorker } from './worker.js';
 
 const app = express();
 const PORT = config.port || 3001;
@@ -82,13 +83,43 @@ app.use((err, _req, res, _next) => {
     res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
-app.listen(PORT, () => {
+// RUN_WORKER=true (padrão) → a API também PROCESSA a fila, no mesmo processo.
+// É o que permite rodar tudo em 1 serviço. Defina RUN_WORKER=false para voltar
+// ao modelo de processos separados (`npm run worker` à parte), caso o volume
+// cresça a ponto de os envios competirem com o HTTP por CPU.
+const RUN_WORKER = process.env.RUN_WORKER !== 'false';
+
+// Preenchido quando o worker embutido sobe; usado no shutdown ordenado.
+let stopWorker = null;
+
+const server = app.listen(PORT, async () => {
     console.log(`🚀 newdevjobs API rodando em http://localhost:${PORT}`);
-    // Inicia o pg-boss (roda as migrations dele e prepara as filas) para a API poder enfileirar.
-    // Quem PROCESSA a fila é o worker separado: `npm run worker`.
-    getBoss()
-        .then((boss) => console.log(boss ? '📮 Fila pg-boss pronta (envios processados pelo worker)' : '⚠️  pg-boss desligado (sem DATABASE_URL)'))
-        .catch((e) => console.error('Falha ao iniciar pg-boss:', e.message));
+
+    if (RUN_WORKER) {
+        // startWorker já inicia o pg-boss (migrations + filas) internamente.
+        try {
+            stopWorker = await startWorker({ standalone: false });
+        } catch (e) {
+            // Falha no worker não derruba a API: HTTP continua servindo.
+            console.error('Falha ao iniciar o worker embutido:', e.message);
+        }
+    } else {
+        // Só enfileira; quem consome é o worker separado.
+        getBoss()
+            .then((boss) => console.log(boss ? '📮 Fila pg-boss pronta (envios processados pelo worker separado)' : '⚠️  pg-boss desligado (sem DATABASE_URL)'))
+            .catch((e) => console.error('Falha ao iniciar pg-boss:', e.message));
+    }
 });
+
+// Shutdown ordenado: para de aceitar requests, deixa as em andamento drenarem e
+// só então encerra a fila — evita marcar como falha um envio que estava no meio.
+const shutdown = async (sig) => {
+    console.log(`\n${sig} recebido — encerrando…`);
+    server.close();
+    if (stopWorker) await stopWorker();
+    process.exit(0);
+};
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 export default app;

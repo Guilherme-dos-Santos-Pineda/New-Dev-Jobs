@@ -24,25 +24,36 @@ backend/               # API Express + worker (Node)        — porta 3001
   scripts/             #   import-jobs, seed-robots, apply-migration, test-ai
 frontend/              # app/dashboard (React + Vite)        — porta 5173, serviço "newdevjobs-frontend"
 supabase/migrations/   # schema versionado (0001…0008)
-render.yaml            # blueprint de deploy (api + worker + cron + frontend + site)
+render.yaml            # blueprint de deploy (1 serviço free: api+worker · + frontend + site)
 ```
 
 **Stack:** Postgres (Supabase) · Supabase Auth (Google + email/senha) · Supabase Storage
 (currículos) · pg-boss (fila no Postgres) + worker · Stripe (assinaturas) · IA Groq→OpenAI
 (pré-análise) · Apify (scraper) · React + Vite.
 
-## Como rodar (dev — 3 processos)
+## Como rodar (dev — 2 processos)
 
 Pré-requisito: `.env` na raiz e `frontend/.env` preenchidos (veja `.env.example`).
 
 ```bash
 npm install
-node backend/server.js               # API   → http://localhost:3001
-npm run worker                       # worker (envios + scraper + agendador de robôs)
-npm run dev --prefix frontend        # app   → http://localhost:5173
+node backend/server.js               # API + worker embutido → http://localhost:3001
+npm run dev --prefix frontend        # app                    → http://localhost:5173
 ```
 
-> ⚠️ São **3 processos**. Sem o worker, os envios ficam na fila, nada é enviado e os robôs não disparam.
+> O `server.js` sobe o **worker no mesmo processo** (envios + scraper + agendador de
+> robôs). É o que permite rodar em 1 serviço grátis em produção. Confirme no log:
+> `🤖 worker ativo (embutido na API)`.
+
+**Worker em processo separado** (opcional — para depurar envios isolados, ou em
+produção se um dia o volume fizer os envios competirem com o HTTP por CPU):
+
+```bash
+RUN_WORKER=false node backend/server.js   # API sem worker (só enfileira)
+npm run worker                            # worker standalone
+```
+
+> ⚠️ Com `RUN_WORKER=false` e **sem** o worker rodando, os envios ficam parados na fila.
 > Dev: `EMAIL_MODE=mock SEND_INTERVAL_MS=3000 npm run worker` simula envio sem mandar email.
 
 ## Scripts (CLI)

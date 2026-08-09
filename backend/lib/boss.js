@@ -13,6 +13,10 @@ export const SEND_DLQ = 'send-application-dlq';
 export const SCRAPER_DISCOVERY = 'scraper-discovery';
 export const SCRAPER_MONITORING = 'scraper-monitoring';
 
+// ATENÇÃO: o pg-boss usa DATABASE_URL em SESSION mode (porta 5432) de propósito —
+// ele depende de recursos de sessão (advisory locks / LISTEN-NOTIFY) que o
+// transaction mode (6543) não preserva. Não troque para o pooler de transação.
+// As queries da aplicação (lib/sql.js) é que vão no 6543. Ver comentário lá.
 const url = process.env.DATABASE_URL;
 
 let bossPromise = null;

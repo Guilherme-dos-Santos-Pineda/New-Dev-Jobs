@@ -1,7 +1,21 @@
 # Render Blueprint — newdevjobs
-# 3 serviços Node (API web, worker de envio, cron do scraper) + site estático (frontend).
-# Banco/Auth/Storage = Supabase (externo). Secrets ficam no grupo de env "newdevjobs-secrets".
+#
+# STACK GRATUITO: 1 serviço Node (plano free) + 2 sites estáticos (sempre grátis).
+# Banco/Auth/Storage = Supabase (externo). Secrets no env group "newdevjobs-secrets".
 # Crie o grupo em Render → Env Groups e preencha os valores (ver DEPLOY.md).
+#
+# O que mudou (antes eram 5 serviços, ~US$14/mês):
+#   • worker  → REMOVIDO: fundido na API (RUN_WORKER=true). 1 processo faz HTTP
+#     + fila de envios + agendador de robôs. Ver backend/server.js.
+#   • cron    → REMOVIDO: o agendador embutido já dispara o monitoramento pelos
+#     robôs em "ScraperSchedules". ⚠️ Isso exige PELO MENOS UM robô ativo de tipo
+#     'monitoring' na tabela — confira no /admin ou rode `npm run seed:robots`.
+#     Sem nenhum robô ativo, o monitoramento NÃO roda. (Alternativa grátis:
+#     o workflow .github/workflows/keepalive.yml pode disparar o run.)
+#   • api     → plano `free` (dorme após ~15min ociosa; o keep-alive resolve).
+#
+# ⚠️ O free tier dá 750 horas-instância/mês no TOTAL. Manter 1 serviço acordado
+# 24/7 consome ~730h — cabe, mas só para UM serviço free. Não crie um segundo.
 
 envVarGroups:
   - name: newdevjobs-secrets
@@ -51,36 +65,20 @@ envVarGroups:
         sync: false
 
 services:
-  # API HTTP (enfileira envios, billing, admin, etc.)
+  # API HTTP + worker embutido (envios, robôs, billing, admin) — processo único.
   - type: web
     name: newdevjobs-api
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: node backend/server.js
     healthCheckPath: /api/health
     envVars:
       - fromGroup: newdevjobs-secrets
-
-  # Worker: processa a fila pg-boss (envios) e os runs do scraper disparados pelo admin
-  - type: worker
-    name: newdevjobs-worker
-    runtime: node
-    plan: starter
-    buildCommand: npm install
-    startCommand: node backend/worker.js
-    envVars:
-      - fromGroup: newdevjobs-secrets
-
-  # Cron: monitoramento periódico (posts dos recrutadores aprovados) — a cada 6h
-  - type: cron
-    name: newdevjobs-scraper
-    runtime: node
-    schedule: "0 */6 * * *"
-    buildCommand: npm install
-    startCommand: node scraper.js --mode=monitoring
-    envVars:
-      - fromGroup: newdevjobs-secrets
+      # Processa a fila no mesmo processo. Ponha "false" só se um dia separar de
+      # novo em 2 serviços (aí volte a criar o `type: worker` acima).
+      - key: RUN_WORKER
+        value: "true"
 
   # Frontend (build Vite → estático). VITE_* são lidas em BUILD time.
   - type: web

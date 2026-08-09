@@ -125,10 +125,31 @@ Corrigido em `backend/worker.js`: o agendador agora reivindica no máximo
 `SCHEDULER_MAX_PER_TICK` (padrão **3**) por tick de 60s, com `for update skip
 locked`. Nada a fazer — só não aumente esse valor sem refazer a conta de crédito.
 
-### 4.2 Decisão necessária: quantos robôs cabem no orçamento
+### 4.2 Redimensionar (script pronto) ⬅️ **execute isto**
+
+O orçamento real saiu do histórico, não de estimativa: o melhor mês pagou
+**457 runs `done`** (jul/2026, contra 9.116 `failed`). Esse é o teto das contas free.
+
+**Configuração escolhida:** 12 robôs diários (5 stacks BR × Júnior/Pleno + os 2 de
+recrutadores salvos) = **~360 runs/mês**, ~21% abaixo do teto, mantendo
+atualização diária.
+
+```bash
+node backend/scripts/rightsize-robots.mjs --stacks="Frontend,Backend,Fullstack,Java,Python" --interval=1440 --commit
+```
+
+Rode **sem** `--commit` primeiro para revisar (é o padrão do script). Ele desativa
+em vez de apagar; `--restore --commit` reverte tudo.
+
+> Não executei: a escrita em produção ficou bloqueada pelo classificador de
+> permissões, o que aliás coincide com a regra do `CLAUDE.md` (*escrita em prod é
+> feita pelo dono*). **Enquanto não rodar, os 305 robôs seguem ativos** — o teto
+> por tick evita a avalanche, mas o crédito ainda estoura.
+
+### 4.3 Outras opções, se quiser calibrar diferente
 
 **Isto é uma escolha de produto e o número atual não é sustentável.** O histórico
-prova que ~9.330 runs/mês não cabem em 4 contas free. Opções:
+prova que ~9.330 runs/mês não cabem em 4 contas free. Alternativas:
 
 **(a) Menos robôs, mesma frequência** — mantenha só os de maior retorno:
 
@@ -161,7 +182,7 @@ where "Active" = true;
 > Seguindo o `CLAUDE.md` do projeto (*"escrita em prod é feita pelo dono"*), **não
 > rodei nenhum desses comandos** — a escolha e a execução são suas.
 
-### 4.3 Bug menor observado
+### 4.4 Bug menor observado
 
 4 runs falharam com `input.authorUrls must NOT have more than 10 items`, apesar
 de o `runMonitoring` já fatiar em lotes de 10. Sugere um caminho de código que

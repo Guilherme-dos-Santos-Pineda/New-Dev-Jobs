@@ -81,13 +81,26 @@ function makeScraperHandler(fn, label) {
 // ATÔMICA (o update já marca o próximo disparo → seguro com múltiplos workers) e
 // enfileira o run. A fila do scraper é batchSize 1, então rodam um de cada vez.
 // =========================
+// Teto de robôs reivindicados POR TICK (tick = 60s). Sem isso, um período de
+// indisponibilidade faz todos os robôs vencerem juntos e o primeiro boot dispara
+// todos de uma vez — foi o caso real de 305 robôs vencidos após o sistema ficar
+// fora do ar, o que torraria o crédito Apify em minutos.
+// O `for update skip locked` mantém a reivindicação atômica entre workers.
+const SCHEDULER_MAX_PER_TICK = Number(process.env.SCHEDULER_MAX_PER_TICK) || 3;
+
 async function runDueSchedules(boss) {
     const due = await sql`
         update "ScraperSchedules"
         set "LastRunAt" = now(),
             "NextRunAt" = now() + interval '1 minute' * "IntervalMinutes",
             "UpdatedAt" = now()
-        where "Active" = true and ("NextRunAt" is null or "NextRunAt" <= now())
+        where "Id" in (
+            select "Id" from "ScraperSchedules"
+            where "Active" = true and ("NextRunAt" is null or "NextRunAt" <= now())
+            order by "NextRunAt" asc nulls first
+            limit ${SCHEDULER_MAX_PER_TICK}
+            for update skip locked
+        )
         returning *`;
     for (const sch of due) {
         const params = sch.Params || {};

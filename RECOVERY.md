@@ -89,15 +89,83 @@ só a lentidão do primeiro acesso.
 
 ---
 
-## 4. Robôs de coleta
+## 4. 🔴 Robôs de coleta — o verdadeiro problema de custo
 
-O cron dedicado foi removido; quem dispara o monitoramento agora é o agendador
-embutido, que lê a tabela `ScraperSchedules`.
+O banco foi restaurado com **todos os dados intactos** (12 usuários, 4.166 vagas,
+2.565 recrutadores). Mas a auditoria revelou algo mais grave que o custo do Render:
 
-- Confira em **Admin → Bots** se existe **ao menos um robô ativo do tipo
-  `monitoring`**. Se a lista estiver vazia, **nada é coletado**.
-- Para criar: `npm run seed:robots` (simula) e `npm run seed:robots -- --commit`.
-- Cada robô gasta crédito Apify — comece com poucos.
+| Métrica | Valor |
+|---|---|
+| Robôs ativos | **305**, quase todos a cada 24h |
+| Runs tentados | **~311/dia ≈ 9.330/mês** |
+| Runs `failed` | **12.887** |
+| Runs `done` | 653 |
+| Último run **bem-sucedido** | **08/07/2026** |
+
+**Causa das falhas** (agrupada de `ScraperRuns.Error`):
+
+```
+8.515x  Todas as contas Apify estão sem crédito este mês
+4.358x  Monthly usage hard limit exceeded
+```
+
+**Leitura:** 305 robôs diários consomem ordens de grandeza mais crédito do que as
+4 contas Apify gratuitas fornecem. O crédito estourava, tudo passava a falhar, e
+**o scraper estava efetivamente morto desde 08/07** — semanas antes de você tirar
+o sistema do ar. Ou seja: o produto já não coletava vagas novas havia um bom
+tempo. Isso pesa tanto quanto o pool do banco na sensação de "não aguentava".
+
+### 4.1 Avalanche no primeiro boot (já corrigido no código)
+
+Os 305 robôs estão **todos vencidos** (o mais antigo desde 31/07). O agendador
+reivindicava *todos os vencidos de uma vez*, então o primeiro boot dispararia
+**305 runs simultâneos** e torraria qualquer crédito na hora.
+
+Corrigido em `backend/worker.js`: o agendador agora reivindica no máximo
+`SCHEDULER_MAX_PER_TICK` (padrão **3**) por tick de 60s, com `for update skip
+locked`. Nada a fazer — só não aumente esse valor sem refazer a conta de crédito.
+
+### 4.2 Decisão necessária: quantos robôs cabem no orçamento
+
+**Isto é uma escolha de produto e o número atual não é sustentável.** O histórico
+prova que ~9.330 runs/mês não cabem em 4 contas free. Opções:
+
+**(a) Menos robôs, mesma frequência** — mantenha só os de maior retorno:
+
+```sql
+-- Desativa tudo e reativa apenas os robôs "BR" de stacks principais (~40).
+update "ScraperSchedules" set "Active" = false;
+update "ScraperSchedules" set "Active" = true
+where "Name" like '%· BR' and "Type" = 'monitoring'
+  and split_part("Name", ' · ', 1) in
+      ('Java','Python','React','Node.js','TypeScript','Frontend','Backend','Fullstack','QA','Dados');
+```
+
+**(b) Mesmos robôs, muito menos frequência** — de diário para ~quinzenal:
+
+```sql
+update "ScraperSchedules" set "IntervalMinutes" = 20160 where "Active" = true; -- 14 dias
+```
+
+**(c) Assinar o Apify** — se a coleta é o core do produto, um plano pago pode
+fazer mais sentido que cortar cobertura. Aí o gargalo deixa de ser crédito.
+
+Depois de escolher, **espalhe os disparos** para não concentrar tudo num dia:
+
+```sql
+update "ScraperSchedules"
+set "NextRunAt" = now() + (random() * interval '14 days')
+where "Active" = true;
+```
+
+> Seguindo o `CLAUDE.md` do projeto (*"escrita em prod é feita pelo dono"*), **não
+> rodei nenhum desses comandos** — a escolha e a execução são suas.
+
+### 4.3 Bug menor observado
+
+4 runs falharam com `input.authorUrls must NOT have more than 10 items`, apesar
+de o `runMonitoring` já fatiar em lotes de 10. Sugere um caminho de código que
+escapa do fatiamento. Baixo impacto perto do resto, mas vale investigar depois.
 
 ---
 

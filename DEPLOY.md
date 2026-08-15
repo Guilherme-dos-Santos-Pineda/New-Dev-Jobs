@@ -1,6 +1,24 @@
-# Deploy — newdevjobs (Render + Supabase)
+# Deploy — newdevjobs
 
-Arquitetura em produção (**custo: US$ 0/mês**):
+> ## 📍 Arquitetura atual: Oracle Cloud + Cloudflare Pages
+>
+> A hospedagem saiu do Render. O destino de cada parte:
+>
+> | Parte | Onde | Guia |
+> | --- | --- | --- |
+> | API + worker | **Oracle Cloud** (Always Free, 24/7) | [`deploy/oracle/README.md`](deploy/oracle/README.md) |
+> | App + landing | **Cloudflare Pages** | seção 3-B abaixo |
+> | Banco / Auth / Storage | **Supabase** free | seção 1 |
+>
+> O worker roda **embutido na API**, então a API precisa ficar **acordada** —
+> por isso uma VM (que não dorme) em vez de free tiers que hibernam.
+>
+> As seções sobre Render abaixo ficam como **referência histórica** (o
+> `render.yaml` segue no repo e funciona no plano `free`, caso queira voltar).
+
+---
+
+Arquitetura anterior no Render (**custo: US$ 0/mês** no plano free):
 - **Supabase** — Postgres + Auth + Storage (já provisionado).
 - **Render** — **1 serviço Node** no plano `free`: `newdevjobs-api` (HTTP **+ worker embutido**:
   envios, runs do scraper e agendador de robôs, tudo no mesmo processo) + 2 sites
@@ -61,6 +79,29 @@ Copie os `STRIPE_PRICE_STARTER` / `STRIPE_PRICE_PRO` impressos para o env group.
    - `VITE_API_URL=https://<api>.onrender.com`
    - `VITE_STRIPE_PUBLISHABLE_KEY=pk_...`
 4. Deploy. Confira `https://<api>.onrender.com/api/health`.
+
+## 3-B. Cloudflare Pages — app + landing (grátis, sem sleep)
+
+Os dois sites são **estáticos**, então não precisam de servidor. O Cloudflare
+Pages é gratuito, com banda ilimitada e sem hibernar. Faça **dois projetos**:
+
+| Projeto | Build command | Output | Root |
+| --- | --- | --- | --- |
+| `newdevjobs-app` | `npm install && npm run build` | `dist` | `frontend` |
+| `newdevjobs-site` | *(nenhum)* | `pages` | *(raiz)* |
+
+1. Cloudflare → **Workers & Pages → Create → Pages → Connect to Git** → escolha
+   o repositório e preencha conforme a tabela.
+2. No projeto do **app**, em *Settings → Environment variables*, defina as
+   `VITE_*` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL`,
+   `VITE_STRIPE_PUBLISHABLE_KEY`). São lidas em **build time** — mudou, refaça o
+   deploy.
+3. Domínios em *Custom domains*: app → `app.newdevjobs.xyz`,
+   landing → `newdevjobs.xyz` + `www` (ver seção 7.1).
+
+Os arquivos de configuração já estão no repo e são lidos automaticamente:
+`frontend/public/_redirects` (SPA fallback do React Router) e `_headers`
+(X-Frame-Options / nosniff / Referrer-Policy) em `frontend/public/` e `pages/`.
 
 ## 4. Google OAuth (login + Gmail)
 No **Google Cloud Console → Credenciais → OAuth client**, em *Authorized redirect URIs* adicione:

@@ -1,0 +1,49 @@
+# systemd unit da API newdevjobs (com o worker EMBUTIDO: fila de envios,
+# runs do scraper e agendador de robôs rodam no mesmo processo).
+#
+# Instalar:
+#   sudo cp deploy/oracle/newdevjobs.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now newdevjobs
+# Logs:
+#   journalctl -u newdevjobs -f
+#
+# Não usamos EnvironmentFile: a app carrega o .env sozinha (dotenv) a partir do
+# WorkingDirectory. Isso evita o parser do systemd, que trata aspas e caracteres
+# especiais de forma diferente do shell (a DATABASE_URL tem senha com escapes).
+
+[Unit]
+Description=newdevjobs API (worker embutido)
+Documentation=https://github.com/Guilherme-dos-Santos-Pineda/New-Dev-Jobs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/newdevjobs
+Environment=NODE_ENV=production
+# RUN_WORKER=true é o padrão da app; explícito aqui para deixar claro que este
+# processo TAMBÉM consome a fila. Não suba um segundo processo com isto ligado,
+# senão os envios saem duplicados.
+Environment=RUN_WORKER=true
+ExecStart=/usr/bin/node backend/server.js
+
+# Sempre de volta ao ar: cobre crash, OOM e reboot da VM.
+Restart=always
+RestartSec=5
+# Se falhar 5x em 60s, espera antes de insistir (evita loop apertado de restart).
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=newdevjobs
+
+# Endurecimento básico (a app só precisa ler o próprio diretório e sair pra rede).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

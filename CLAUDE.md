@@ -6,7 +6,9 @@ regra existente, não acrescente uma nova que a contradiga.
 
 ## Arquitetura (resumo)
 - `backend/` — API Express (`server.js`) **com o worker embutido** (`worker.js` exporta `startWorker()`; fila pg-boss: envios + scraper + agendador de robôs). Postgres via `lib/sql.js`.
-  - **1 processo em produção** (`RUN_WORKER=true`, padrão) → cabe no plano free do Render. `RUN_WORKER=false` volta ao modelo de 2 processos (`npm run worker`).
+  - **1 processo em produção** (`RUN_WORKER=true`, padrão) → hospedagem a custo zero. `RUN_WORKER=false` volta ao modelo de 2 processos (`npm run worker`).
+  - **Nunca suba 2 processos com `RUN_WORKER=true`** na mesma fila: os envios saem duplicados.
+  - Hospedagem: **API+worker na VM Oracle Cloud** (Always Free, 24/7 — o worker embutido não pode hibernar); **app e landing no Cloudflare Pages**. Guia em [deploy/oracle/README.md](deploy/oracle/README.md).
   - Ao mexer no boot: `worker.js` só auto-executa quando é o entrypoint — não remova essa checagem, senão o worker sobe duas vezes e duplica envios.
 
 ## Banco / conexões (não regredir)
@@ -48,7 +50,7 @@ regra existente, não acrescente uma nova que a contradiga.
 ## Segurança (invariantes)
 - Admin = allowlist `ADMIN_EMAILS` **ou** `Users.Role='admin'`. **Sem fallback aberto.**
 - `/jobs` e `/jobs/matches` **nunca** devolvem o email de contato (envio é server-side); plano free também não recebe a descrição.
-- Segredos só no `.env` (gitignored) e no Render — **nunca** no código/commits.
+- Segredos só no `.env` (gitignored) e no painel do provedor — **nunca** no código/commits. ⚠️ O repositório é **público**.
 - `/ranking` **não expõe nome completo** (abrevia: "Primeiro S."). Logout do front chama `POST /api/auth/logout` (purga o token do cache do middleware — sem isso o token deslogado valeria por até 60s).
 - Headers de segurança dos **sites estáticos** (app + landing) vivem no `render.yaml` (`headers:` — X-Frame-Options etc.); o helmet cobre **só a API**.
 - Mensagens de erro de auth no front são **genéricas** (anti-enumeração de email) — ver `frontend/src/lib/authErrors.js`.

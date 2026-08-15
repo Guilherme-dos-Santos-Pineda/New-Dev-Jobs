@@ -42,7 +42,7 @@
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
                     <i class="ti ti-sun icon-sun"></i><i class="ti ti-moon icon-moon"></i>
                 </button>
-                <a class="nav-cta" href="https://newdevjobs-frontend.onrender.com/login"><i class="ti ti-login-2"></i> entrar</a>
+                <a class="nav-cta" data-app-link="/login" href="https://newdevjobs-frontend.onrender.com/login"><i class="ti ti-login-2"></i> entrar</a>
             </div>
         </nav>
 
@@ -120,6 +120,17 @@
             const dark = h.classList.toggle('dark');
             localStorage.setItem('theme', dark ? 'dark' : 'light');
         }
+
+        // Aponta o "entrar" para o app: apex (layout antigo) ou "app." (após a
+        // troca de domínios). O href estático do HTML é o fallback sem JS.
+        (function () {
+            const h = location.hostname;
+            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('onrender.com')) return;
+            const base = h.startsWith('landing.')
+                ? 'https://' + h.slice(8)
+                : 'https://app.' + h.replace(/^www\./, '');
+            document.querySelectorAll('[data-app-link]').forEach((a) => { a.href = base + a.dataset.appLink; });
+        })();
     </script>
 </body>
 </html>

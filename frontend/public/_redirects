@@ -1,0 +1,4 @@
+# SPA fallback (React Router): qualquer rota devolve o index.html com HTTP 200.
+# Equivale ao `routes: rewrite` que o app tinha no render.yaml.
+# Formato lido por Cloudflare Pages e Netlify.
+/*    /index.html   200

@@ -1,0 +1,7 @@
+# Headers de segurança da landing (o helmet cobre só a API; estáticos precisam disto).
+# Espelha o bloco `headers:` que o serviço tinha no render.yaml.
+# Formato lido por Cloudflare Pages e Netlify.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

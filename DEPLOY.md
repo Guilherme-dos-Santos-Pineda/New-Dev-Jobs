@@ -67,7 +67,57 @@ Use o `whsec_` que ele imprime no `.env` local.
 - Admin → Bots → **Rodar descoberta/monitoramento** → recrutadores/vagas populam; histórico atualiza.
 - Envio de candidatura espaçado pelo worker.
 
-## 7. Segurança (importante)
+## 7. Troca de domínios (landing no apex, app em `app.`) — SEO
+
+Hoje o apex (`newdevjobs.xyz`) serve o **app React** (uma tela de login, sem
+conteúdo indexável) e a **landing** vive num subdomínio. Isso é o inverso do
+recomendado: o domínio de maior autoridade deveria servir o conteúdo.
+
+| Domínio | Deve servir | Serviço no Render |
+| --- | --- | --- |
+| `newdevjobs.xyz` + `www` | **landing** (estático) | `newdevjobs-site` |
+| `app.newdevjobs.xyz` | **app React** | `newdevjobs-frontend` |
+| `landing.newdevjobs.xyz` | mantém a landing (canonical aponta pro apex) | `newdevjobs-site` |
+
+> **Não** transforme a landing numa rota do app: ela é HTML estático (ótimo para
+> SEO); dentro do SPA viraria conteúdo renderizado por JS — pior para indexação.
+
+O código já é **tolerante aos dois arranjos** (`appBase()` em `pages/*.html`
+decide pelo hostname), então a ordem abaixo não tem janela de quebra.
+
+### Ordem (nesta sequência)
+1. **Render → `newdevjobs-frontend`** → Settings → Custom Domains: adicione
+   `app.newdevjobs.xyz`; **remova** `newdevjobs.xyz`/`www`.
+2. **Render → `newdevjobs-site`**: adicione `newdevjobs.xyz` e `www.newdevjobs.xyz`
+   (mantenha `landing.newdevjobs.xyz`).
+3. **DNS** (no registrador): `CNAME app` → alvo do `newdevjobs-frontend`;
+   apex/`www` → alvo do `newdevjobs-site`. Use exatamente os alvos que o Render
+   mostrar. Aguarde o SSL ficar verde nos dois serviços.
+4. **Google Cloud → OAuth client** → *Authorized redirect URIs*: o callback é da
+   **API** (`https://<api>.onrender.com/...`), então **não muda**; mas em
+   *Authorized JavaScript origins* troque o apex por `https://app.newdevjobs.xyz`.
+5. **Supabase → Authentication → URL Configuration**: *Site URL* =
+   `https://app.newdevjobs.xyz`; em *Redirect URLs* adicione
+   `https://app.newdevjobs.xyz/**` (remova o apex).
+6. **Render → env group**: `FRONTEND_URL=https://app.newdevjobs.xyz` → redeploy
+   da **API** (o backend usa isso nos redirects do OAuth e do Stripe).
+7. **Só depois de 1–6**, aplique o *flip de SEO* (canonical/OG/JSON-LD/sitemap/
+   robots apontando para o apex) e faça o deploy da landing.
+
+⚠️ O passo 7 **não pode vir antes** do 1–3: com o canonical apontando para o apex
+enquanto o apex ainda serve o app, o Google seguiria o canonical até uma página
+de login e poderia desindexar a landing.
+
+### Depois da virada
+- **Google Search Console**: adicione a propriedade de domínio `newdevjobs.xyz`
+  (verificação por DNS TXT), envie `https://newdevjobs.xyz/sitemap.xml` e use
+  *Inspeção de URL → Solicitar indexação* na home.
+- `landing.newdevjobs.xyz` continua respondendo; o `canonical` consolida a
+  autoridade no apex (não é preciso 301).
+- Confira o login ponta a ponta (email/senha **e** Google) em `app.` antes de
+  divulgar.
+
+## 8. Segurança (importante)
 - **Rotacione** chaves que já circularam fora do cofre: `APIFY_TOKEN` (estava hardcoded no `scraper.js`) e, se for o caso, as chaves de teste do Stripe.
 - O `.env` é gitignored — nunca commitar segredos. Em produção tudo vem do env group do Render.
 - RLS habilitado no Supabase; todo acesso passa pela API com `service_role`.

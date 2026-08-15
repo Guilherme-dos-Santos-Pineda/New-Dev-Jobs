@@ -5,7 +5,15 @@ existe (não duplicar nem criar regra conflitante). Mudou uma convenção? Edite
 regra existente, não acrescente uma nova que a contradiga.
 
 ## Arquitetura (resumo)
-- `backend/` — API Express (`server.js`) + worker (`worker.js`, fila pg-boss: envios + scraper + agendador de robôs). Postgres via `lib/sql.js`.
+- `backend/` — API Express (`server.js`) **com o worker embutido** (`worker.js` exporta `startWorker()`; fila pg-boss: envios + scraper + agendador de robôs). Postgres via `lib/sql.js`.
+  - **1 processo em produção** (`RUN_WORKER=true`, padrão) → cabe no plano free do Render. `RUN_WORKER=false` volta ao modelo de 2 processos (`npm run worker`).
+  - Ao mexer no boot: `worker.js` só auto-executa quando é o entrypoint — não remova essa checagem, senão o worker sobe duas vezes e duplica envios.
+
+## Banco / conexões (não regredir)
+- **Queries da app** (`lib/sql.js`) → pooler em **transaction mode (6543)**, derivado automaticamente da `DATABASE_URL`. Exige `prepare:false`.
+- **pg-boss** (`lib/boss.js`) → **session mode (5432)**, porque depende de advisory locks. **Nunca** apontar o pg-boss para o 6543.
+- Motivo: o session mode limita **~15 conexões no projeto todo**; abríamos 16 (API 6 + worker 6 + cron 4) e a app caía sob carga. Regressão coberta em `backend/test/sqlPool.test.js`.
+- Antes de criar processo novo que fale com o banco, **refaça essa conta**.
 - `frontend/` — React + Vite (app/dashboard).
 - `pages/` — site estático. A **landing (`index.html`) tem PT/EN** (toggle próprio, ver i18n abaixo). **docs/termos/privacidade** ficam **só em PT** por enquanto.
   - **SEO**: domínio canônico **`https://landing.newdevjobs.xyz`**. Cada página tem `canonical`+`robots`+Open Graph; a home tem JSON-LD (`SoftwareApplication`). `robots.txt` e `sitemap.xml` na raiz. Ao **adicionar/renomear página**, atualize o `sitemap.xml` e o `canonical` dela. Imagem de compartilhamento: `og-image.png` (gerado de `og-image.svg` via `npx sharp-cli -i og-image.svg -o og-image.png resize 1200 630`).

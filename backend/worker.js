@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { pathToFileURL } from 'node:url';
 import sql from './lib/sql.js';
 import { getBoss, SEND_QUEUE, SEND_DLQ, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from './lib/boss.js';
 import { applyToJob, ApplyError } from './services/sender.js';
@@ -80,13 +81,26 @@ function makeScraperHandler(fn, label) {
 // ATÔMICA (o update já marca o próximo disparo → seguro com múltiplos workers) e
 // enfileira o run. A fila do scraper é batchSize 1, então rodam um de cada vez.
 // =========================
+// Teto de robôs reivindicados POR TICK (tick = 60s). Sem isso, um período de
+// indisponibilidade faz todos os robôs vencerem juntos e o primeiro boot dispara
+// todos de uma vez — foi o caso real de 305 robôs vencidos após o sistema ficar
+// fora do ar, o que torraria o crédito Apify em minutos.
+// O `for update skip locked` mantém a reivindicação atômica entre workers.
+const SCHEDULER_MAX_PER_TICK = Number(process.env.SCHEDULER_MAX_PER_TICK) || 3;
+
 async function runDueSchedules(boss) {
     const due = await sql`
         update "ScraperSchedules"
         set "LastRunAt" = now(),
             "NextRunAt" = now() + interval '1 minute' * "IntervalMinutes",
             "UpdatedAt" = now()
-        where "Active" = true and ("NextRunAt" is null or "NextRunAt" <= now())
+        where "Id" in (
+            select "Id" from "ScraperSchedules"
+            where "Active" = true and ("NextRunAt" is null or "NextRunAt" <= now())
+            order by "NextRunAt" asc nulls first
+            limit ${SCHEDULER_MAX_PER_TICK}
+            for update skip locked
+        )
         returning *`;
     for (const sch of due) {
         const params = sch.Params || {};
@@ -122,11 +136,23 @@ function startScheduler(boss) {
     return setInterval(tick, 60000);
 }
 
-async function main() {
+// =========================
+// Inicialização
+// =========================
+// Roda em dois modos:
+//   • EMBUTIDO na API (`server.js` chama startWorker() quando RUN_WORKER=true) —
+//     é o modo de produção no plano gratuito: 1 processo só em vez de 2 serviços.
+//   • STANDALONE (`npm run worker`) — dev, ou produção com processos separados
+//     quando houver volume para justificar.
+// Em ambos os casos os handlers são os mesmos; muda só quem controla o shutdown.
+export async function startWorker({ standalone = false } = {}) {
     const boss = await getBoss();
     if (!boss) {
-        console.error('DATABASE_URL ausente — o worker não pode iniciar.');
-        process.exit(1);
+        const msg = 'DATABASE_URL ausente — o worker não pode iniciar.';
+        if (standalone) { console.error(msg); process.exit(1); }
+        // Embutido: a API segue servindo HTTP mesmo sem fila (degrada, não derruba).
+        console.error(`${msg} A API continua no ar, mas envios/robôs ficam parados.`);
+        return null;
     }
 
     await boss.work(SEND_QUEUE, { batchSize: 1, pollingIntervalSeconds: 1 }, handleSend);
@@ -137,16 +163,26 @@ async function main() {
 
     // Agendador dos robôs (ScraperSchedules)
     const scheduler = startScheduler(boss);
-    console.log(`🤖 worker ativo: envios${DEV_LABEL()} + scraper (discovery/monitoring) + agendador`);
+    console.log(`🤖 worker ativo (${standalone ? 'standalone' : 'embutido na API'}): envios${DEV_LABEL()} + scraper (discovery/monitoring) + agendador`);
 
-    const shutdown = async (sig) => {
-        console.log(`\n${sig} recebido — encerrando worker…`);
+    const stop = async () => {
         clearInterval(scheduler);
         try { await boss.stop({ graceful: true, timeout: 30000 }); } catch {}
-        process.exit(0);
     };
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+    // Standalone controla o próprio ciclo de vida. Embutido, quem encerra é o
+    // server.js (para o HTTP drenar antes) — por isso não registramos sinais aqui.
+    if (standalone) {
+        const shutdown = async (sig) => {
+            console.log(`\n${sig} recebido — encerrando worker…`);
+            await stop();
+            process.exit(0);
+        };
+        process.on('SIGINT', () => shutdown('SIGINT'));
+        process.on('SIGTERM', () => shutdown('SIGTERM'));
+    }
+
+    return stop;
 }
 
 function DEV_LABEL() {
@@ -154,7 +190,12 @@ function DEV_LABEL() {
     return ms ? `, espaçamento dev ${ms}ms` : ', espaçamento 60–120s';
 }
 
-main().catch((e) => {
-    console.error('worker falhou ao iniciar:', e);
-    process.exit(1);
-});
+// Só auto-executa quando chamado direto (`node backend/worker.js`), nunca quando
+// importado pelo server.js — senão o worker subiria duas vezes.
+const isEntrypoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntrypoint) {
+    startWorker({ standalone: true }).catch((e) => {
+        console.error('worker falhou ao iniciar:', e);
+        process.exit(1);
+    });
+}

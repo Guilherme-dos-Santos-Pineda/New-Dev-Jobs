@@ -16,6 +16,10 @@ Description=newdevjobs API (worker embutido)
 Documentation=https://github.com/Guilherme-dos-Santos-Pineda/New-Dev-Jobs
 After=network-online.target
 Wants=network-online.target
+# Se falhar 5x em 60s, espera antes de insistir (evita loop apertado de restart).
+# StartLimit* pertencem a [Unit]; em [Service] o systemd ignora e loga aviso.
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -31,9 +35,6 @@ ExecStart=/usr/bin/node backend/server.js
 # Sempre de volta ao ar: cobre crash, OOM e reboot da VM.
 Restart=always
 RestartSec=5
-# Se falhar 5x em 60s, espera antes de insistir (evita loop apertado de restart).
-StartLimitIntervalSec=60
-StartLimitBurst=5
 
 StandardOutput=journal
 StandardError=journal

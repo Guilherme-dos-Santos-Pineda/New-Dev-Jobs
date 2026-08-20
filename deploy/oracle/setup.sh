@@ -18,11 +18,11 @@ DOMAIN=${DOMAIN:-api.newdevjobs.xyz}
 
 say() { printf '\n\033[1;34m==> %s\033[0m\n' "$1"; }
 
-say "1/7 Pacotes base"
+say "1/8 Pacotes base"
 sudo apt-get update -y
 sudo apt-get install -y curl git nginx ca-certificates
 
-say "2/7 Node.js ${NODE_MAJOR}.x (build ARM64 nativo)"
+say "2/8 Node.js ${NODE_MAJOR}.x (NodeSource detecta ARM64 ou x86)"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt "$NODE_MAJOR" ]; then
     curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | sudo -E bash -
     sudo apt-get install -y nodejs
@@ -30,11 +30,32 @@ fi
 node -v
 
 # ---------------------------------------------------------------------------
+# Swap: as formas Always Free menores (ex.: VM.Standard.E2.1.Micro) têm só 1 GB
+# de RAM. Sem swap, o Node é morto pelo OOM killer durante `npm install` ou num
+# pico do scraper. Cria 2 GB de swap quando a RAM for menor que 2 GB.
+# ---------------------------------------------------------------------------
+say "3/8 Swap (só em VM com pouca RAM)"
+mem_mb=$(free -m | awk '/^Mem:/{print $2}')
+if [ "$mem_mb" -lt 2000 ] && [ ! -f /swapfile ]; then
+    echo "RAM de ${mem_mb}MB — criando 2G de swap"
+    sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    # Prioriza RAM; usa swap só quando apertar de verdade.
+    sudo sysctl -w vm.swappiness=10 >/dev/null
+    grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf >/dev/null
+else
+    echo "RAM de ${mem_mb}MB — swap não necessário (ou já existe)"
+fi
+
+# ---------------------------------------------------------------------------
 # PEGADINHA DA ORACLE: as imagens Ubuntu da OCI vêm com iptables bloqueando
 # tudo menos SSH. Abrir a porta na Security List do painel NÃO basta — o
 # pacote chega na VM e morre no firewall local. Por isso os dois passos.
 # ---------------------------------------------------------------------------
-say "3/7 Firewall local (iptables) — liberando 80/443"
+say "4/8 Firewall local (iptables) — liberando 80/443"
 # O -C testa EXATAMENTE a mesma regra que o -I insere; se divergirem, cada
 # execução do script empilha uma regra duplicada.
 for port in 80 443; do
@@ -47,7 +68,7 @@ sudo apt-get install -y iptables-persistent netfilter-persistent
 sudo netfilter-persistent save
 echo "⚠️  Falta liberar 80/443 TAMBÉM na Security List da OCI (painel web)."
 
-say "4/7 Código em ${APP_DIR}"
+say "5/8 Código em ${APP_DIR}"
 sudo mkdir -p "$APP_DIR"
 sudo chown -R "$USER":"$USER" "$APP_DIR"
 if [ -d "$APP_DIR/.git" ]; then
@@ -56,16 +77,16 @@ else
     git clone --depth 1 "$REPO" "$APP_DIR"
 fi
 
-say "5/7 Dependências (sem devDependencies)"
+say "6/8 Dependências (sem devDependencies)"
 cd "$APP_DIR"
 npm ci --omit=dev 2>/dev/null || npm install --omit=dev
 
-say "6/7 systemd"
+say "7/8 systemd"
 sudo cp "$APP_DIR/deploy/oracle/newdevjobs.service" /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable newdevjobs
 
-say "7/7 nginx"
+say "8/8 nginx"
 sudo cp "$APP_DIR/deploy/oracle/nginx-newdevjobs.conf" /etc/nginx/sites-available/newdevjobs
 sudo sed -i "s/api\.newdevjobs\.xyz/${DOMAIN}/g" /etc/nginx/sites-available/newdevjobs
 sudo ln -sf /etc/nginx/sites-available/newdevjobs /etc/nginx/sites-enabled/newdevjobs

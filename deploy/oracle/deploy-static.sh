@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Publica os estáticos (landing + app React) em /var/www/newdevjobs.
-# Rodar NA VM:  bash /opt/newdevjobs/deploy/oracle/deploy-static.sh
+#
+# Rodar NA VM. Na PRIMEIRA vez o script ainda não existe no clone local,
+# então atualize o repositório antes (depois disso, basta chamar o script,
+# que já faz o pull sozinho):
+#
+#   git -C /opt/newdevjobs fetch --all && git -C /opt/newdevjobs reset --hard origin/main
+#   bash /opt/newdevjobs/deploy/oracle/deploy-static.sh
 #
 # O app React precisa de um `dist` já compilado. São duas formas:
 #

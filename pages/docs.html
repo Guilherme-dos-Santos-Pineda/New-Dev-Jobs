@@ -45,7 +45,7 @@
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
                     <i class="ti ti-sun icon-sun"></i><i class="ti ti-moon icon-moon"></i>
                 </button>
-                <a class="nav-cta" data-app-link="/login" href="https://newdevjobs-frontend.onrender.com/login"><i class="ti ti-login-2"></i> entrar</a>
+                <a class="nav-cta" data-app-link="/login" href="https://app.newdevjobs.xyz/login"><i class="ti ti-login-2"></i> entrar</a>
             </div>
         </nav>
 
@@ -114,7 +114,7 @@
             <h3>Como funciona a privacidade dos meus dados?</h3>
             <p>Veja a <a href="privacidade.html">Política de Privacidade</a> e os <a href="termos.html">Termos de Uso</a>.</p>
 
-            <div class="note" style="margin-top:28px"><i class="ti ti-rocket"></i><span>Pronto para começar? <a href="https://newdevjobs-frontend.onrender.com/signup">Crie sua conta grátis</a> e configure em menos de 5 minutos.</span></div>
+            <div class="note" style="margin-top:28px"><i class="ti ti-rocket"></i><span>Pronto para começar? <a href="https://app.newdevjobs.xyz/signup">Crie sua conta grátis</a> e configure em menos de 5 minutos.</span></div>
         </article>
 
         <footer>
@@ -137,10 +137,10 @@
         // troca de domínios). O href estático do HTML é o fallback sem JS.
         (function () {
             const h = location.hostname;
-            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('onrender.com')) return;
-            const base = h.startsWith('landing.')
-                ? 'https://' + h.slice(8)
-                : 'https://app.' + h.replace(/^www\./, '');
+            // Preview/local nao tem um "app." irmao: o href estatico ja aponta
+            // para producao, entao nao ha o que reescrever.
+            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('.pages.dev')) return;
+            const base = 'https://app.' + h.replace(/^(landing|www)\./, '');
             document.querySelectorAll('[data-app-link]').forEach((a) => { a.href = base + a.dataset.appLink; });
         })();
     </script>

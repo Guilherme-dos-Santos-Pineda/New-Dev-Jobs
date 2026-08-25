@@ -1009,20 +1009,20 @@
 
     <!-- ==================== SCRIPT TEMA ==================== -->
     <script>
-        // Detecta o domínio do app automaticamente. Funciona ANTES e DEPOIS da
-        // troca de domínios (landing no apex / app em "app."), sem dia-D:
-        //  • landing.SEU-DOMINIO → app no apex        (layout antigo)
-        //  • SEU-DOMINIO / www.  → app em app.        (layout novo)
-        //  • local / onrender    → app no Render      (fallback)
+        // Detecta o domínio do app automaticamente. O app vive SEMPRE em "app."
+        // do domínio raiz; a landing pode ser servida do apex, de "www." ou de
+        // "landing." — os três resolvem para o mesmo lugar.
+        //  • landing./www./apex → app em app.SEU-DOMINIO
+        //  • local / *.pages.dev (preview do Cloudflare) → app em produção
+        const APP_URL = 'https://app.newdevjobs.xyz';
         function appBase() {
             const h = location.hostname;
-            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('onrender.com')) {
-                return 'https://newdevjobs-frontend.onrender.com';
+            // Preview/local não têm um "app." irmão: cai no domínio de produção.
+            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('.pages.dev')) {
+                return APP_URL;
             }
-            // Servida de "landing." → o app ainda vive no apex.
-            if (h.startsWith('landing.')) return 'https://' + h.slice(8);
-            // Servida do apex/www → o app vive em "app.".
-            return 'https://app.' + h.replace(/^www\./, '');
+            // Tira o rótulo da landing ("landing." / "www.") e prefixa "app.".
+            return 'https://app.' + h.replace(/^(landing|www)\./, '');
         }
         function go(path) { location.href = appBase() + path; }
 

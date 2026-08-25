@@ -59,9 +59,11 @@ say "4/8 Firewall local (iptables) — liberando 80/443"
 # O -C testa EXATAMENTE a mesma regra que o -I insere; se divergirem, cada
 # execução do script empilha uma regra duplicada.
 for port in 80 443; do
-    if ! sudo iptables -C INPUT -m state --state NEW -p tcp --dport "$port" -j ACCEPT 2>/dev/null; then
-        # Insere ANTES do REJECT final que as imagens da OCI trazem por padrão.
-        sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$port" -j ACCEPT
+    if ! sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null; then
+        # Posicao 1: a chain INPUT das imagens da OCI termina com REJECT; inserir
+        # no meio (ex.: 6) pode cair DEPOIS dele — a regra existe mas nunca e
+        # alcancada, e a porta segue fechada. No topo funciona em qualquer layout.
+        sudo iptables -I INPUT 1 -p tcp --dport "$port" -j ACCEPT
     fi
 done
 sudo apt-get install -y iptables-persistent netfilter-persistent

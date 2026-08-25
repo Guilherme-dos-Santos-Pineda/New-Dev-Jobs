@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://landing.newdevjobs.xyz/sitemap.xml
+Sitemap: https://newdevjobs.xyz/sitemap.xml

@@ -6,16 +6,16 @@
     <title>Como usar o newdevjobs — guia do usuário</title>
     <meta name="description" content="Guia rápido: monte seu perfil, conecte o Gmail e receba candidaturas automáticas no newdevjobs.">
     <meta name="robots" content="index, follow, max-image-preview:large">
-    <link rel="canonical" href="https://landing.newdevjobs.xyz/docs.html">
+    <link rel="canonical" href="https://newdevjobs.xyz/docs.html">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="newdevjobs">
     <meta property="og:locale" content="pt_BR">
     <meta property="og:title" content="Como usar o newdevjobs — guia do usuário">
     <meta property="og:description" content="Monte seu perfil, conecte o Gmail e receba candidaturas automáticas.">
-    <meta property="og:url" content="https://landing.newdevjobs.xyz/docs.html">
-    <meta property="og:image" content="https://landing.newdevjobs.xyz/og-image.png">
+    <meta property="og:url" content="https://newdevjobs.xyz/docs.html">
+    <meta property="og:image" content="https://newdevjobs.xyz/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://landing.newdevjobs.xyz/og-image.png">
+    <meta name="twitter:image" content="https://newdevjobs.xyz/og-image.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +45,7 @@
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
                     <i class="ti ti-sun icon-sun"></i><i class="ti ti-moon icon-moon"></i>
                 </button>
-                <a class="nav-cta" data-app-link="/login" href="https://app.newdevjobs.xyz/login"><i class="ti ti-login-2"></i> entrar</a>
+                <a class="nav-cta" href="/login"><i class="ti ti-login-2"></i> entrar</a>
             </div>
         </nav>
 
@@ -114,7 +114,7 @@
             <h3>Como funciona a privacidade dos meus dados?</h3>
             <p>Veja a <a href="privacidade.html">Política de Privacidade</a> e os <a href="termos.html">Termos de Uso</a>.</p>
 
-            <div class="note" style="margin-top:28px"><i class="ti ti-rocket"></i><span>Pronto para começar? <a href="https://app.newdevjobs.xyz/signup">Crie sua conta grátis</a> e configure em menos de 5 minutos.</span></div>
+            <div class="note" style="margin-top:28px"><i class="ti ti-rocket"></i><span>Pronto para começar? <a href="/signup">Crie sua conta grátis</a> e configure em menos de 5 minutos.</span></div>
         </article>
 
         <footer>
@@ -133,16 +133,6 @@
             localStorage.setItem('theme', dark ? 'dark' : 'light');
         }
 
-        // Aponta o "entrar" para o app: apex (layout antigo) ou "app." (após a
-        // troca de domínios). O href estático do HTML é o fallback sem JS.
-        (function () {
-            const h = location.hostname;
-            // Preview/local nao tem um "app." irmao: o href estatico ja aponta
-            // para producao, entao nao ha o que reescrever.
-            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('.pages.dev')) return;
-            const base = 'https://app.' + h.replace(/^(landing|www)\./, '');
-            document.querySelectorAll('[data-app-link]').forEach((a) => { a.href = base + a.dataset.appLink; });
-        })();
     </script>
 </body>
 </html>

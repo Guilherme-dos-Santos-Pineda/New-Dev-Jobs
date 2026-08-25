@@ -8,7 +8,9 @@ regra existente, não acrescente uma nova que a contradiga.
 - `backend/` — API Express (`server.js`) **com o worker embutido** (`worker.js` exporta `startWorker()`; fila pg-boss: envios + scraper + agendador de robôs). Postgres via `lib/sql.js`.
   - **1 processo em produção** (`RUN_WORKER=true`, padrão) → hospedagem a custo zero. `RUN_WORKER=false` volta ao modelo de 2 processos (`npm run worker`).
   - **Nunca suba 2 processos com `RUN_WORKER=true`** na mesma fila: os envios saem duplicados.
-  - Hospedagem: **API+worker na VM Oracle Cloud** (Always Free, 24/7 — o worker embutido não pode hibernar); **app e landing no Cloudflare Pages**. Guia em [deploy/oracle/README.md](deploy/oracle/README.md).
+  - Hospedagem: **tudo na VM Oracle Cloud** (Always Free, 24/7 — o worker embutido não pode hibernar). O nginx serve os três papéis no **mesmo domínio** (`newdevjobs.xyz`): landing estática na raiz, app React em `/login`, `/signup` e `/app/*`, e `/api/*` como proxy pro Node em `:3001`. Guia em [deploy/oracle/README.md](deploy/oracle/README.md).
+  - **Mesma origem = sem CORS.** O front chama `/api/...` relativo (`VITE_API_URL` vazia em `frontend/.env.production`). Pôr um domínio absoluto ali reintroduz CORS à toa — e o `cors()` do `server.js` aceita **uma origem só**.
+  - O app é buildado com `base: '/app/'` (só em `vite build`; o dev server segue na raiz). Rotas novas do React Router **fora** de `/app/` precisam de um `location =` correspondente no nginx, senão dão 404.
   - Ao mexer no boot: `worker.js` só auto-executa quando é o entrypoint — não remova essa checagem, senão o worker sobe duas vezes e duplica envios.
 
 ## Banco / conexões (não regredir)
@@ -18,7 +20,7 @@ regra existente, não acrescente uma nova que a contradiga.
 - Antes de criar processo novo que fale com o banco, **refaça essa conta**.
 - `frontend/` — React + Vite (app/dashboard).
 - `pages/` — site estático. A **landing (`index.html`) tem PT/EN** (toggle próprio, ver i18n abaixo). **docs/termos/privacidade** ficam **só em PT** por enquanto.
-  - **SEO**: domínio canônico **`https://landing.newdevjobs.xyz`**. Cada página tem `canonical`+`robots`+Open Graph; a home tem JSON-LD (`SoftwareApplication`). `robots.txt` e `sitemap.xml` na raiz. Ao **adicionar/renomear página**, atualize o `sitemap.xml` e o `canonical` dela. Imagem de compartilhamento: `og-image.png` (gerado de `og-image.svg` via `npx sharp-cli -i og-image.svg -o og-image.png resize 1200 630`).
+  - **SEO**: domínio canônico **`https://newdevjobs.xyz`** (o apex serve a landing; foi consolidado ali para não dividir autoridade com um subdomínio). Cada página tem `canonical`+`robots`+Open Graph; a home tem JSON-LD (`SoftwareApplication`). `robots.txt` e `sitemap.xml` na raiz. Ao **adicionar/renomear página**, atualize o `sitemap.xml` e o `canonical` dela. Imagem de compartilhamento: `og-image.png` (gerado de `og-image.svg` via `npx sharp-cli -i og-image.svg -o og-image.png resize 1200 630`).
 - `supabase/migrations/` — schema versionado.
 - Detalhes completos no [README.md](README.md). Histórico em [CHANGELOG.md](CHANGELOG.md).
 
@@ -52,7 +54,7 @@ regra existente, não acrescente uma nova que a contradiga.
 - `/jobs` e `/jobs/matches` **nunca** devolvem o email de contato (envio é server-side); plano free também não recebe a descrição.
 - Segredos só no `.env` (gitignored) e no painel do provedor — **nunca** no código/commits. ⚠️ O repositório é **público**.
 - `/ranking` **não expõe nome completo** (abrevia: "Primeiro S."). Logout do front chama `POST /api/auth/logout` (purga o token do cache do middleware — sem isso o token deslogado valeria por até 60s).
-- Headers de segurança dos **sites estáticos** (app + landing) vivem no `render.yaml` (`headers:` — X-Frame-Options etc.); o helmet cobre **só a API**.
+- Headers de segurança dos **sites estáticos** (app + landing) vivem no [deploy/oracle/nginx-newdevjobs.conf](deploy/oracle/nginx-newdevjobs.conf) (`add_header ... always` — X-Frame-Options etc.); o helmet cobre **só a API**. Os `_headers`/`_redirects` em `pages/` e `frontend/public/` são resquício de Render/Cloudflare Pages e o `deploy-static.sh` os remove da webroot.
 - Mensagens de erro de auth no front são **genéricas** (anti-enumeração de email) — ver `frontend/src/lib/authErrors.js`.
 - Botões de ação async com efeito externo: trava síncrona (`useRef`) + feedback (anti duplo-clique).
 

@@ -12,7 +12,7 @@
     <meta name="author" content="newdevjobs">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="theme-color" content="#0A0E14">
-    <link rel="canonical" href="https://landing.newdevjobs.xyz/">
+    <link rel="canonical" href="https://newdevjobs.xyz/">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -21,8 +21,8 @@
     <meta property="og:locale:alternate" content="en_US">
     <meta property="og:title" content="newdevjobs — candidaturas automáticas para devs">
     <meta property="og:description" content="Monitoramos vagas de recrutadores no LinkedIn e enviamos seu currículo automaticamente, pela sua própria conta Gmail. 7 candidaturas grátis por dia.">
-    <meta property="og:url" content="https://landing.newdevjobs.xyz/">
-    <meta property="og:image" content="https://landing.newdevjobs.xyz/og-image.png">
+    <meta property="og:url" content="https://newdevjobs.xyz/">
+    <meta property="og:image" content="https://newdevjobs.xyz/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="newdevjobs — candidaturas automáticas para devs">
@@ -31,7 +31,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="newdevjobs — candidaturas automáticas para devs">
     <meta name="twitter:description" content="Monitoramos vagas no LinkedIn e enviamos seu currículo automaticamente, pela sua própria conta Gmail. 7 candidaturas grátis por dia.">
-    <meta name="twitter:image" content="https://landing.newdevjobs.xyz/og-image.png">
+    <meta name="twitter:image" content="https://newdevjobs.xyz/og-image.png">
 
     <!-- Dados estruturados -->
     <script type="application/ld+json">
@@ -39,7 +39,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "newdevjobs",
-      "url": "https://landing.newdevjobs.xyz/",
+      "url": "https://newdevjobs.xyz/",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "inLanguage": "pt-BR",
@@ -52,8 +52,8 @@
       "publisher": {
         "@type": "Organization",
         "name": "newdevjobs",
-        "url": "https://landing.newdevjobs.xyz/",
-        "logo": "https://landing.newdevjobs.xyz/og-image.png"
+        "url": "https://newdevjobs.xyz/",
+        "logo": "https://newdevjobs.xyz/og-image.png"
       }
     }
     </script>
@@ -1009,22 +1009,10 @@
 
     <!-- ==================== SCRIPT TEMA ==================== -->
     <script>
-        // Detecta o domínio do app automaticamente. O app vive SEMPRE em "app."
-        // do domínio raiz; a landing pode ser servida do apex, de "www." ou de
-        // "landing." — os três resolvem para o mesmo lugar.
-        //  • landing./www./apex → app em app.SEU-DOMINIO
-        //  • local / *.pages.dev (preview do Cloudflare) → app em produção
-        const APP_URL = 'https://app.newdevjobs.xyz';
-        function appBase() {
-            const h = location.hostname;
-            // Preview/local não têm um "app." irmão: cai no domínio de produção.
-            if (h === 'localhost' || h.startsWith('127.') || h.endsWith('.pages.dev')) {
-                return APP_URL;
-            }
-            // Tira o rótulo da landing ("landing." / "www.") e prefixa "app.".
-            return 'https://app.' + h.replace(/^(landing|www)\./, '');
-        }
-        function go(path) { location.href = appBase() + path; }
+        // Landing e app são servidos do MESMO domínio pelo nginx da VM (a landing
+        // na raiz, o app em /login, /signup e /app/*), então o caminho relativo
+        // basta — não há domínio a detectar. Ver deploy/oracle/nginx-newdevjobs.conf.
+        function go(path) { location.href = path; }
 
         // ===================== i18n (PT padrão · EN opcional) =====================
         // PT é o conteúdo original do HTML (capturado uma vez e restaurado ao voltar);

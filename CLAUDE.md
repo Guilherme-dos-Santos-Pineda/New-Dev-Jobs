@@ -11,6 +11,7 @@ regra existente, não acrescente uma nova que a contradiga.
   - Hospedagem: **tudo na VM Oracle Cloud** (Always Free, 24/7 — o worker embutido não pode hibernar). O nginx serve os três papéis no **mesmo domínio** (`newdevjobs.xyz`): landing estática na raiz, app React em `/login`, `/signup` e `/app/*`, e `/api/*` como proxy pro Node em `:3001`. Guia em [deploy/oracle/README.md](deploy/oracle/README.md).
   - **Mesma origem = sem CORS.** O front chama `/api/...` relativo (`VITE_API_URL` vazia em `frontend/.env.production`). Pôr um domínio absoluto ali reintroduz CORS à toa — e o `cors()` do `server.js` aceita **uma origem só**.
   - O app é buildado com `base: '/app/'` (só em `vite build`; o dev server segue na raiz). Rotas novas do React Router **fora** de `/app/` precisam de um `location =` correspondente no nginx, senão dão 404.
+  - **Todo `return 301` no nginx precisa de `$is_args$args` (ou `$request_uri`)**: `return` não anexa a query string sozinho, ao contrário de `rewrite`. O Supabase devolve o login por email e o do Google em `/app?code=...`; sem isso o código some no redirect e a autenticação falha **em silêncio** — o app carrega sem sessão, parecendo servidor fora do ar.
   - Ao mexer no boot: `worker.js` só auto-executa quando é o entrypoint — não remova essa checagem, senão o worker sobe duas vezes e duplica envios.
 
 ## Banco / conexões (não regredir)

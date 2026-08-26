@@ -66,10 +66,34 @@ sudo find "$WEB_DIR" -type d -exec chmod 755 {} +
 sudo find "$WEB_DIR" -type f -exec chmod 644 {} +
 
 say "4/4 nginx"
-sudo cp "$APP_DIR/deploy/oracle/nginx-newdevjobs.conf" /etc/nginx/sites-available/newdevjobs
-sudo ln -sf /etc/nginx/sites-available/newdevjobs /etc/nginx/sites-enabled/newdevjobs
+# O arquivo do repo tem só blocos `listen 80`. Quem cria os blocos 443 é o
+# certbot, editando a cópia instalada — então sobrescrever cega derruba o HTTPS
+# (foi o que aconteceu na primeira vez: a porta 443 passou a recusar conexão e o
+# webhook do Stripe começou a falhar). Detectamos e avisamos.
+LIVE=/etc/nginx/sites-available/newdevjobs
+HAD_TLS=false
+if [ -f "$LIVE" ] && grep -q "listen 443" "$LIVE"; then
+    HAD_TLS=true
+    sudo cp "$LIVE" "$LIVE.bak-$(date +%Y%m%d%H%M%S)"
+fi
+
+sudo cp "$APP_DIR/deploy/oracle/nginx-newdevjobs.conf" "$LIVE"
+sudo ln -sf "$LIVE" /etc/nginx/sites-enabled/newdevjobs
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
+
+if [ "$HAD_TLS" = true ]; then
+    echo
+    echo "⚠️  A configuração anterior tinha HTTPS e a nova (do repo) não tem."
+    echo "    Backup salvo em $LIVE.bak-*"
+    echo "    RODE AGORA para reinstalar os blocos 443 (o certificado já existe,"
+    echo "    é rápido e não emite nada novo):"
+    echo
+    echo "      sudo certbot --nginx -d newdevjobs.xyz -d api.newdevjobs.xyz"
+    echo
+    echo "    Acrescente -d www.newdevjobs.xyz -d landing.newdevjobs.xyz quando"
+    echo "    esses nomes resolverem — se um só não resolver, o pedido TODO falha."
+fi
 
 echo
 echo "✅ publicado em $WEB_DIR"

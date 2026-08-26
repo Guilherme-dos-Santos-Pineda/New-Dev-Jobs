@@ -25,7 +25,14 @@ APP_DIR=/opt/newdevjobs
 WEB_DIR=/var/www/newdevjobs
 TARBALL=/tmp/newdevjobs-dist.tar.gz
 BUILD_HERE=false
-[ "${1:-}" = "--build" ] && BUILD_HERE=true
+FORCE_NGINX=false
+for arg in "$@"; do
+    case "$arg" in
+        --build)  BUILD_HERE=true ;;
+        --nginx)  FORCE_NGINX=true ;;
+        *) echo "uso: $0 [--build] [--nginx]"; exit 2 ;;
+    esac
+done
 
 say() { echo; echo "==> $*"; }
 
@@ -72,33 +79,55 @@ sudo find "$WEB_DIR" -type d -exec chmod 755 {} +
 sudo find "$WEB_DIR" -type f -exec chmod 644 {} +
 
 say "4/4 nginx"
-# O arquivo do repo tem só blocos `listen 80`. Quem cria os blocos 443 é o
-# certbot, editando a cópia instalada — então sobrescrever cega derruba o HTTPS
-# (foi o que aconteceu na primeira vez: a porta 443 passou a recusar conexão e o
-# webhook do Stripe começou a falhar). Detectamos e avisamos.
+# Publicar arquivos NÃO exige reinstalar a configuração — e reinstalar cega
+# derrubava o HTTPS toda vez: o arquivo do repo só tem `listen 80`, e quem
+# escreve os blocos 443 é o certbot, editando a cópia instalada. Por isso a
+# config só é tocada quando é mesmo necessário.
 LIVE=/etc/nginx/sites-available/newdevjobs
-HAD_TLS=false
-if [ -f "$LIVE" ] && grep -q "listen 443" "$LIVE"; then
-    HAD_TLS=true
-    sudo cp "$LIVE" "$LIVE.bak-$(date +%Y%m%d%H%M%S)"
+REPO_CONF="$APP_DIR/deploy/oracle/nginx-newdevjobs.conf"
+HASH_FILE=/etc/nginx/.newdevjobs-conf-hash
+WANT=$(sha256sum "$REPO_CONF" | cut -d" " -f1)
+HAVE=$(sudo cat "$HASH_FILE" 2>/dev/null || true)
+
+# O `|| true` é obrigatório: sob `set -e`, uma lista com && que termina em
+# falha (arquivo ausente na primeira instalação) abortaria o script aqui.
+HAS_TLS=false
+if [ -f "$LIVE" ] && grep -q "listen 443" "$LIVE"; then HAS_TLS=true; fi
+
+INSTALL=false
+if [ "$FORCE_NGINX" = true ]; then INSTALL=true          # pedido explícito
+elif [ ! -f "$LIVE" ];        then INSTALL=true          # primeira instalação
+elif [ "$HAS_TLS" = false ];  then INSTALL=true          # ainda sem TLS: seguro
 fi
 
-sudo cp "$APP_DIR/deploy/oracle/nginx-newdevjobs.conf" "$LIVE"
-sudo ln -sf "$LIVE" /etc/nginx/sites-enabled/newdevjobs
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl reload nginx
+if [ "$INSTALL" = true ]; then
+    # `if` e não `[ ... ] && ...`: com HAS_TLS=false a lista retornaria não-zero
+    # e o `set -e` abortaria o deploy numa VM nova.
+    if [ "$HAS_TLS" = true ]; then
+        sudo cp "$LIVE" "$LIVE.bak-$(date +%Y%m%d%H%M%S)"
+    fi
+    sudo cp "$REPO_CONF" "$LIVE"
+    sudo ln -sf "$LIVE" /etc/nginx/sites-enabled/newdevjobs
+    sudo rm -f /etc/nginx/sites-enabled/default
+    sudo nginx -t && sudo systemctl reload nginx
+    echo "$WANT" | sudo tee "$HASH_FILE" >/dev/null
+    echo "configuração instalada"
 
-if [ "$HAD_TLS" = true ]; then
-    echo
-    echo "⚠️  A configuração anterior tinha HTTPS e a nova (do repo) não tem."
-    echo "    Backup salvo em $LIVE.bak-*"
-    echo "    RODE AGORA para reinstalar os blocos 443 (o certificado já existe,"
-    echo "    é rápido e não emite nada novo):"
-    echo
-    echo "      sudo certbot --nginx -d newdevjobs.xyz -d api.newdevjobs.xyz"
-    echo
-    echo "    Acrescente -d www.newdevjobs.xyz -d landing.newdevjobs.xyz quando"
-    echo "    esses nomes resolverem — se um só não resolver, o pedido TODO falha."
+    if [ "$HAS_TLS" = true ]; then
+        echo
+        echo "⚠️  A configuração anterior tinha HTTPS e a nova (do repo) não tem."
+        echo "    Backup em $LIVE.bak-*  ·  RODE AGORA para reinstalar os blocos 443"
+        echo "    (o certificado já existe — escolha a opção 1, 'reinstall'):"
+        echo
+        echo "      sudo certbot --nginx -d newdevjobs.xyz -d www.newdevjobs.xyz \\"
+        echo "                           -d landing.newdevjobs.xyz -d api.newdevjobs.xyz"
+    fi
+elif [ "$WANT" != "$HAVE" ]; then
+    echo "⚠️  O nginx-newdevjobs.conf do repo MUDOU desde a última instalação."
+    echo "    Os arquivos foram publicados, mas a configuração não."
+    echo "    Para aplicá-la (vai pedir o certbot depois):  bash $0 --nginx"
+else
+    echo "configuração já instalada e idêntica à do repo — HTTPS preservado"
 fi
 
 echo

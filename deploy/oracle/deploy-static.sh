@@ -122,6 +122,13 @@ if [ "$INSTALL" = true ]; then
         echo "      sudo certbot --nginx -d newdevjobs.xyz -d www.newdevjobs.xyz \\"
         echo "                           -d landing.newdevjobs.xyz -d api.newdevjobs.xyz"
     fi
+elif [ -z "$HAVE" ]; then
+    # Primeira execução desta versão do script: não existe hash anterior, então
+    # não dá para saber se a config instalada está velha. Registramos o hash
+    # atual em vez de gritar "mudou" — a partir do próximo deploy a detecção é
+    # confiável. Se você acabou de editar o .conf, rode uma vez com --nginx.
+    echo "$WANT" | sudo tee "$HASH_FILE" >/dev/null
+    echo "configuração preservada · hash registrado (detecção ativa a partir do próximo deploy)"
 elif [ "$WANT" != "$HAVE" ]; then
     echo "⚠️  O nginx-newdevjobs.conf do repo MUDOU desde a última instalação."
     echo "    Os arquivos foram publicados, mas a configuração não."

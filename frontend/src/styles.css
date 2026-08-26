@@ -870,3 +870,30 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     .stats-grid, .cards-grid { grid-template-columns: 1fr !important; }
     .page-head h1 { font-size: 21px; }
 }
+
+/* ============================================
+   Relato de bug
+   ============================================ */
+.bug-modal { max-width: 520px; }
+.bug-modal textarea { width: 100%; resize: vertical; font-family: inherit; font-size: 14px; }
+.bug-contador { text-align: right; font-size: 11.5px; color: var(--color-text-tertiary); margin-top: 4px; }
+.bug-ok {
+    width: 52px; height: 52px; margin: 0 auto; border-radius: 50%;
+    display: grid; place-items: center; font-size: 26px;
+    background: var(--color-accent-light); color: var(--color-accent);
+}
+/* O que vai junto com o relato fica escondido, mas a UM clique: mandar dados do
+   navegador sem oferecer como ver seria uma surpresa ruim. */
+.bug-ctx-toggle {
+    display: flex; align-items: center; gap: 4px; margin-top: 14px;
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-size: 12.5px; color: var(--color-text-tertiary); font-family: inherit;
+}
+.bug-ctx-toggle:hover { color: var(--color-text-secondary); }
+.bug-ctx {
+    margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-sm);
+    background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px;
+    line-height: 1.6; color: var(--color-text-secondary);
+    white-space: pre-wrap; word-break: break-all; max-height: 150px; overflow-y: auto;
+}

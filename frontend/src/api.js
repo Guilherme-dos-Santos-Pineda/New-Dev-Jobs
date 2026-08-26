@@ -126,6 +126,12 @@ export const api = {
     queueStatus: () => request('GET', '/queue'),
     queueStop: () => request('POST', '/queue/stop'),
 
+    // Relato de bug (canal privado; o mural publico e /feedback)
+    reportBug: (payload) => request('POST', '/bugs', payload),
+    myBugs: () => request('GET', '/bugs/mine'),
+    adminBugs: (status) => request('GET', '/bugs' + (status ? `?status=${status}` : '')),
+    adminBugUpdate: (id, patch) => request('PUT', `/bugs/${id}`, patch),
+
     // admin
     adminOverview: () => request('GET', '/admin/overview'),
     adminUsers: (params = {}) => {

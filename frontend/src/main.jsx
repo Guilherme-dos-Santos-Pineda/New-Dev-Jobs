@@ -7,9 +7,13 @@ import { LangProvider } from './lib/i18n.jsx';
 import App from './App.jsx';
 import './styles.css';
 import { clearChunkReloadFlag } from './lib/lazyWithReload.js';
+import { capturarErros } from './lib/errorLog.js';
 
 // O app subiu inteiro: libera a trava anti-loop do recarregamento de chunk.
 clearChunkReloadFlag();
+
+// Guarda o ultimo erro de JS da sessao para anexar a um relato de bug.
+capturarErros();
 
 createRoot(document.getElementById('root')).render(
     <React.StrictMode>

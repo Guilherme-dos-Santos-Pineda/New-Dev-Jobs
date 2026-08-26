@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { prefetch } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
 import Logo from './Logo.jsx';
+import BugReportModal from './BugReportModal.jsx';
 
 // Hover em um item do menu já aquece o chunk lazy da rota + os dados da tela.
 // Quando o usuário clica, a página normalmente já tem tudo em cache.
@@ -92,6 +93,7 @@ export default function Layout() {
         : baseTabs;
 
     const doLogout = () => { logout(); navigate('/login'); };
+    const [bugAberto, setBugAberto] = useState(false);
 
     return (
         <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
@@ -119,6 +121,7 @@ export default function Layout() {
                         <span>{user?.name || user?.email}</span>
                     </div>
                     <div className="sidebar-foot-actions">
+                        <button className="icon-btn" title={tr('Relatar um problema')} onClick={() => setBugAberto(true)}><i className="ti ti-bug" /></button>
                         <LangButton />
                         <ThemeButton />
                         <button className="icon-btn" title={tr('Sair')} onClick={doLogout}><i className="ti ti-logout" /></button>
@@ -130,6 +133,7 @@ export default function Layout() {
             <header className="mobile-bar">
                 <NavLink to="/app" end className="brand"><Logo /></NavLink>
                 <div className="spacer" />
+                <button className="icon-btn" title={tr('Relatar um problema')} onClick={() => setBugAberto(true)}><i className="ti ti-bug" /></button>
                 <LangButton />
                 <ThemeButton />
                 <button className="icon-btn" title={tr('Sair')} onClick={doLogout}><i className="ti ti-logout" /></button>
@@ -137,6 +141,8 @@ export default function Layout() {
 
             {/* Conteúdo */}
             <main className="app-main"><Outlet /></main>
+
+            {bugAberto && <BugReportModal onClose={() => setBugAberto(false)} />}
 
             {/* Bottom nav (mobile) */}
             <nav className="bottom-nav">

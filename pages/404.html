@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <title>Página não encontrada — newdevjobs</title>
+    <!-- noindex: página de erro não deve entrar no índice, e por isso também não
+         aparece no sitemap.xml. O status HTTP continua sendo 404 (error_page no
+         nginx preserva o código), que é o que de fato sinaliza ao Google. -->
+    <meta name="robots" content="noindex, follow">
+    <style>
+        :root {
+            --bg: #FFFFFF; --surface: #F6F8FB; --text: #0D1117;
+            --muted: #4A5568; --border: #D1D9E6; --accent: #185FA5;
+            --on-accent: #FFFFFF;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0A0E14; --surface: #11161F; --text: #F0F6FC;
+                --muted: #9DA7B3; --border: #2A3240; --accent: #58A6FF;
+                --on-accent: #0A1929;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh;
+            display: grid; place-items: center; padding: 24px;
+            background: var(--bg); color: var(--text);
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .caixa {
+            max-width: 460px; width: 100%; text-align: center;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 40px 28px;
+        }
+        .cod {
+            font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 56px; font-weight: 500; line-height: 1;
+            color: var(--accent); margin: 0 0 12px;
+        }
+        h1 { font-size: 20px; margin: 0 0 8px; }
+        p { color: var(--muted); font-size: 14.5px; line-height: 1.6; margin: 0 0 24px; }
+        .acoes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        a {
+            display: inline-block; padding: 11px 20px; border-radius: 10px;
+            font-size: 14px; font-weight: 500; text-decoration: none;
+            border: 1px solid var(--border); color: var(--text);
+            transition: border-color .2s, transform .2s;
+        }
+        a:hover { border-color: var(--accent); transform: translateY(-1px); }
+        a.principal { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="caixa">
+        <p class="cod">404</p>
+        <h1>Página não encontrada</h1>
+        <p>O endereço que você abriu não existe ou foi movido.</p>
+        <div class="acoes">
+            <a class="principal" href="/">Ir para a home</a>
+            <a href="/app/">Abrir o painel</a>
+        </div>
+    </div>
+</body>
+</html>

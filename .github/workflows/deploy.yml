@@ -80,8 +80,19 @@ jobs:
       - name: Chave SSH
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          # `tr -d` do CR e obrigatorio: copiar a chave por um editor do
+          # Windows traz CRLF, e o OpenSSH rejeita CR dentro do PEM com um
+          # "error in libcrypto" que nao diz nada sobre a causa real.
+          printf '%s\n' "${{ secrets.VM_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          # Valida ANTES de conectar, para o erro apontar o secret em vez de
+          # aparecer como "Permission denied" e mandar cacar chave na VM.
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null 2>&1; then
+              echo "::error::O secret VM_SSH_KEY nao e uma chave privada valida."
+              echo "Confira: (1) copiou o arquivo INTEIRO, com as linhas BEGIN e END;"
+              echo "(2) colou a chave PRIVADA (deploy_key), nao a publica (.pub)."
+              exit 1
+          fi
           # Fixa a identidade do host: sem isto o ssh recusaria (StrictHostKeyChecking)
           # ou, pior, aceitaria qualquer servidor que respondesse naquele IP.
           ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null

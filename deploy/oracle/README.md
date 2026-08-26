@@ -93,9 +93,27 @@ Com a API em domínio novo, atualize:
 
 ## 6. Atualizar depois de um push
 
+**Automático (padrão).** O workflow [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml)
+publica a cada push no `main`: roda os testes, builda o frontend no runner do
+GitHub (a VM de 1 GB não dá conta do `vite build`), envia o `dist` e chama os
+scripts na VM. Ao final confere que `/`, `/en/`, `/login`, `/app/` e
+`/api/health` respondem 200 — e que uma URL inexistente ainda dá 404.
+
+Precisa dos secrets em *Settings → Secrets and variables → Actions*:
+`VM_HOST`, `VM_USER`, `VM_SSH_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+Use uma chave SSH **exclusiva do deploy**, não a sua pessoal — assim ela pode ser
+revogada sozinha.
+
+**Manual**, quando precisar (backend apenas, ou o Action indisponível):
+
 ```bash
-bash /opt/newdevjobs/deploy/oracle/update.sh
+bash /opt/newdevjobs/deploy/oracle/update.sh        # backend: deps + restart
+bash /opt/newdevjobs/deploy/oracle/deploy-static.sh # estáticos (usa /tmp/newdevjobs-dist.tar.gz)
 ```
+
+⚠️ Mudou o `nginx-newdevjobs.conf`? Aí o deploy **não** aplica sozinho (de
+propósito: reinstalar a config apaga os blocos 443 que o certbot escreveu). Rode
+`deploy-static.sh --nginx` e, logo depois, o certbot — o script imprime o comando.
 
 ---
 

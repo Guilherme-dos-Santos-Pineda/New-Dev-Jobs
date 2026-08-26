@@ -1,0 +1,122 @@
+# Deploy automático na VM Oracle: `git push` no main publica tudo.
+#
+# POR QUE EXISTE
+# O deploy manual tinha 4 passos em DUAS máquinas: build e scp no PC, script e
+# certbot na VM. Dois deles têm a mesma cara mas só funcionam de um lado, e errar
+# a máquina custava uma rodada de diagnóstico. Aqui o runner do GitHub faz o
+# build (tem RAM de sobra, ao contrário da VM de 1 GB) e a VM só recebe pronto.
+#
+# CONFIGURAR — Settings → Secrets and variables → Actions → New repository secret:
+#
+#   VM_HOST          168.138.142.100
+#   VM_USER          ubuntu
+#   VM_SSH_KEY       conteúdo INTEIRO da chave privada, incluindo as linhas
+#                    -----BEGIN ... KEY----- e -----END ... KEY-----
+#   VITE_SUPABASE_URL         https://<ref>.supabase.co
+#   VITE_SUPABASE_ANON_KEY    a chave anon (é pública — vai no bundle de qualquer forma)
+#
+# ⚠️ SEGURANÇA: gere uma chave SSH NOVA, exclusiva do deploy, em vez de usar a
+# sua pessoal. Assim ela pode ser revogada sozinha se um dia vazar:
+#
+#   ssh-keygen -t ed25519 -f deploy_key -N ""
+#   # copie deploy_key.pub para ~/.ssh/authorized_keys na VM
+#   # cole o conteúdo de deploy_key no secret VM_SSH_KEY
+#   # apague deploy_key do seu PC depois de colar
+#
+# NÃO existe VITE_API_URL aqui de propósito: frontend/.env.production a define
+# vazia para o app chamar /api/... na mesma origem. Preencher reintroduz CORS.
+
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    # Mudanças que não afetam o que roda na VM não disparam deploy.
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/keepalive.yml'
+  workflow_dispatch:   # permite disparar à mão pela aba Actions
+
+# Dois deploys simultâneos escreveriam na mesma webroot; o segundo espera.
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Testes do backend
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+
+      - name: Build do frontend
+        working-directory: frontend
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          # Falha cedo e com mensagem clara se o base '/app/' do vite.config.js
+          # se perder: sem ele os assets saem em /assets/ e o app fica em branco.
+          grep -q '/app/assets/' dist/index.html \
+            || { echo "::error::dist/index.html não referencia /app/assets/ — o base do Vite regrediu"; exit 1; }
+
+      - name: Empacotar
+        run: tar -czf dist.tar.gz -C frontend/dist .
+
+      - name: Chave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Fixa a identidade do host: sem isto o ssh recusaria (StrictHostKeyChecking)
+          # ou, pior, aceitaria qualquer servidor que respondesse naquele IP.
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Enviar build
+        run: |
+          scp -i ~/.ssh/deploy_key dist.tar.gz \
+            "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/tmp/newdevjobs-dist.tar.gz"
+
+      - name: Publicar na VM
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" bash -se <<'REMOTO'
+          set -euo pipefail
+          # update.sh reinstala deps e reinicia a API; deploy-static.sh publica os
+          # estáticos. Este último NÃO toca na config do nginx quando ela não mudou,
+          # então o HTTPS sobrevive — por isso não há certbot aqui. Se o .conf mudar,
+          # o script avisa e o passo abaixo falha de propósito, para você aplicar
+          # com --nginx e rodar o certbot conscientemente.
+          bash /opt/newdevjobs/deploy/oracle/update.sh
+          bash /opt/newdevjobs/deploy/oracle/deploy-static.sh | tee /tmp/deploy.log
+          if grep -q "MUDOU desde a última instalação" /tmp/deploy.log; then
+              echo "::error::A configuração do nginx mudou. Rode na VM: deploy-static.sh --nginx e depois o certbot."
+              exit 1
+          fi
+          REMOTO
+
+      - name: Verificar que subiu
+        run: |
+          for rota in / /en/ /login /app/ /api/health; do
+              codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://newdevjobs.xyz${rota}")
+              printf '  %-14s -> %s\n' "$rota" "$codigo"
+              [ "$codigo" = "200" ] || { echo "::error::${rota} respondeu ${codigo}"; exit 1; }
+          done
+          # 404 real precisa continuar existindo: se virar 200, o SPA está
+          # engolindo toda URL e o Google indexaria páginas inexistentes.
+          erro=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://newdevjobs.xyz/rota-que-nao-existe)
+          [ "$erro" = "404" ] || { echo "::error::URL inexistente respondeu ${erro}, esperado 404"; exit 1; }
+          echo "✅ produção no ar"

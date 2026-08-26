@@ -5,26 +5,33 @@ LinkedIn (via Apify), uma **IA (Groq → OpenAI)** classifica/extrai as vagas, o
 calcula o **match** com o perfil do usuário e **envia o currículo por email** (Gmail API) —
 automaticamente ou com seleção manual.
 
-🌐 Produção: app em Render · banco/auth/storage no Supabase · pagamentos no Stripe.
+🌐 Produção: **[newdevjobs.xyz](https://newdevjobs.xyz)** — tudo servido pelo nginx de uma VM
+**Oracle Cloud** (Always Free) · banco/auth/storage no **Supabase** · pagamentos no **Stripe**.
+Landing na raiz (PT em `/`, EN em `/en/`), app em `/login` e `/app/*`, API em `/api/*` —
+**mesma origem, sem CORS**. Deploy automático a cada `git push` no `main`.
 
 ## Arquitetura
 
 ```
-pages/                 # SITE estático (marketing + docs) — serviço Render "newdevjobs-site"
-  index.html           #   landing (CTAs → app; detecta o domínio: landing.X → www.X)
-  docs.html            #   guia do usuário · termos.html · privacidade.html
+pages/                 # SITE estático (marketing + docs) — servido na RAIZ do domínio
+  index.html           #   landing em PT (fonte única; CTAs relativos → /login, /signup)
+  build-en.mjs         #   gera /en/index.html no deploy, do dicionário I18N_EN do index
+  docs.html            #   guia do usuário · termos.html · privacidade.html · 404.html
   base.css             #   tokens/nav/footer compartilhados das páginas
 scraper.js             # CLI do scraper (Apify) → Postgres  (--mode=discovery|monitoring)
 backend/               # API Express + worker (Node)        — porta 3001
   server.js            #   API HTTP (enfileira envios, billing, admin, dashboard)
-  worker.js            #   processo separado: consome a fila pg-boss (envios + scraper + AGENDADOR de robôs)
+  worker.js            #   EMBUTIDO na API (RUN_WORKER=true): fila pg-boss (envios + scraper + agendador)
   services/            #   ai (Groq/OpenAI), scraper, sender, mailer, jobsQuery, matching, usage, stripeClient…
-  routes/              #   auth, profile, jobs, queue, billing, admin, dashboard…
+  routes/              #   auth, profile, jobs, queue, billing, admin, dashboard, bugs…
   lib/                 #   sql (Postgres), supabaseAdmin, boss (pg-boss), cvStorage, circuitBreaker
-  scripts/             #   import-jobs, seed-robots, apply-migration, test-ai
-frontend/              # app/dashboard (React + Vite)        — porta 5173, serviço "newdevjobs-frontend"
-supabase/migrations/   # schema versionado (0001…0008)
-render.yaml            # blueprint de deploy (1 serviço free: api+worker · + frontend + site)
+  scripts/             #   import-jobs, seed-robots, apply-migration, test-ai,
+                       #   check-auth (diagnóstico de login), check-perf (custo das queries)
+frontend/              # app/dashboard (React + Vite)        — dev na 5173; build com base '/app/'
+supabase/migrations/   # schema versionado (0001…0013)
+deploy/oracle/         # nginx, systemd e scripts de deploy da VM (setup, update, deploy-static)
+.github/workflows/     # deploy.yml — publica na VM a cada push no main
+render.yaml            # blueprint ANTIGO do Render, mantido só como referência histórica
 ```
 
 **Stack:** Postgres (Supabase) · Supabase Auth (Google + email/senha) · Supabase Storage

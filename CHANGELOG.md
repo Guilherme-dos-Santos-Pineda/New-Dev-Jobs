@@ -2,6 +2,43 @@
 
 Registro das alterações relevantes. Datas no formato AAAA-MM-DD.
 
+## 2026-08 — Saída do Render: infraestrutura própria, inglês e correção do matching
+
+### Hospedagem (Render → Oracle Cloud)
+- O Render caiu e o site ficou **fora do ar** (503). Toda a hospedagem migrou para a **VM Oracle Cloud** (Always Free), com o nginx servindo os três papéis **no mesmo domínio**: landing estática na raiz, app React em `/login` e `/app/*`, e `/api/*` como proxy pro Node. Guia em [deploy/oracle/README.md](deploy/oracle/README.md).
+- **Cloudflare Pages foi avaliado e descartado.** A razão para usá-lo era servir o apex, e o obstáculo (o Pages só aceita CNAME; a GoDaddy não faz CNAME na raiz) não existe com a VM, que tem IP fixo.
+- **Mesma origem = sem CORS.** O app chama `/api/...` relativo (`VITE_API_URL` vazia em `frontend/.env.production`).
+- **Deploy automático** via GitHub Action ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)): `git push` no `main` roda os testes, builda no runner, publica na VM e **verifica** que as rotas voltaram 200 e que URL inexistente ainda dá 404.
+
+### Matching (correção do produto)
+- **Vaga de outra profissão nunca entra no feed.** `detectArea` devolvia `'other'` para o que não reconhecia, e `passesFilters` deixava `'other'` passar **sempre** — a intenção era não perder vaga boa mal classificada, o efeito era liberar todo o ruído do scraper. Caso real: "Assistente Operacional de Logística" no feed de um dev.
+- Novo `NONTECH` em `services/classify.js` (RH, contábil, compras, logística, saúde, jurídico, engenharias não-software…), testado **depois** de todas as áreas técnicas — título híbrido fica com o lado técnico.
+- `detectArea` ganhou o que faltava: **Tech Lead / Arquiteto de Software / Analista de Sistemas** → `dev`; **DBA** → `data`; **Agile Coach/Master** → `po`; e a área nova **`suporte`** (Service Desk / Help Desk / Analista de TI), que caía inteira em `'other'`.
+- Validado contra as 6270 vagas de produção: 221 reclassificações, todas na direção pretendida, zero regressão. Regressão coberta em `backend/test/classifyNonTech.test.js`.
+
+### Landing em inglês
+- `/en/` é **HTML de verdade**, gerado no deploy por [pages/build-en.mjs](pages/build-en.mjs) a partir do português e do mesmo dicionário `I18N_EN` — antes o inglês existia só como JavaScript na mesma URL, invisível para o Google.
+- `hreflang` recíproco, canonical próprio, metadados do `<head>` traduzidos por chaves `meta.*`, e o seletor de idioma **navega** entre `/` e `/en/` em vez de trocar o texto no lugar.
+- Domínio canônico consolidado no **apex** (`https://newdevjobs.xyz`); `www` e `landing.` dão 301 preservando o caminho.
+
+### Canal de relato de bug
+- Novo canal **privado** (migration `0013`, tabela `BugReports`) — separado de `/feedback`, que é um mural público de depoimentos.
+- Anexa o **contexto do navegador** automaticamente (rota, tamanho de tela, user agent e o último erro de JS da sessão, via `lib/errorLog.js`), o que transforma "não funciona" em algo reproduzível. Os dados ficam visíveis a um clique antes do envio.
+
+### Performance
+- `getMatches` custava ~1,4 s de banco e ~12 MB por chamada (6270 vagas). Ganhou **memo curto por usuário** guardando a *promise*, então requests concorrentes compartilham uma execução. Medido em produção: dashboard **2002 ms → 31 ms**.
+- `/api/jobs/matches` fazia `select * from "Jobs"` inteiro só para contar um número: **2056 ms → 139 ms**.
+- Agendador de robôs consulta o crédito da Apify **antes** de reivindicar — antes enfileirava execuções que morriam 3 s depois.
+
+### Correções de infraestrutura
+- Redirect de `/app` descartava a query string (`return` no nginx não anexa `$is_args$args`), e o código do OAuth sumia — **quebrava login por email e com Google**, em silêncio.
+- Spinner infinito após deploy: `index.html` sem `Cache-Control` + chunks antigos apagados. Corrigido com `no-cache` no HTML e `lazyWithReload()` nas rotas.
+- Laço de redirecionamento `/login ↔ /app` quando o backend recusava a sessão.
+- Headers de segurança por `location` (o `add_header` do nginx não é herdado por bloco que declara o seu); `/api/` saía com dois `X-Frame-Options` conflitantes.
+- Página 404 própria e `server_tokens off`.
+- `deploy-static.sh` deixou de reinstalar a config do nginx quando ela não mudou — antes derrubava o HTTPS a cada deploy.
+
+
 ## 2026-07 — Lançamento: billing, escala do scraper e admin
 
 ### Cobrança (pagamento único)

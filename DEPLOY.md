@@ -1,11 +1,29 @@
 # Deploy — newdevjobs
 
-> ## 📍 Arquitetura atual: Oracle Cloud + Cloudflare Pages
+> ## 📍 Arquitetura atual: tudo na VM Oracle
 >
-> A hospedagem saiu do Render. O destino de cada parte:
+> A hospedagem saiu do Render. **Cloudflare Pages foi avaliado e descartado** — a
+> razão para usá-lo era servir o apex, e o obstáculo (o Pages só aceita CNAME e a
+> GoDaddy não faz CNAME na raiz) não existe com a VM, que tem IP fixo.
 >
 > | Parte | Onde | Guia |
 > | --- | --- | --- |
+> | Landing (PT `/` · EN `/en/`) | **nginx da VM Oracle** | [`deploy/oracle/README.md`](deploy/oracle/README.md) |
+> | App React (`/login`, `/app/*`) | **nginx da VM Oracle** | idem |
+> | API + worker (`/api/*`) | **Node na mesma VM** | idem |
+> | Banco / Auth / Storage | **Supabase** free | seção 1 |
+>
+> Tudo em `https://newdevjobs.xyz` — **mesma origem, sem CORS**. O worker roda
+> embutido na API, então ela precisa ficar acordada: por isso uma VM, e não um
+> free tier que hiberna.
+>
+> **Deploy é automático**: `git push` no `main` dispara o GitHub Action
+> ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)), que roda os
+> testes, builda o frontend no runner, publica na VM e verifica as rotas.
+>
+> As seções sobre Render abaixo ficam como **referência histórica**.
+
+--- | --- | --- |
 > | API + worker | **Oracle Cloud** (Always Free, 24/7) | [`deploy/oracle/README.md`](deploy/oracle/README.md) |
 > | App + landing | **Cloudflare Pages** | seção 3-B abaixo |
 > | Banco / Auth / Storage | **Supabase** free | seção 1 |

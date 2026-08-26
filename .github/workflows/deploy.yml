@@ -119,6 +119,23 @@ jobs:
           fi
           REMOTO
 
+      - name: Esperar a API voltar
+        run: |
+          # O update.sh reinicia o serviço e o Node leva ~12s para atender. Sem
+          # esperar, a verificação abaixo pegava o intervalo em que o nginx ainda
+          # responde 502 por não achar o backend — deploy bom marcado como falho.
+          for tentativa in $(seq 1 30); do
+              codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://newdevjobs.xyz/api/health || true)
+              if [ "$codigo" = "200" ]; then
+                  echo "API respondeu 200 na tentativa ${tentativa}"
+                  exit 0
+              fi
+              echo "  tentativa ${tentativa}: ${codigo} — aguardando"
+              sleep 3
+          done
+          echo "::error::A API não voltou depois de 90s. Veja: journalctl -u newdevjobs -n 50"
+          exit 1
+
       - name: Verificar que subiu
         run: |
           for rota in / /en/ /login /app/ /api/health; do

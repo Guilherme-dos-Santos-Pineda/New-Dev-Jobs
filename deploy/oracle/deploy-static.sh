@@ -57,9 +57,15 @@ fi
 sudo rm -f "$WEB_DIR/app/_headers" "$WEB_DIR/app/_redirects"
 
 say "3/4 landing"
+# Versão em inglês: derivada do index.html em português pelo dicionário I18N_EN.
+# Gerada aqui (e não versionada) para não existirem duas páginas divergindo.
+node "$APP_DIR/pages/build-en.mjs" "$APP_DIR/pages/en/index.html"
+
 # --exclude do _headers pelo mesmo motivo acima. A landing não tem build.
 sudo cp -r "$APP_DIR/pages/." "$WEB_DIR/"
 sudo rm -f "$WEB_DIR/_headers"
+# O gerador não precisa ir para a webroot.
+sudo rm -f "$WEB_DIR/build-en.mjs"
 
 sudo chown -R www-data:www-data "$WEB_DIR"
 sudo find "$WEB_DIR" -type d -exec chmod 755 {} +
@@ -97,7 +103,7 @@ fi
 
 echo
 echo "✅ publicado em $WEB_DIR"
-echo "   landing : $(ls "$WEB_DIR" | grep -c '\.html$') páginas HTML"
+echo "   landing : $(ls "$WEB_DIR" | grep -c '\.html$') páginas HTML (+ /en/)"
 echo "   app     : $([ -f "$WEB_DIR/app/index.html" ] && echo 'index.html ok' || echo 'FALTANDO')"
 echo
 echo "Teste local (antes do DNS/HTTPS):"

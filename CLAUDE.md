@@ -30,7 +30,12 @@ regra existente, não acrescente uma nova que a contradiga.
 - **Não duplique chaves.** Procure no dicionário antes de adicionar.
 - Interpolação: `t('Olá, {name} 👋', { name })`. Evite fragmentar frases (grammar quebra); prefira a frase inteira como chave.
 - Seletor PT/EN vive no `Layout` (sidebar + barra mobile). Persiste em `localStorage('lang')`.
-- **Landing** (`pages/index.html`): i18n próprio e independente do app — PT é o HTML original (marcado com `data-i18n="chave"`), o dicionário `I18N_EN` no `<script>` traz só o EN. Toggle 🌐 no header, detecta idioma do navegador, persiste na **mesma** `localStorage('lang')`. Ao adicionar texto novo: ponha `data-i18n` no elemento e a entrada em `I18N_EN` (valor pode conter HTML, ex.: ícones). docs/termos/privacidade seguem só em PT.
+- **Landing** (`pages/index.html`): PT é o HTML original (elementos marcados com `data-i18n="chave"`), e o dicionário `I18N_EN` no `<script>` traz só o EN. Ao adicionar texto novo: ponha `data-i18n` no elemento e a entrada em `I18N_EN` (valor pode conter HTML, ex.: ícones).
+  - **Cada idioma tem a sua URL**: `/` em PT e `/en/` em EN. A página EN é **gerada** por [pages/build-en.mjs](pages/build-en.mjs) no deploy — **não edite `pages/en/`, é ignorado pelo git**; editar o PT é o que atualiza os dois. O gerador avisa quando alguma chave fica sem tradução.
+  - Metadados do `<head>` (description, og:*, JSON-LD) não têm `data-i18n` — traduza-os pelas chaves fixas `meta.*` do dicionário, senão a página EN sai com `<meta description>` em português.
+  - O seletor 🌐 **navega** entre `/` e `/en/` (não troca o texto no lugar): a URL é a fonte da verdade, senão o canonical contradiz o que o usuário vê e o Googlebot (que se identifica como `en-US`) renderizaria inglês na URL portuguesa. Ele continua gravando `localStorage('lang')`, a **mesma** chave que o app React lê.
+  - `hreflang` recíproco (`pt-BR`/`en`/`x-default`) vive no `<head>` do PT e é herdado pelo gerado. Página nova → atualize também o `sitemap.xml`.
+  - docs/termos/privacidade seguem **só em PT** e são linkados a partir de `/en/` com caminho absoluto (`/docs.html`).
 - O template de email tem PT/EN próprio no backend (`services/templates.js` → `DEFAULTS`).
 
 ## Migrations

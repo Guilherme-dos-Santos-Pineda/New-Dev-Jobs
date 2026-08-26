@@ -13,6 +13,9 @@
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="theme-color" content="#0A0E14">
     <link rel="canonical" href="https://newdevjobs.xyz/">
+    <link rel="alternate" hreflang="pt-BR" href="https://newdevjobs.xyz/">
+    <link rel="alternate" hreflang="en" href="https://newdevjobs.xyz/en/">
+    <link rel="alternate" hreflang="x-default" href="https://newdevjobs.xyz/">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -782,7 +785,7 @@
 
             <div class="nav-actions">
                 <div class="lang-switch" role="group" aria-label="Language / Idioma">
-                    <button type="button" class="lang-opt" data-lang="pt" onclick="setLang('pt')">PT</button>
+                    <button type="button" class="lang-opt active" data-lang="pt" onclick="setLang('pt')">PT</button>
                     <button type="button" class="lang-opt" data-lang="en" onclick="setLang('en')">EN</button>
                 </div>
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
@@ -1098,31 +1101,31 @@
             'footer.community': '<i class="ti ti-brand-whatsapp" aria-hidden="true"></i> community',
             'footer.note': 'made for developers · 2026',
             'cta.community': '<i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Come join our WhatsApp community',
+
+            // --- Metadados do <head>. Não têm data-i18n (não são elementos de
+            // conteúdo), então o gerador de /en/ os aplica por chave fixa.
+            'meta.description': 'Automate your dev job applications: we monitor recruiter posts on LinkedIn and send your resume from your own Gmail account. 7 free applications per day.',
+            'meta.keywords': 'automated job applications, developer jobs, software engineer jobs, apply to jobs automatically, LinkedIn job posts, resume automation, tech jobs',
+            'meta.ogTitle': 'newdevjobs — automated job applications',
+            'meta.ogDescription': 'We monitor recruiter job posts on LinkedIn and send your resume automatically, from your own Gmail account. 7 free applications per day.',
+            'meta.ogImageAlt': 'newdevjobs — automated job applications',
+            'meta.twitterDescription': 'We monitor jobs on LinkedIn and send your resume automatically, from your own Gmail account. 7 free applications per day.',
+            'meta.jsonldDescription': 'Automate your dev job applications: we monitor recruiter posts on LinkedIn and send your resume from your own Gmail account.',
         };
 
-        const _origPT = {}; // conteúdo PT original por chave (capturado 1x)
-        function applyLang(lang) {
-            document.querySelectorAll('[data-i18n]').forEach((el) => {
-                const key = el.getAttribute('data-i18n');
-                if (!(key in _origPT)) _origPT[key] = el.innerHTML;
-                if (lang === 'en' && I18N_EN[key] != null) el.innerHTML = I18N_EN[key];
-                else el.innerHTML = _origPT[key];
-            });
-            document.documentElement.lang = lang === 'en' ? 'en' : 'pt-BR';
-            document.title = lang === 'en' ? I18N_EN.title : (_origPT.__title || document.title);
-            const active = lang === 'en' ? 'en' : 'pt';
-            document.querySelectorAll('.lang-opt').forEach((b) => {
-                b.classList.toggle('active', b.getAttribute('data-lang') === active);
-            });
-            localStorage.setItem('lang', lang);
+        // Cada idioma tem a SUA URL: '/' em português, '/en/' em inglês (gerado no
+        // deploy por pages/build-en.mjs a partir do dicionário acima). Por isso o
+        // seletor navega em vez de trocar o texto no lugar — se trocasse, o usuário
+        // veria inglês numa URL cujo canonical declara português, e o Googlebot
+        // (que se identifica como en-US) renderizaria inglês na página portuguesa.
+        //
+        // O idioma escolhido continua indo para localStorage('lang'), que é a MESMA
+        // chave lida pelo app React — assim a escolha atravessa da landing pro app.
+        function setLang(lang) {
+            const en = lang === 'en';
+            try { localStorage.setItem('lang', en ? 'en' : 'pt'); } catch { /* modo privado */ }
+            location.href = en ? '/en/' : '/';
         }
-        function setLang(lang) { applyLang(lang === 'en' ? 'en' : 'pt'); }
-        (function initLang() {
-            _origPT.__title = document.title;
-            const saved = localStorage.getItem('lang');
-            const lang = saved || ((navigator.language || '').toLowerCase().startsWith('pt') ? 'pt' : 'en');
-            applyLang(lang);
-        })();
 
         function toggleTheme() {
             const html = document.documentElement;

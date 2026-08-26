@@ -34,3 +34,7 @@ Thumbs.db
 
 # notas internas de sessão (contém credenciais de teste)
 HANDOFF.md
+
+# Landing em ingles: GERADA por pages/build-en.mjs no deploy a partir do
+# index.html em portugues. Versionar criaria duas fontes divergindo.
+pages/en/

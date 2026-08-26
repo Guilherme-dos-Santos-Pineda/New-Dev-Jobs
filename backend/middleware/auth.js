@@ -58,6 +58,12 @@ export async function attachUser(req, _res, next) {
                     authUser = data.user;
                     cache.set(token, { authUser, exp: Date.now() + TTL });
                     sweepCache();
+                } else if (error) {
+                    // Token recusado pelo Supabase. Antes isto era descartado em
+                    // silêncio: o usuário levava 401 e não havia UMA linha de log
+                    // dizendo por quê — nem "token expirado", nem "chave errada".
+                    // Diagnosticar exigia adivinhar. Nunca logamos o token.
+                    console.error('attachUser: Supabase recusou o token:', error.message);
                 }
             }
             if (authUser) req.user = await loadUserRow(authUser);

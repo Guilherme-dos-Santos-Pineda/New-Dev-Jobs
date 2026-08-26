@@ -49,8 +49,15 @@ const sql = url
         ssl: 'require',        // Supabase exige TLS
         prepare: false,        // obrigatório no transaction mode (PgBouncer)
         // Em transaction mode as conexões são recicladas por transação, então um
-        // pool maior escala sem estourar o limite do projeto.
-        max: Number(process.env.PG_POOL_MAX) || 10,
+        // pool maior escala sem estourar o limite do projeto. O teto de ~15 é do
+        // SESSION mode, onde só o pg-boss vive (com 2) — aqui não se aplica.
+        //
+        // Era 10, e UM único GET /api/dashboard dispara 10 queries em paralelo
+        // (7 no Promise.all + 1 do planUsage + 2 do getMatches): a requisição
+        // saturava o pool sozinha. Recarregar a aba, abrir outra tela ou o worker
+        // consumindo a fila entravam na fila atrás dela — e como a query do
+        // getMatches segura uma conexão por ~1,2s, o dashboard parecia travar.
+        max: Number(process.env.PG_POOL_MAX) || 25,
         idle_timeout: 20,      // devolve conexão ociosa ao pooler (segundos)
         connect_timeout: 10,   // falha rápido em vez de pendurar a request
         transform: { undefined: null },

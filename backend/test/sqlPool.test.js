@@ -51,3 +51,28 @@ test('toTransactionPooler: valores vazios/malformados passam sem lançar', () =>
     assert.equal(toTransactionPooler(''), '');
     assert.equal(toTransactionPooler('não-é-url'), 'não-é-url');
 });
+
+// ---------- Tamanho do pool x paralelismo do dashboard ----------
+// Regressão: o pool era 10 e UM único GET /api/dashboard dispara 10 queries em
+// paralelo (7 no Promise.all + 1 do planUsage + 2 do getMatches). A requisição
+// saturava o pool sozinha, e qualquer segunda coisa — recarregar a aba, abrir
+// outra tela, o worker consumindo a fila — ficava na fila atrás dela. Como a
+// query do getMatches segura uma conexão por ~1,2s, o dashboard parecia travar.
+//
+// O teto de ~15 conexões é do SESSION mode (só o pg-boss, com 2). Em transaction
+// mode a conexão volta ao pool a cada transação, então aumentar é seguro.
+
+test('pool das queries da app comporta o paralelismo do dashboard', async () => {
+    const { default: sql } = await import('../lib/sql.js');
+    // Sem DATABASE_URL no ambiente de teste o cliente é null; a checagem abaixo
+    // é sobre o DEFAULT do código, não sobre a conexão.
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../lib/sql.js', import.meta.url), 'utf8');
+    const m = src.match(/PG_POOL_MAX\)\s*\|\|\s*(\d+)/);
+    assert.ok(m, 'não achei o default de PG_POOL_MAX');
+    const teto = Number(m[1]);
+    const QUERIES_DO_DASHBOARD = 10;
+    assert.ok(teto > QUERIES_DO_DASHBOARD,
+        `pool ${teto} não pode ser <= às ${QUERIES_DO_DASHBOARD} queries paralelas do dashboard`);
+    assert.equal(sql, sql); // o import não pode explodir
+});

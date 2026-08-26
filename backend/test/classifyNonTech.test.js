@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectArea } from '../services/classify.js';
+import { detectArea, detectModality } from '../services/classify.js';
 import { passesFilters } from '../services/jobsQuery.js';
 import { computeMatch } from '../services/matching.js';
 
@@ -106,4 +106,85 @@ test('título vago continua em other (não vira nontech por engano)', () => {
         assert.equal(detectArea(vaga(t)), 'other', `"${t}"`);
     }
     assert.equal(passesFilters(vaga('Vaga'), { Region: 'br', Areas: ['dev'] }), true);
+});
+
+// =========================================================================
+// Regressão: skill alucinada sequestrava a classificação.
+//
+// A extração erra feio em vaga que não é de tech. Casos reais da base:
+// "Assistente Operacional" (logística) com [".NET"], "Assistente de RH" com
+// ["Go"]. Como detectArea montava `título + skills` com peso igual, UMA skill
+// inventada bastava para a vaga de logística virar 'dev' e entrar no feed.
+// =========================================================================
+
+test('skill inventada não sobrepõe um título de outra profissão', () => {
+    assert.equal(detectArea({ JobTitle: 'Assistente Operacional', Skills: ['.NET'] }), 'nontech');
+    assert.equal(detectArea({ JobTitle: 'Assistente de RH', Skills: ['Go'] }), 'nontech');
+    assert.equal(detectArea({ JobTitle: 'Assistente de Marketing', Skills: ['Canva', 'Excel'] }), 'nontech');
+    assert.equal(detectArea({ JobTitle: 'Consultor(a) Comercial, Assistente Fiscal', Skills: ['REST', 'Go'] }), 'nontech');
+});
+
+test('título vago ainda usa as skills — é o único sinal que resta', () => {
+    assert.equal(detectArea({ JobTitle: 'Vaga', Skills: ['React', 'Node'] }), 'dev');
+    assert.equal(detectArea({ JobTitle: 'Estamos contratando', Skills: ['Kubernetes'] }), 'devops');
+});
+
+test('prefixo de cargo é reconhecido, não só "analista de X"', () => {
+    for (const t of ['Assistente de RH', 'Auxiliar Operacional', 'Coordenador Operacional',
+        'Assistente Departamento Pessoal', 'Assistente Administrativo', 'Analista de Eventos']) {
+        assert.equal(detectArea({ JobTitle: t, Skills: [] }), 'nontech', `"${t}"`);
+    }
+    // ...e "de TI" com qualquer prefixo continua sendo tech
+    for (const t of ['Assistente de TI', 'Auxiliar de TI', 'Analista de TI']) {
+        assert.equal(detectArea({ JobTitle: t, Skills: [] }), 'suporte', `"${t}"`);
+    }
+});
+
+// =========================================================================
+// Regressão: o filtro de MODALIDADE não existia.
+//
+// "Modalities" era salvo no perfil e nunca lido por passesFilters nem por
+// computeMatch. O usuário marcava "home office" e continuava recebendo vaga
+// presencial — filtro decorativo, que corrói a confiança em todos os outros.
+// =========================================================================
+
+test('detectModality: normaliza os valores sujos da base', () => {
+    assert.deepEqual(detectModality({ Modality: 'remoto' }), ['remoto']);
+    assert.deepEqual(detectModality({ Modality: 'remote' }), ['remoto']);
+    assert.deepEqual(detectModality({ Modality: 'híbrido' }), ['hibrido']);
+    assert.deepEqual(detectModality({ Modality: 'presencial' }), ['presencial']);
+    // valor múltiplo conta como as duas coisas
+    assert.deepEqual(detectModality({ Modality: 'remoto, hibrido' }).sort(), ['hibrido', 'remoto']);
+    // "PJ" não é modalidade
+    assert.equal(detectModality({ Modality: 'PJ' }), null);
+});
+
+test('detectModality: cai no texto quando o campo está vazio (54% da base)', () => {
+    assert.deepEqual(detectModality({ Description: 'Vaga 100% remoto para todo o Brasil' }), ['remoto']);
+    assert.deepEqual(detectModality({ Description: 'Trabalho em home office' }), ['remoto']);
+    // híbrido antes de remoto: "híbrido com 2 dias remotos" não é remoto puro
+    assert.deepEqual(detectModality({ Description: 'Modelo híbrido, 2 dias remotos por semana' }), ['hibrido']);
+    assert.equal(detectModality({ Description: 'Vaga para pessoa desenvolvedora' }), null);
+});
+
+test('quem escolheu remoto não recebe vaga presencial', () => {
+    const perfil = { Region: 'br', Modalities: ['remoto'], Areas: [] };
+    const base = { JobTitle: 'Desenvolvedor Java', Email: 'r@x.com.br', Description: 'vaga no Brasil' };
+    assert.equal(passesFilters({ ...base, Modality: 'presencial' }, perfil), false);
+    assert.equal(passesFilters({ ...base, Modality: 'remoto' }, perfil), true);
+    assert.equal(passesFilters({ ...base, Modality: 'remoto, hibrido' }, perfil), true);
+});
+
+test('vaga sem modalidade identificável PASSA (metade da base não tem o campo)', () => {
+    // Bloquear as indefinidas esconderia metade das vagas boas para punir uma
+    // minoria de ruins. A dúvida joga a favor do usuário ver a vaga.
+    const perfil = { Region: 'br', Modalities: ['remoto'], Areas: [] };
+    const semInfo = { JobTitle: 'Desenvolvedor Java', Email: 'r@x.com.br', Description: 'vaga no Brasil' };
+    assert.equal(passesFilters(semInfo, perfil), true);
+});
+
+test('sem filtro de modalidade declarado, nada é barrado por modalidade', () => {
+    const perfil = { Region: 'br', Modalities: [], Areas: [] };
+    const base = { JobTitle: 'Desenvolvedor Java', Email: 'r@x.com.br', Description: 'vaga no Brasil' };
+    assert.equal(passesFilters({ ...base, Modality: 'presencial' }, perfil), true);
 });

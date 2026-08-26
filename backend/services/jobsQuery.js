@@ -1,6 +1,6 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
-import { detectArea, detectLevel } from './classify.js';
+import { detectArea, detectLevel, detectModality } from './classify.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -60,6 +60,20 @@ export function passesFilters(job, profile) {
             const lvl = detectLevel(`${job.JobTitle || ''} ${job.Description || ''}`);
             if (lvl && !levels.includes(lvl)) return false;
         }
+    }
+
+    // Modalidade (remoto / híbrido / presencial). O usuário escolhe no perfil e
+    // até agora isso NÃO FAZIA NADA: "Modalities" era salvo e nunca lido — filtro
+    // decorativo. Marcar "home office" e continuar recebendo vaga presencial é o
+    // tipo de coisa que faz o usuário deixar de confiar no resto dos filtros.
+    //
+    // Vaga sem modalidade identificável PASSA de propósito: 54% da base não tem o
+    // campo preenchido, então bloquear as indefinidas esconderia metade das vagas
+    // boas para punir uma minoria de ruins.
+    const modalidades = parseArr(profile.Modalities).map((m) => String(m).toLowerCase());
+    if (modalidades.length) {
+        const daVaga = detectModality(job);
+        if (daVaga && !daVaga.some((m) => modalidades.includes(m))) return false;
     }
 
     // Área profissional: descarta vagas de outro cargo (ex.: QA não recebe vaga de Dev).

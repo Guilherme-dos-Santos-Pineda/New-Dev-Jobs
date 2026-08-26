@@ -31,9 +31,15 @@ export function detectLevel(text = '') {
 // híbrido como "Analista de Sistemas Comercial" fica com o lado técnico. Empatar
 // a favor de tech é o erro barato — exibir uma vaga duvidosa incomoda, perder uma
 // boa custa uma candidatura.
+// Prefixos de cargo que aparecem antes da área: "Assistente de RH", "Auxiliar
+// Operacional", "Coordenador de Compras". Escrever a lista abaixo presa a
+// "analista de X" deixava passar as variantes — e elas são a maioria.
+const CARGO = '(?:analista|assistente|auxiliar|coordenador[a]?|supervisor[a]?|encarregad[oa]|gerente|estagi[áa]ri[oa]|jovem aprendiz|t[ée]cnic[oa])';
+
 const NONTECH = new RegExp([
     // administrativo, financeiro e RH
-    'analista (?:de )?(?:rh|recursos humanos|dp|departamento pessoal)', 'recursos humanos',
+    `${CARGO}s?\\s+(?:de\\s+)?(?:rh|recursos humanos|dp|departamento pessoal)`, 'recursos humanos',
+    `${CARGO}s?\\s+operacional`, '\\bauxiliar operacional\\b',
     'cont[áa]bil', '\\bfiscal\\b', 'tribut[áa]ri', 'auditoria', 'tesouraria', 'fp&a',
     'custos industriais', '\\bcontroller\\b', 'faturamento', 'cobran[çc]a',
     'analista administrativ', 'assistente administrativ', 'auxiliar administrativ',
@@ -45,8 +51,8 @@ const NONTECH = new RegExp([
     // comercial e marketing
     'vendedor', 'representante comercial', 'consultor de vendas', 'analista comercial',
     '\\bsdr\\b', 'pr[ée][- ]vendas', 'telemarketing', 'social media', 'publicidade',
-    'marketing digital', 'analista de marketing', '\\bredator', 'jornalista',
-    'videomaker', 'fot[óo]grafo', 'analista de eventos', 'customer success',
+    'marketing digital', `${CARGO}s?\\s+(?:de\\s+)?marketing`, '\\bredator', 'jornalista',
+    'videomaker', 'fot[óo]grafo', `${CARGO}s?\\s+(?:de\\s+)?eventos`, 'customer success',
     // saúde, jurídico e educação
     'psic[óo]log', 'enfermeir', '\\bm[ée]dic[oa]\\b', 'nutricionista', 'fisioterap',
     'dentista', 'farmac[êe]utic', 'jur[íi]dic', 'advogad', 'paralegal',
@@ -56,14 +62,10 @@ const NONTECH = new RegExp([
     'arquitet[oa] (?:e urbanista|de interiores)',
 ].join('|'));
 
-// Classifica a ÁREA/cargo da vaga (dev, qa, po, data, design, devops, mobile,
-// suporte) a partir do título + skills. A ORDEM importa: as áreas específicas são
-// checadas antes do "dev" genérico (ex.: "Engenheiro de Qualidade" é QA, não Dev;
-// um "engineer" que sobra cai em Dev), e o NONTECH vem por último, depois de
-// esgotar tudo que é tech. 'other' = não deu pra classificar com confiança (não
-// filtra, p/ não perder vaga boa).
-export function detectArea(job) {
-    const t = `${job.JobTitle || ''} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
+// Área de tech a partir de um texto. A ORDEM importa: as áreas específicas vêm
+// antes do "dev" genérico (ex.: "Engenheiro de Qualidade" é QA, não Dev; um
+// "engineer" que sobra cai em Dev). Devolve null quando nada casa.
+function areaTech(t) {
     // QA / Testes / Qualidade — inclui as variações em inglês e "engenheiro/analista
     // de qualidade", que senão escorregariam para "dev" por causa do "engineer".
     if (/\bqa\b|quality assurance|quality engineer|\bsdet\b|\btae\b|test(?:s)? engineer|test automation|automation test|\btester\b|analista\s+de\s+(?:testes?|qualidade)|engenheir[oa]s?\s+de\s+(?:testes?|qualidade)|automa[çc][ãa]o de testes?|testes? automatizad|qualidade de software/.test(t)) return 'qa';
@@ -78,10 +80,71 @@ export function detectArea(job) {
     // aparecerem como 'other' nos dados reais: vaga boa escapando da classificação.
     if (/desenvolvedor|developer|programador|engenheir[oa]s?\s+de\s+software|software engineer|\bengineer\b|full[\s-]?stack|back[\s-]?end|front[\s-]?end|\.net|\bjava\b|python|\bnode|react|angular|\bvue\b|svelte|\bphp\b|golang|kotlin|swift|\bruby\b|\brust\b|c\+\+|spring|django|laravel|\brails\b|tech lead|arquitet[oa] de software|software architect|analista de sistemas/.test(t)) return 'dev';
     // Suporte / Service Desk — carreira de TI legítima que caía inteira em 'other'.
-    if (/service desk|help ?desk|suporte t[ée]cnico|analista de suporte|suporte n[123]\b|analista de ti\b|t[ée]cnico em inform[áa]tica|infraestrutura de ti/.test(t)) return 'suporte';
-    // Nada de tech casou: só agora perguntamos se é outra profissão.
-    if (NONTECH.test(t)) return 'nontech';
-    return 'other';
+    // "de TI" aceita qualquer prefixo de cargo: assistente e auxiliar de TI são
+    // tão comuns quanto analista, e escreviam-se só como 'other'.
+    if (/service desk|help ?desk|suporte t[ée]cnico|analista de suporte|suporte n[123]\b|(?:analista|assistente|auxiliar|t[ée]cnic[oa])s?\s+(?:de\s+)?ti\b|t[ée]cnic[oa] em inform[áa]tica|infraestrutura de ti/.test(t)) return 'suporte';
+    return null;
+}
+
+/**
+ * Classifica a ÁREA/cargo da vaga. O TÍTULO manda; as skills só decidem quando o
+ * título não diz nada.
+ *
+ * POR QUE ESSA HIERARQUIA: a extração de skills erra feio em vaga que não é de
+ * tech. Casos reais da base — "Assistente Operacional" (logística) com
+ * `[".NET"]`, "Assistente de RH" com `["Go"]`, "Consultor Comercial" com
+ * `["REST","Go"]`. Antes o texto era `título + skills` com peso igual, então UMA
+ * skill inventada sequestrava a classificação e a vaga de logística virava 'dev'.
+ *
+ * Ordem: (1) título casa com tech → é tech; (2) título casa com outra profissão →
+ * nontech, e skill nenhuma salva; (3) título vago ("Vaga", "Oportunidade") → aí
+ * sim as skills decidem; (4) 'other'.
+ */
+export function detectArea(job) {
+    const titulo = String(job.JobTitle || '').toLowerCase();
+
+    // 1. O título é o sinal confiável.
+    const porTitulo = areaTech(titulo);
+    if (porTitulo) return porTitulo;
+
+    // 2. Título de outra profissão: skill alucinada não reverte.
+    if (NONTECH.test(titulo)) return 'nontech';
+
+    // 3. Título sem informação ("Vaga", "Estamos contratando"): as skills são o
+    //    único sinal que resta, então valem — com o risco assumido de errar aqui.
+    const comSkills = `${titulo} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
+    return areaTech(comSkills) || 'other';
+}
+
+/**
+ * Normaliza a modalidade da vaga para 'remoto' | 'hibrido' | 'presencial'.
+ *
+ * A coluna "Modality" vem da extração e chega suja: "remoto", "remote",
+ * "híbrido", "hibrido", "remoto, hibrido", "PJ" (que nem é modalidade). Além
+ * disso, 54% das vagas não têm o campo — por isso caímos no texto do anúncio,
+ * onde "100% remoto" e "home office" aparecem o tempo todo.
+ *
+ * Devolve null quando não dá para afirmar. Quem chama decide o que fazer com a
+ * dúvida; aqui não inventamos.
+ */
+export function detectModality(job) {
+    const campo = String(job.Modality || '').toLowerCase();
+    const texto = `${job.JobTitle || ''} ${job.Location || ''} ${job.Description || ''}`.toLowerCase();
+
+    // O campo, quando existe, é o sinal mais forte. Valor múltiplo ("remoto,
+    // hibrido") conta como as duas coisas — quem filtra por remoto deve ver.
+    const doCampo = new Set();
+    if (/remot|home ?office|anywhere/.test(campo)) doCampo.add('remoto');
+    if (/h[íi]brid|hybrid/.test(campo)) doCampo.add('hibrido');
+    if (/presencial|on ?site|no local/.test(campo)) doCampo.add('presencial');
+    if (doCampo.size) return [...doCampo];
+
+    // Sem campo: o texto do anúncio. Híbrido antes de remoto, senão "híbrido com
+    // 2 dias remotos" seria lido como remoto puro.
+    if (/h[íi]brid|hybrid/.test(texto)) return ['hibrido'];
+    if (/100% remoto|totalmente remoto|home ?office|trabalho remoto|fully remote|remote[- ]first|\bremoto\b|\bremote\b/.test(texto)) return ['remoto'];
+    if (/presencial|no local da empresa|on[- ]site/.test(texto)) return ['presencial'];
+    return null;
 }
 
 export { parseArr };

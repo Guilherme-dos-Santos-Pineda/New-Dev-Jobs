@@ -4,6 +4,7 @@ import { renderEmail } from './templates.js';
 import { sendApplicationEmail } from './mailer.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { resolveTemplate } from '../routes/templates.js';
+import { invalidateMatches } from './jobsQuery.js';
 
 class ApplyError extends Error {
     constructor(message, status = 400) { super(message); this.status = status; }
@@ -57,6 +58,11 @@ export async function applyToJob(userId, jobId) {
         insert into "Applications" ("UserId", "JobId", "Status", "MatchScore", "Subject", "Body", "SentAt")
         values (${userId}, ${jobId}, 'sent', ${match.score}, ${rendered.subject}, ${rendered.text}, now())
         returning "Id"`;
+
+    // A vaga saiu do conjunto "ainda não candidatadas": derruba o memo do
+    // getMatches, senão ela reapareceria como disponível por até o TTL.
+    invalidateMatches(userId);
+
     return { applicationId: created.Id, matchScore: match.score };
 }
 

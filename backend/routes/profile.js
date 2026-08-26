@@ -6,6 +6,7 @@ import { parseLinkedInText } from '../services/linkedinParser.js';
 import { pdfToText } from '../services/pdfText.js';
 import { normalizeList, normalizeDomain } from '../services/normalize.js';
 import { uploadCv, removeCv } from '../lib/cvStorage.js';
+import { invalidateMatches } from '../services/jobsQuery.js';
 
 const router = Router();
 
@@ -40,6 +41,10 @@ async function upsertProfile(userId, f) {
             "RequiredKeywords" = excluded."RequiredKeywords", "BlockedWords" = excluded."BlockedWords",
             "BlockedDomains" = excluded."BlockedDomains", "Levels" = excluded."Levels", "Modalities" = excluded."Modalities",
             "Areas" = excluded."Areas", "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "Region" = excluded."Region", "UpdatedAt" = now()`;
+
+    // Skills, região, palavras bloqueadas e senioridade decidem o que passa em
+    // passesFilters — o memo do getMatches precisa cair junto com a alteração.
+    invalidateMatches(userId);
 }
 
 async function setCv(userId, cvPath, cvName) {

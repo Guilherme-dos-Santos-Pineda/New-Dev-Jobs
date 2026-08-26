@@ -37,6 +37,21 @@ function healthyAccounts(now = Date.now()) {
 }
 
 /**
+ * Quando (ms epoch) a primeira conta volta a ter crédito — ou 0 se já existe uma
+ * conta utilizável agora. Deixa o AGENDADOR perguntar antes de enfileirar: sem
+ * isto ele reivindica robôs, grava em "ScraperRuns" e enfileira execuções que
+ * morrem 3s depois no `runActor`, de minuto em minuto, 24h por dia.
+ * Retorna 0 também quando não há NENHUMA conta configurada: aí o problema é de
+ * configuração e o erro deve aparecer, não ser silenciado como "sem crédito".
+ */
+export function apifyExhaustedUntil(now = Date.now()) {
+    const withToken = accounts.filter((a) => a.token);
+    if (!withToken.length) return 0;
+    if (withToken.some((a) => a.exhaustedUntil <= now)) return 0;
+    return Math.min(...withToken.map((a) => a.exhaustedUntil));
+}
+
+/**
  * Roda um actor da Apify com fallback entre contas. Só rotaciona em erro de CRÉDITO;
  * erro transitório sobe para o retry do pg-boss. @returns { items, account }.
  */

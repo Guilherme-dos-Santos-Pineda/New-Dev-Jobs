@@ -7,6 +7,7 @@ import { runDiscovery, runMonitoring } from './services/scraper.js';
 import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
 import { tickCampaigns } from './services/campaigns.js';
+import { apifyExhaustedUntil } from './services/apifyPool.js';
 
 // =========================
 // Worker de envio (processo separado: `npm run worker`)
@@ -88,7 +89,29 @@ function makeScraperHandler(fn, label) {
 // O `for update skip locked` mantém a reivindicação atômica entre workers.
 const SCHEDULER_MAX_PER_TICK = Number(process.env.SCHEDULER_MAX_PER_TICK) || 3;
 
+// Última vez que avisamos sobre a falta de crédito. Sem isto, o aviso repetiria
+// a cada tick (60s) e afogaria o log — que foi como o problema real ficou
+// escondido: milhares de linhas de falha por dia enterrando tudo o mais.
+let ultimoAvisoSemCredito = 0;
+const INTERVALO_AVISO_MS = 60 * 60 * 1000; // 1 hora
+
 async function runDueSchedules(boss) {
+    // Sem nenhuma conta Apify com crédito, TODO run falha ~3s depois de ser
+    // enfileirado. Reivindicar os robôs mesmo assim seria pior que inútil: o
+    // update já avança o "NextRunAt", então os agendamentos são consumidos à toa,
+    // e cada tick ainda grava em "ScraperRuns" e na fila do pg-boss. Perguntamos
+    // ANTES de reivindicar, para os robôs continuarem vencidos e dispararem de
+    // verdade assim que o crédito voltar.
+    const semCreditoAte = apifyExhaustedUntil();
+    if (semCreditoAte) {
+        const agora = Date.now();
+        if (agora - ultimoAvisoSemCredito >= INTERVALO_AVISO_MS) {
+            ultimoAvisoSemCredito = agora;
+            console.log(`⏸️  agendador pausado: Apify sem crédito até ${new Date(semCreditoAte).toISOString()}`);
+        }
+        return 0;
+    }
+
     const due = await sql`
         update "ScraperSchedules"
         set "LastRunAt" = now(),

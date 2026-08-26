@@ -94,8 +94,52 @@ export async function listForUser(userId, { ignoreFilters = false } = {}) {
  * Applications) para não trazer a tabela inteira de Jobs à memória — só o que
  * resta passa pelo matcher em JS. Resultado idêntico ao filtro antigo em JS.
  */
+// Memo curto por usuário. Abrir o dashboard e a tela de vagas em sequência, ou
+// iniciar um envio logo depois, recalculava tudo do zero a cada vez — e "tudo"
+// aqui custa ~1,4s de banco e ~12 MB por chamada (medido com 6270 vagas).
+//
+// A janela é curta de propósito: vaga nova precisa aparecer rápido. O cache é
+// invalidado explicitamente quando o usuário se candidata (invalidateMatches),
+// que é a única ação dele capaz de mudar o próprio resultado.
+const matchesCache = new Map(); // userId -> { at, promise }
+const MATCHES_TTL_MS = Number(process.env.MATCHES_TTL_MS) || 20_000;
+
+/** Descarta o memo do usuário. Chamar após candidatura/alteração de perfil. */
+export function invalidateMatches(userId) {
+    matchesCache.delete(String(userId));
+}
+
 export async function getMatches(userId) {
+    const chave = String(userId);
+    const agora = Date.now();
+    const memo = matchesCache.get(chave);
+    // Guarda a PROMISE, não o resultado: dois requests simultâneos (dashboard e
+    // /jobs/matches carregam juntos) compartilham uma execução em vez de
+    // dispararem duas varreduras concorrentes de 12 MB na mesma VM de 1 GB.
+    if (memo && agora - memo.at < MATCHES_TTL_MS) return memo.promise;
+
+    const promise = computeMatches(userId).catch((e) => {
+        matchesCache.delete(chave); // falha não fica cacheada
+        throw e;
+    });
+    matchesCache.set(chave, { at: agora, promise });
+
+    // O Map cresceria com um usuário por chave; limpa os vencidos de vez em quando.
+    if (matchesCache.size > 50) {
+        for (const [k, v] of matchesCache) if (agora - v.at >= MATCHES_TTL_MS) matchesCache.delete(k);
+    }
+    return promise;
+}
+
+async function computeMatches(userId) {
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
+
+    // "PostingDays" é um filtro EXATO por data — o mesmo que passesFilters aplica
+    // em JS logo abaixo. Fazê-lo no SQL não muda o resultado e evita transferir
+    // vagas que seriam descartadas na chegada. Para quem usa "últimos 7 dias",
+    // isso é a diferença entre trazer 6270 linhas e trazer algumas centenas.
+    const dias = Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
+
     const rows = await sql`
         select j.* from "Jobs" j
         where j."Email" is not null and j."Email" <> ''
@@ -103,7 +147,9 @@ export async function getMatches(userId) {
               select 1 from "Applications" a
               where a."UserId" = ${userId} and a."JobId" = j."Id"
           )
+          ${dias ? sql`and j."CreatedAt" >= now() - make_interval(days => ${dias})` : sql``}
         order by j."CreatedAt" desc, j."Id" desc`;
+
     const noneApplied = new Set(); // a query já excluiu as candidatadas
     return rows
         .filter((j) => passesFilters(j, profile))

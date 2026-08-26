@@ -74,6 +74,24 @@ export function shapeJob(job, profile, appliedSet) {
     };
 }
 
+/**
+ * Quantas vagas têm email e ainda não foram enviadas por este usuário —
+ * IGNORANDO os filtros do perfil. Serve para dizer "seus filtros escondem N
+ * vagas". Espelha exatamente o `jobs.filter((j) => j.email && !j.applied)` que
+ * existia antes, mas conta no banco em vez de trazer a tabela inteira para o
+ * Node só para medir o tamanho dela.
+ */
+export async function countCandidatable(userId) {
+    const [row] = await sql`
+        select count(*)::int as n from "Jobs" j
+        where j."Email" is not null and j."Email" <> ''
+          and not exists (
+              select 1 from "Applications" a
+              where a."UserId" = ${userId} and a."JobId" = j."Id"
+          )`;
+    return row?.n ?? 0;
+}
+
 /** Lista vagas para o usuário (com filtros opcionais). */
 export async function listForUser(userId, { ignoreFilters = false } = {}) {
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${userId}`;

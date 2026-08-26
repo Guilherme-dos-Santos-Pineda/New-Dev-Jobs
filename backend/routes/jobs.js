@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
-import { listForUser, getMatches, shapeJob } from '../services/jobsQuery.js';
+import { listForUser, getMatches, shapeJob, countCandidatable } from '../services/jobsQuery.js';
 
 const router = Router();
 
@@ -32,8 +32,12 @@ router.get('/matches', requireAuth, async (req, res) => {
     const matches = await getMatches(req.user.Id);
     // Quantas vagas (com email, não enviadas) existem ignorando os filtros do perfil,
     // para explicar ao usuário quando os filtros estão escondendo vagas.
-    const all = await listForUser(req.user.Id, { ignoreFilters: true });
-    const candidatable = all.jobs.filter((j) => j.email && !j.applied).length;
+    //
+    // É um NÚMERO, e antes ele custava um `select * from "Jobs"` inteiro — as
+    // 6270 linhas com Description — só para contar no JavaScript. Medido em
+    // produção: 2s por request, fora do memo do getMatches. Contar no banco dá
+    // o mesmo resultado e usa o índice de "Applications".
+    const candidatable = await countCandidatable(req.user.Id);
     // Segurança: NUNCA devolve o email de contato (evita coletar contatos sem usar a
     // plataforma). No plano free também oculta a descrição (o post traz o email no texto).
     const isFree = (req.user.Plan || 'free') === 'free';

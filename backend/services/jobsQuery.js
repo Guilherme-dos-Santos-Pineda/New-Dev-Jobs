@@ -20,6 +20,14 @@ function jobIsBR(job) {
 }
 
 export function passesFilters(job, profile) {
+    // Vaga de outra profissão NUNCA entra, com ou sem perfil e com ou sem filtro
+    // de área. Esta é uma plataforma de vagas de tecnologia: "Assistente
+    // Operacional de Logística" no feed de um dev não é filtro mal configurado,
+    // é ruído do scraper — que lê posts de recrutador anunciando de tudo.
+    // Vem antes do `if (!profile)` de propósito: vale até para quem ainda não
+    // preencheu o perfil.
+    if (detectArea(job) === 'nontech') return false;
+
     if (!profile) return true;
 
     // Preferência de país do usuário (br | intl)

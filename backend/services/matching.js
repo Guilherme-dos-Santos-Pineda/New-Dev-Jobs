@@ -98,7 +98,11 @@ export function computeMatch(profile, job) {
     // mesmo na visão "ignorar filtros" e no ranking.
     const userAreas = parseSkills(profile?.Areas).map((a) => a.toLowerCase());
     const jobArea = detectArea(job);
-    const areaMismatch = userAreas.length > 0 && jobArea !== 'other' && !userAreas.includes(jobArea);
+    // 'nontech' é mismatch SEMPRE — mesmo sem áreas declaradas e mesmo na visão
+    // "ignorar filtros", onde passesFilters não roda. Sem isto, uma vaga de outra
+    // profissão poderia aparecer ali com score alto por coincidência de palavra.
+    const areaMismatch = jobArea === 'nontech'
+        || (userAreas.length > 0 && jobArea !== 'other' && !userAreas.includes(jobArea));
     if (areaMismatch) score = Math.min(Math.round(score * 0.25), 30);
 
     return {

@@ -40,6 +40,7 @@ export const AREA_OPTIONS = [
     { value: 'mobile', label: 'Mobile' },
     { value: 'design', label: 'Design / UX' },
     { value: 'po', label: 'Produto / PO' },
+    { value: 'suporte', label: 'Suporte / Service Desk' },
 ];
 
 export const LEVEL_OPTIONS = [

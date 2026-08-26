@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase, supabaseConfigured } from '../lib/supabase.js';
-import { useAuth } from '../auth.jsx';
+import { useAuth, SESSION_REJECTED } from '../auth.jsx';
 import Logo from '../components/Logo.jsx';
 import { authError } from '../lib/authErrors.js';
 import { useT } from '../lib/i18n.jsx';
@@ -14,6 +14,14 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    // Lido uma vez: o backend recusou a sessão anterior e ela foi encerrada.
+    const [rejeitada] = useState(() => {
+        try {
+            const v = sessionStorage.getItem(SESSION_REJECTED) === '1';
+            if (v) sessionStorage.removeItem(SESSION_REJECTED);
+            return v;
+        } catch { return false; }
+    });
 
     if (session) { navigate('/app', { replace: true }); return null; }
 
@@ -42,6 +50,8 @@ export default function Login() {
                 <p className="sub">{t('Acesse seu painel de candidaturas automáticas.')}</p>
 
                 {!supabaseConfigured && <div className="notice danger"><i className="ti ti-alert-circle" />{t('Supabase não configurado (veja frontend/.env).')}</div>}
+
+                {rejeitada && <div className="notice danger"><i className="ti ti-alert-circle" />{t('Sua sessão não foi reconhecida pelo servidor. Entre novamente.')}</div>}
 
                 <button className="btn block" style={{ marginBottom: 16 }} onClick={google} disabled={!supabaseConfigured}>
                     <i className="ti ti-brand-google" /> {t('Continuar com Google')}

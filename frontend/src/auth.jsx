@@ -4,6 +4,11 @@ import { supabase } from './lib/supabase.js';
 
 const AuthCtx = createContext(null);
 
+// Marca que o backend recusou a última sessão, para o Login explicar o motivo em
+// vez de o usuário só ver o formulário de novo sem entender o que houve.
+// sessionStorage porque a informação precisa sobreviver ao signOut + re-render.
+export const SESSION_REJECTED = 'sessionRejected';
+
 export function AuthProvider({ children }) {
     const [session, setSession] = useState(null);
     const [user, setUser] = useState(null); // dados do app (plano, google, etc.)
@@ -39,9 +44,18 @@ export function AuthProvider({ children }) {
                 if (!alive) return;
                 const kind = classifyApiError(err);
                 setMeError(kind);
-                // Só desloga se o backend recusou a sessão. Se ele está fora/inacessível,
-                // mantém a sessão e deixa a UI mostrar o erro com retry (ProtectedRoute).
-                if (kind === 'unauthorized') setUser(null);
+                // Se o backend está fora/inacessível, mantém a sessão e deixa a UI
+                // mostrar o erro com retry (ProtectedRoute).
+                if (kind === 'unauthorized') {
+                    setUser(null);
+                    // O backend RECUSOU a sessão (não é indisponibilidade). Sem
+                    // encerrá-la no Supabase, /login vê `session` e manda para /app,
+                    // o ProtectedRoute vê `user` nulo e manda de volta para /login:
+                    // laço de redirecionamento infinito, que na tela vira uma
+                    // página travada. Encerrar devolve um formulário de login real.
+                    try { sessionStorage.setItem(SESSION_REJECTED, '1'); } catch { /* modo privado */ }
+                    await supabase?.auth.signOut();
+                }
             } finally {
                 if (alive) setLoading(false);
             }

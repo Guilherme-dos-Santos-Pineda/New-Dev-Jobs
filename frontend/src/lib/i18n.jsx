@@ -173,6 +173,7 @@ const EN = {
     'Dicas de vagas, novidades e suporte no WhatsApp.': 'Job tips, updates and support on WhatsApp.',
     'Entrar no grupo': 'Join the group',
     'Dispensar': 'Dismiss',
+    'Sua sessão não foi reconhecida pelo servidor. Entre novamente.': 'Your session was not recognized by the server. Please sign in again.',
     'O que a comunidade está achando da plataforma.': 'What the community thinks of the platform.',
     'Plano atual': 'Current plan',
     'Gerenciar / Cancelar': 'Manage / Cancel',

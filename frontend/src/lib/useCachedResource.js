@@ -43,7 +43,18 @@ export function useCachedResource(key, fetcher, { enabled = true } = {}) {
     const load = useCallback(async (silent) => {
         if (!silent) setLoading(true);
         try {
-            const res = await fetcher();
+            // Reusa a chamada em voo quando ela existe. Sem isto, dois componentes
+            // que montam juntos com a mesma key disparavam DUAS requisições — e no
+            // dashboard isso aparecia como `profile` e `dashboard` repetidos na aba
+            // Network. `prefetch` já deduplicava; o hook, não.
+            let p = inflight.get(key);
+            if (!p) {
+                p = Promise.resolve()
+                    .then(fetcher)
+                    .finally(() => inflight.delete(key));
+                inflight.set(key, p);
+            }
+            const res = await p;
             cache.set(key, res);
             setData(res);
             setError(null);

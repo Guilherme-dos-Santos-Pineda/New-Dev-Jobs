@@ -137,6 +137,24 @@ else
     echo "configuração já instalada e idêntica à do repo — HTTPS preservado"
 fi
 
+# --- HTTP/2 ---------------------------------------------------------------
+# O certbot escreve `listen 443 ssl;` SEM http2, e reescreve isso a cada
+# renovação — por isso a checagem roda sempre, não só quando instalamos a
+# config. Em HTTP/1.1 o navegador abre no máximo 6 conexões por host: o
+# dashboard segura uma por ~2s e todo o resto fica na fila atrás dele. Com h2
+# tudo multiplexa numa conexão só.
+if sudo grep -q "listen 443 ssl;" "$LIVE" 2>/dev/null; then
+    sudo sed -i "s/listen 443 ssl;/listen 443 ssl http2;/g" "$LIVE"
+    if sudo nginx -t >/dev/null 2>&1; then
+        sudo systemctl reload nginx
+        echo "http2 habilitado (o certbot havia deixado só ssl)"
+    else
+        # Não deixa a config quebrada no ar por causa de uma otimização.
+        sudo sed -i "s/listen 443 ssl http2;/listen 443 ssl;/g" "$LIVE"
+        echo "⚠️  não foi possível habilitar http2 (nginx -t falhou); config revertida"
+    fi
+fi
+
 echo
 echo "✅ publicado em $WEB_DIR"
 echo "   landing : $(ls "$WEB_DIR" | grep -c '\.html$') páginas HTML (+ /en/)"

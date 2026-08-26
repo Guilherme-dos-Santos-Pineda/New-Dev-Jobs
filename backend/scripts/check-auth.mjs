@@ -10,9 +10,25 @@
 //
 // NUNCA imprime segredos — só o comprimento e os últimos caracteres, o
 // suficiente para comparar com o painel do Supabase sem vazar a chave.
-import 'dotenv/config';
-import { supabaseAdmin, supabaseConfigured } from '../lib/supabaseAdmin.js';
-import sql from '../lib/sql.js';
+import dotenv from 'dotenv';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// O `dotenv/config` padrão procura o .env no diretório ATUAL. Rodando o script
+// de qualquer lugar que não /opt/newdevjobs (o WorkingDirectory do systemd), ele
+// não acharia nada e reportaria "todas as variáveis ausentes" — um falso
+// negativo que faz parecer que a configuração sumiu. Resolvemos pelo caminho do
+// próprio arquivo, então funciona de qualquer cwd.
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+dotenv.config({ path: resolve(ROOT, '.env') });
+
+// Import DINÂMICO e depois do dotenv: `import` estático é içado para o topo e
+// rodaria antes do carregamento acima, com o process.env ainda vazio.
+const { supabaseAdmin, supabaseConfigured } = await import('../lib/supabaseAdmin.js');
+const { default: sql } = await import('../lib/sql.js');
+
+console.log(`
+0. .env lido de ${resolve(ROOT, '.env')}`);
 
 const ok = (m) => console.log(`  ✅ ${m}`);
 const no = (m) => console.log(`  ❌ ${m}`);
@@ -55,6 +71,7 @@ if (supabaseAdmin) {
 
 console.log('\n4. Banco de dados');
 try {
+    if (!sql) throw new Error('DATABASE_URL ausente — cliente não instanciado');
     const [row] = await sql`select count(*)::int as n from "Users"`;
     ok(`tabela "Users" acessível — ${row.n} registro(s)`);
 } catch (e) {
@@ -70,8 +87,10 @@ if (token && supabaseAdmin) {
         info('"invalid JWT" costuma ser token de outro projeto; "expired", sessão velha.');
     } else {
         ok(`aceito — user ${data.user.id} (${data.user.email})`);
-        const [row] = await sql`select "Id", "Email" from "Users" where "Id" = ${data.user.id}`;
-        row ? ok('usuário existe na tabela "Users"') : info('ainda não existe em "Users" (é criado no 1º /api/auth/me)');
+        if (sql) {
+            const [row] = await sql`select "Id", "Email" from "Users" where "Id" = ${data.user.id}`;
+            row ? ok('usuário existe na tabela "Users"') : info('ainda não existe em "Users" (é criado no 1º /api/auth/me)');
+        }
     }
 } else if (!token) {
     console.log('\n5. Token: nenhum informado.');

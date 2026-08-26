@@ -67,12 +67,26 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
+          # As VITE_* entram no bundle em BUILD time. Faltando, o Vite as
+          # substitui por string vazia e o build PASSA - mas supabaseConfigured
+          # vira false, o cliente Supabase nem e criado e NENHUM login funciona.
+          # O app sobe inteiro e so o login morre, sem erro em log nenhum.
+          [ -n "$VITE_SUPABASE_URL" ]      || { echo "::error::Secret VITE_SUPABASE_URL ausente ou vazio"; exit 1; }
+          [ -n "$VITE_SUPABASE_ANON_KEY" ] || { echo "::error::Secret VITE_SUPABASE_ANON_KEY ausente ou vazio"; exit 1; }
+
           npm ci --no-audit --no-fund
           npm run build
-          # Falha cedo e com mensagem clara se o base '/app/' do vite.config.js
-          # se perder: sem ele os assets saem em /assets/ e o app fica em branco.
+
+          # Falha cedo se o base '/app/' do vite.config.js se perder: sem ele os
+          # assets saem em /assets/ e o app sobe em branco.
           grep -q '/app/assets/' dist/index.html \
-            || { echo "::error::dist/index.html não referencia /app/assets/ — o base do Vite regrediu"; exit 1; }
+            || { echo "::error::dist/index.html nao referencia /app/assets/ - o base do Vite regrediu"; exit 1; }
+
+          # Confere no ARTEFATO, nao so nas variaveis. Ja publicamos um bundle
+          # sem a chave anon, e o sintoma foi "o login nao funciona" - sem pista.
+          grep -rqE 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' dist/assets/ \
+            || { echo "::error::o bundle saiu SEM a chave anon do Supabase - o login nao funcionaria"; exit 1; }
+          echo "chave do Supabase presente no bundle"
 
       - name: Empacotar
         run: tar -czf dist.tar.gz -C frontend/dist .

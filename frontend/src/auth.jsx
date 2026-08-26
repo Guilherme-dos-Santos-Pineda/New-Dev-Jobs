@@ -42,6 +42,25 @@ export function AuthProvider({ children }) {
                 await loadUser();
             } catch (err) {
                 if (!alive) return;
+
+                // 401 SEM token enviado não é sessão inválida: é a sessão ainda
+                // sendo restaurada do storage. Deslogar aqui transformava um
+                // soluço de milissegundos em "toda hora dá erro de login", e
+                // zerar o usuário mantendo a sessão recriava o laço /login ↔ /app.
+                // Uma nova tentativa curta resolve — e se falhar de novo, cai no
+                // tratamento normal abaixo.
+                if (classifyApiError(err) === 'unauthorized' && err?.tokenEnviado === false) {
+                    await new Promise((r) => setTimeout(r, 500));
+                    if (!alive) return;
+                    try {
+                        await loadUser();
+                        return; // deu certo na segunda: nada a reportar
+                    } catch (err2) {
+                        if (!alive) return;
+                        err = err2;
+                    }
+                }
+
                 const kind = classifyApiError(err);
                 setMeError(kind);
                 // Se o backend está fora/inacessível, mantém a sessão e deixa a UI

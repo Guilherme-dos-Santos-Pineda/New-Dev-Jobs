@@ -9,21 +9,28 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 // Promise.all de N chamadas seriam N leituras de storage). O onAuthStateChange
 // abaixo invalida o cache em login/logout/refresh de token.
 let cachedToken;
-let tokenResolved = false;
 
 if (supabase) {
     supabase.auth.onAuthStateChange((_event, session) => {
         cachedToken = session?.access_token || null;
-        tokenResolved = true;
     });
 }
 
+/**
+ * Header de autenticação, ou {} quando não há sessão.
+ *
+ * O memo NÃO pode transformar "ainda não carregou" em "não tem token". Antes,
+ * uma flag `tokenResolved` era ligada na primeira leitura: se naquele instante a
+ * sessão ainda estava sendo restaurada do storage, o token ficava gravado como
+ * null e TODA requisição seguinte saía sem Authorization — o backend devolvia
+ * 401 sem sequer registrar log (ele só loga quando o Supabase REJEITA um token,
+ * não quando nenhum chega). Enquanto houver token nulo, relemos a sessão.
+ */
 async function authHeader() {
     if (!supabase) return {};
-    if (!tokenResolved) {
+    if (!cachedToken) {
         const { data } = await supabase.auth.getSession();
         cachedToken = data.session?.access_token || null;
-        tokenResolved = true;
     }
     return cachedToken ? { Authorization: `Bearer ${cachedToken}` } : {};
 }
@@ -31,6 +38,7 @@ async function authHeader() {
 async function request(method, path, body, opts = {}) {
     const { isForm, _retry } = opts;
     const headers = { ...(await authHeader()) };
+    const mandouToken = Boolean(headers.Authorization);
 
     let payload;
     if (isForm) {
@@ -48,7 +56,6 @@ async function request(method, path, body, opts = {}) {
         try {
             const { data } = await supabase.auth.refreshSession();
             cachedToken = data.session?.access_token || null;
-            tokenResolved = true;
         } catch { cachedToken = null; }
         if (cachedToken) return request(method, path, body, { ...opts, _retry: true });
     }
@@ -59,6 +66,10 @@ async function request(method, path, body, opts = {}) {
     if (!res.ok) {
         const err = new Error(data?.error || `Erro ${res.status}`);
         err.status = res.status;
+        // Distingue "o servidor recusou o MEU token" de "eu nem tinha token para
+        // mandar". Sem isso, uma falta transitória de token (sessão ainda sendo
+        // restaurada) era lida como sessão inválida e derrubava o usuário.
+        err.tokenEnviado = mandouToken;
         throw err;
     }
     return data;

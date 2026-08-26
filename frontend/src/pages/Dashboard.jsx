@@ -8,6 +8,7 @@ import { scoreClass, fmtDate } from '../utils.js';
 import FeedbackSection from '../components/FeedbackSection.jsx';
 import SearchSendModal from '../components/SearchSendModal.jsx';
 import Sparkline from '../components/Sparkline.jsx';
+import CommunityBanner from '../components/CommunityBanner.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 const fmtSaved = (min) => {
@@ -170,16 +171,8 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Comunidade no WhatsApp */}
-            <a className="card fade-in comm-banner" href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG"
-                target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
-                <div className="kpi-ico" style={{ width: 38, height: 38, fontSize: 20, color: '#25D366' }}><i className="ti ti-brand-whatsapp" /></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }}>{t('Venha fazer parte da comunidade')}</div>
-                    <div className="muted" style={{ fontSize: 12.5 }}>{t('Dicas de vagas, novidades e suporte no WhatsApp.')}</div>
-                </div>
-                <i className="ti ti-arrow-right" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }} />
-            </a>
+            {/* Comunidade no WhatsApp (dispensável) */}
+            <CommunityBanner style={{ marginBottom: 22 }} />
 
             {/* KPIs */}
             <div className="cards-grid" style={{ marginBottom: 20 }}>

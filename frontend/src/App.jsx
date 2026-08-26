@@ -1,21 +1,25 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
+import lazyWithReload from './lib/lazyWithReload.js';
 
 // Páginas carregadas sob demanda — cada rota vira um chunk separado, então o
 // bundle inicial não carrega o Admin (pesado) nem telas que o usuário pode
 // nunca abrir. Login fica eager por ser o primeiro paint do deslogado.
-const Signup = lazy(() => import('./pages/Signup.jsx'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
-const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
-const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
-const Applications = lazy(() => import('./pages/Applications.jsx'));
-const Profile = lazy(() => import('./pages/Profile.jsx'));
-const Feedback = lazy(() => import('./pages/Feedback.jsx'));
-const Subscription = lazy(() => import('./pages/Subscription.jsx'));
-const Admin = lazy(() => import('./pages/Admin.jsx'));
+//
+// lazyWithReload (e não o `lazy` puro): depois de um deploy os chunks antigos
+// deixam de existir, e uma aba já aberta travaria no spinner do Suspense.
+const Signup = lazyWithReload(() => import('./pages/Signup.jsx'));
+const ForgotPassword = lazyWithReload(() => import('./pages/ForgotPassword.jsx'));
+const ResetPassword = lazyWithReload(() => import('./pages/ResetPassword.jsx'));
+const Dashboard = lazyWithReload(() => import('./pages/Dashboard.jsx'));
+const Applications = lazyWithReload(() => import('./pages/Applications.jsx'));
+const Profile = lazyWithReload(() => import('./pages/Profile.jsx'));
+const Feedback = lazyWithReload(() => import('./pages/Feedback.jsx'));
+const Subscription = lazyWithReload(() => import('./pages/Subscription.jsx'));
+const Admin = lazyWithReload(() => import('./pages/Admin.jsx'));
 
 function PageFallback() {
     return <div className="center" style={{ minHeight: '60vh' }}><div className="spinner" /></div>;

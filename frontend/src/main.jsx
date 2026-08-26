@@ -6,6 +6,10 @@ import { ToastProvider } from './components/Toast.jsx';
 import { LangProvider } from './lib/i18n.jsx';
 import App from './App.jsx';
 import './styles.css';
+import { clearChunkReloadFlag } from './lib/lazyWithReload.js';
+
+// O app subiu inteiro: libera a trava anti-loop do recarregamento de chunk.
+clearChunkReloadFlag();
 
 createRoot(document.getElementById('root')).render(
     <React.StrictMode>

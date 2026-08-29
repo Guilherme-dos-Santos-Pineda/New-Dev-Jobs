@@ -1,6 +1,6 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
-import { detectArea, detectLevel, detectModality } from './classify.js';
+import { detectArea, detectLevel, detectModality, jobIsBR } from './classify.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -8,16 +8,6 @@ const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.pa
 // Reexporta a classificação (detectArea/detectLevel vivem em classify.js para
 // serem compartilhados com o motor de match sem import circular).
 export { detectArea, detectLevel };
-
-const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
-// Heurística leve de país da vaga (mesma lógica do scraper)
-function jobIsBR(job) {
-    const dom = (job.Email || '').split('@')[1]?.toLowerCase() || '';
-    if (dom.endsWith('.br')) return true;
-    const text = `${job.Location || ''} ${job.JobTitle || ''} ${job.Description || ''}`;
-    if (BR_HINT.test(text)) return true;
-    return /[ãõçáéíóúâê]/i.test(job.Description || '') && /\b(vaga|currículo|contratando|desenvolvedor)\b/i.test(text);
-}
 
 export function passesFilters(job, profile) {
     // Vaga de outra profissão NUNCA entra, com ou sem perfil e com ou sem filtro
@@ -114,20 +104,6 @@ export async function countCandidatable(userId) {
     return row?.n ?? 0;
 }
 
-/** Lista vagas para o usuário (com filtros opcionais). */
-export async function listForUser(userId, { ignoreFilters = false } = {}) {
-    const [profile] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
-    const appliedRows = await sql`select "JobId" from "Applications" where "UserId" = ${userId}`;
-    const appliedSet = new Set(appliedRows.map((r) => r.JobId));
-    const raw = await sql`select * from "Jobs" order by "CreatedAt" desc, "Id" desc`;
-    const kept = ignoreFilters ? raw : raw.filter((j) => passesFilters(j, profile));
-    return {
-        profile, appliedSet,
-        jobs: kept.map((j) => shapeJob(j, profile, appliedSet)),
-        filteredOut: raw.length - kept.length,
-    };
-}
-
 /**
  * Vagas "candidatáveis": passam nos filtros, têm email e ainda não foram enviadas.
  * A exclusão de "sem email" e "já candidatada" é feita no SQL (usa o índice de
@@ -171,24 +147,90 @@ export async function getMatches(userId) {
     return promise;
 }
 
-async function computeMatches(userId) {
-    const [profile] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
 
-    // "PostingDays" é um filtro EXATO por data — o mesmo que passesFilters aplica
-    // em JS logo abaixo. Fazê-lo no SQL não muda o resultado e evita transferir
-    // vagas que seriam descartadas na chegada. Para quem usa "últimos 7 dias",
-    // isso é a diferença entre trazer 6270 linhas e trazer algumas centenas.
+// Teto de vagas trazidas do banco por consulta. Não é paginação: é o limite de
+// quanto o processo aceita segurar em memória de uma vez. Como o SQL abaixo já
+// aplicou área, modalidade, nível, país e data, essas são as vagas do feed —
+// pegar as 1500 MAIS RECENTES entre elas é uma perda aceitável (ninguém percorre
+// 1500 vagas), e sem teto uma base de 50 mil vagas derruba a VM de 954 MB.
+const MATCHES_MAX = Number(process.env.MATCHES_MAX) || 1500;
+
+/**
+ * Traz do banco só as vagas que podem entrar no feed do usuário.
+ *
+ * O filtro vive em DOIS lugares de propósito, e a divisão importa:
+ *
+ *  • Aqui (SQL) ficam os critérios que dependem só da VAGA — área, nível,
+ *    modalidade, país, data. Eles foram pré-calculados na inserção e gravados em
+ *    colunas indexadas (migration 0014), então o banco descarta as vagas
+ *    incompatíveis SEM enviá-las. Antes, `select * from "Jobs"` trazia a tabela
+ *    inteira para o Node reclassificar em JavaScript a cada requisição de cada
+ *    usuário: ~12 MB e ~1,2 s com 6 mil vagas, mais de 75 MB com 50 mil.
+ *
+ *  • Em passesFilters (JS) ficam os critérios textuais do usuário (palavras
+ *    exigidas/bloqueadas, domínios), que não valem um índice, e ele roda DE NOVO
+ *    sobre o que chegou — é a autoridade final. Por isso o SQL nunca pode ser
+ *    mais restritivo que o JS: se divergirem, o JS corta o excesso; o contrário
+ *    sumiria com vaga boa sem ninguém perceber.
+ */
+// Reproduz em SQL o texto que passesFilters monta em JS: título + empresa +
+// descrição + skills separadas por espaço. As skills viram texto pelo caminho
+// mais barato (tirar `["`, `",`, `"]` e colapsar espaços) em vez de um
+// jsonb_array_elements_text por linha — o resultado é o mesmo e não custa um
+// lateral join. Se este texto ficasse MENOR que o do JS, o SQL seria mais
+// restritivo que o filtro autoritativo e sumiria com vaga boa em silêncio.
+const TEXTO_DA_VAGA = sql`(
+    coalesce(j."JobTitle",'') || ' ' || coalesce(j."Company",'') || ' ' ||
+    coalesce(j."Description",'') || ' ' ||
+    coalesce(regexp_replace(translate(j."Skills"::text, '[]",', '    '), '\\s+', ' ', 'g'), '')
+)`;
+
+// `includes()` do JS é substring literal; ILIKE trata % e _ como curinga. Sem
+// escapar, uma palavra bloqueada com "%" casaria com tudo.
+const paraLike = (k) => `%${String(k).replace(/([\\%_])/g, '\\$1')}%`;
+
+async function buscarCandidatas(userId, profile) {
     const dias = Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
+    const region = profile?.Region || 'br';
+    const areas = parseArr(profile?.Areas);
+    const mods = parseArr(profile?.Modalities).map((m) => String(m).toLowerCase());
+    const levels = profile?.StrictLevel ? parseArr(profile?.Levels) : [];
+    // Palavras exigidas/bloqueadas também vão para o SQL. Não é otimização de
+    // sobra: eram o filtro que mais cortava (um perfil de segurança guardava 421
+    // de 1500 vagas), então deixá-las em JS fazia o teto de linhas ser gasto com
+    // vagas que seriam descartadas na chegada — e o feed perdia 39% do que devia
+    // mostrar. Filtrando aqui, o teto passa a valer sobre o resultado de verdade.
+    const exigidas = parseArr(profile?.RequiredKeywords).filter(Boolean).map(paraLike);
+    const bloqueadas = parseArr(profile?.BlockedWords).filter(Boolean).map(paraLike);
 
-    const rows = await sql`
+    return sql`
         select j.* from "Jobs" j
         where j."Email" is not null and j."Email" <> ''
+          -- Vaga de outra profissão nunca entra, com ou sem perfil configurado.
+          and coalesce(j."Area", 'other') <> 'nontech'
           and not exists (
               select 1 from "Applications" a
               where a."UserId" = ${userId} and a."JobId" = j."Id"
           )
           ${dias ? sql`and j."CreatedAt" >= now() - make_interval(days => ${dias})` : sql``}
-        order by j."CreatedAt" desc, j."Id" desc`;
+          ${profile ? (region === 'intl'
+              ? sql`and j."IsBR" is not true`
+              : sql`and j."IsBR" is not false`) : sql``}
+          -- Área/nível/modalidade: o "is null" repete o critério do JS — vaga que
+          -- não deu para classificar PASSA. Título ruim não é vaga ruim, e o balde
+          -- dos indefinidos tinha Tech Lead e Arquiteto de Software dentro.
+          ${areas.length ? sql`and (j."Area" is null or j."Area" = 'other' or j."Area" = any(${areas}))` : sql``}
+          ${levels.length ? sql`and (j."Level" is null or j."Level" = any(${levels}))` : sql``}
+          ${mods.length ? sql`and (j."Mods" is null or jsonb_exists_any(j."Mods", ${mods}))` : sql``}
+          ${exigidas.length ? sql`and ${TEXTO_DA_VAGA} ilike any (${exigidas})` : sql``}
+          ${bloqueadas.length ? sql`and not (${TEXTO_DA_VAGA} ilike any (${bloqueadas}))` : sql``}
+        order by j."CreatedAt" desc, j."Id" desc
+        limit ${MATCHES_MAX}`;
+}
+
+async function computeMatches(userId) {
+    const [profile] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
+    const rows = await buscarCandidatas(userId, profile);
 
     const noneApplied = new Set(); // a query já excluiu as candidatadas
     return rows

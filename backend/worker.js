@@ -8,6 +8,7 @@ import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
 import { tickCampaigns } from './services/campaigns.js';
 import { apifyExhaustedUntil } from './services/apifyPool.js';
+import { runMaintenance } from './services/maintenance.js';
 
 // =========================
 // Worker de envio (processo separado: `npm run worker`)
@@ -149,6 +150,12 @@ async function revertExpiredPlans() {
     return rows.length;
 }
 
+// Manutenção (classificar vagas defasadas + podar o rastro do scraper) roda num
+// intervalo PRÓPRIO, bem mais longo que o tick de 60s do agendador: é trabalho de
+// fundo que divide 954 MB de RAM e o pool do Postgres com quem está usando a app.
+// A cada 10 min o backlog some em poucas horas sem competir com ninguém.
+const MAINTENANCE_EVERY_MS = Number(process.env.MAINTENANCE_EVERY_MS) || 10 * 60 * 1000;
+
 function startScheduler(boss) {
     const tick = () => {
         runDueSchedules(boss).catch((e) => console.error('scheduler tick falhou:', e.message));
@@ -156,7 +163,14 @@ function startScheduler(boss) {
         tickCampaigns().catch((e) => console.error('tickCampaigns falhou:', e.message));
     };
     tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
-    return setInterval(tick, 60000);
+    const agendador = setInterval(tick, 60000);
+
+    // No boot espera 30s: subir a API e varrer a tabela de vagas ao mesmo tempo é
+    // pedir para o primeiro acesso depois do deploy ficar lento.
+    const primeira = setTimeout(() => runMaintenance().catch(() => {}), 30_000);
+    const manutencao = setInterval(() => runMaintenance().catch(() => {}), MAINTENANCE_EVERY_MS);
+
+    return () => { clearInterval(agendador); clearTimeout(primeira); clearInterval(manutencao); };
 }
 
 // =========================
@@ -185,11 +199,11 @@ export async function startWorker({ standalone = false } = {}) {
     await boss.work(SCRAPER_MONITORING, { batchSize: 1, pollingIntervalSeconds: 3 }, makeScraperHandler(runMonitoring, 'monitoring'));
 
     // Agendador dos robôs (ScraperSchedules)
-    const scheduler = startScheduler(boss);
-    console.log(`🤖 worker ativo (${standalone ? 'standalone' : 'embutido na API'}): envios${DEV_LABEL()} + scraper (discovery/monitoring) + agendador`);
+    const pararTimers = startScheduler(boss);
+    console.log(`🤖 worker ativo (${standalone ? 'standalone' : 'embutido na API'}): envios${DEV_LABEL()} + scraper (discovery/monitoring) + agendador + manutenção`);
 
     const stop = async () => {
-        clearInterval(scheduler);
+        pararTimers();
         try { await boss.stop({ graceful: true, timeout: 30000 }); } catch {}
     };
 

@@ -100,12 +100,17 @@ async function importRecord(rec) {
     // duplicar. coalesce(nullif(...)) nunca sobrescreve uma descrição já existente;
     // as skills só são reenriquecidas quando o registro traz descrição.
     const [row] = await sql`
-        insert into "Jobs" ("Company", "JobTitle", "Email", "Skills", "Description", "JobHash", "PostedAt", "RecruiterId", "AiClassification", "Seniority")
-        values (${company}, ${title}, ${email}, ${sql.json(skills)}, ${description}, ${hash}, ${postedAt && !isNaN(postedAt) ? postedAt : null}, ${recId}, 'import', ${seniority})
+        insert into "Jobs" ("Company", "JobTitle", "Email", "Skills", "Description", "JobHash", "PostedAt", "RecruiterId", "AiClassification", "Seniority", "ClassVersion")
+        values (${company}, ${title}, ${email}, ${sql.json(skills)}, ${description}, ${hash}, ${postedAt && !isNaN(postedAt) ? postedAt : null}, ${recId}, 'import', ${seniority}, 0)
         on conflict ("JobHash") where "JobHash" is not null
         do update set
             "Description" = coalesce(nullif("Jobs"."Description", ''), excluded."Description"),
-            "Skills"      = case when excluded."Description" is not null then excluded."Skills" else "Jobs"."Skills" end
+            "Skills"      = case when excluded."Description" is not null then excluded."Skills" else "Jobs"."Skills" end,
+            -- Descricao/skills mudaram -> a classificacao gravada pode estar errada.
+            -- ClassVersion 0 devolve a linha para a fila do reclassificador, que roda
+            -- no worker. Reimplementar a classificacao aqui seria uma segunda copia
+            -- da regra, que sairia do lugar na primeira vez que a original mudasse.
+            "ClassVersion" = 0
         returning (xmax = 0) as inserted`;
     if (row?.inserted) stats.jobsNew += 1; else stats.jobsUpdated += 1;
 }

@@ -20,6 +20,14 @@ regra existente, não acrescente uma nova que a contradiga.
 - **pg-boss** (`lib/boss.js`) → **session mode (5432)**, porque depende de advisory locks. **Nunca** apontar o pg-boss para o 6543.
 - Motivo: o session mode limita **~15 conexões no projeto todo**; abríamos 16 (API 6 + worker 6 + cron 4) e a app caía sob carga. Regressão coberta em `backend/test/sqlPool.test.js`.
 - Antes de criar processo novo que fale com o banco, **refaça essa conta**.
+## Escala do feed (não regredir)
+- **A classificação da vaga é PERSISTIDA**, não recalculada por requisição. `classifyJob()` (em `services/classify.js`) grava `Area`/`Level`/`Mods`/`IsBR`/`ClassVersion` em `Jobs` na inserção (migration `0014`).
+- **O filtro vive em dois lugares e a divisão é intencional**: o que depende só da vaga (área, nível, modalidade, país, data) e as palavras exigidas/bloqueadas vão no **SQL** (`buscarCandidatas`); o resto (domínios bloqueados) fica em `passesFilters`, que roda de novo sobre o resultado e é a **autoridade final**.
+- **O SQL NUNCA pode ser mais restritivo que o JS.** Se divergirem, o JS corta o excesso; o contrário some com vaga boa **em silêncio** — sem erro e sem log. Confira com `npm run check:feed` sempre que mexer em `passesFilters`, `classify.js` ou `buscarCandidatas`.
+- **Mudou regra em `classify.js`? Suba o `CLASSIFY_VERSION`.** As linhas antigas ficam com a regra antiga até serem reprocessadas — o worker reclassifica as defasadas a cada 10 min (`services/maintenance.js`), e `npm run reclassify` força na hora.
+- **Toda consulta de vagas tem teto** (`MATCHES_MAX`, 1500). O custo passa a depender do tamanho da RESPOSTA, não da base: sem teto, 50 mil vagas × 1,5 kB = 75 MB por requisição numa VM de 954 MB. **Não crie consulta de `Jobs` sem `limit`** — foi assim que o `GET /api/jobs` (removido) devolvia 11 MB.
+- **Retenção**: `pruneScraperHistory` apaga `ScraperRuns`/`ScrapedPosts` com mais de `RETENTION_DAYS` (45). Post `pending` nunca é apagado — é trabalho não feito, não lixo. O plano grátis do Supabase tem 500 MB e o rastro do scraper já era 34 MB de 53 MB.
+
 - `frontend/` — React + Vite (app/dashboard).
 - `pages/` — site estático. A **landing (`index.html`) tem PT/EN** (toggle próprio, ver i18n abaixo). **docs/termos/privacidade** ficam **só em PT** por enquanto.
   - **SEO**: domínio canônico **`https://newdevjobs.xyz`** (o apex serve a landing; foi consolidado ali para não dividir autoridade com um subdomínio). Cada página tem `canonical`+`robots`+Open Graph; a home tem JSON-LD (`SoftwareApplication`). `robots.txt` e `sitemap.xml` na raiz. Ao **adicionar/renomear página**, atualize o `sitemap.xml` e o `canonical` dela. Imagem de compartilhamento: `og-image.png` (gerado de `og-image.svg` via `npx sharp-cli -i og-image.svg -o og-image.png resize 1200 630`).
@@ -48,7 +56,7 @@ regra existente, não acrescente uma nova que a contradiga.
 ## Testes
 - `npm test` → `node --test backend/test/` (runner nativo do Node, sem dependência).
 - Ao corrigir um bug em lógica pura do backend, **adicione um teste de regressão** em `backend/test/`.
-- Cobertura atual (80 testes): matching (`computeMatch`), classificação de vaga (`detectArea`/`detectLevel`) **incluindo `nontech`/`suporte`**, filtros (`passesFilters`), título do email (`niceTitle` via `renderEmail`), dedup (`jobHash`), pool do Postgres (`toTransactionPooler`), memo do `getMatches` e crédito da Apify, **billing** (`services/billingLogic.js` — modo do checkout, concessão/expiração de 30 dias, webhook, histórico).
+- Cobertura atual (93 testes): matching (`computeMatch`), classificação de vaga (`detectArea`/`detectLevel`) **incluindo `nontech`/`suporte`**, filtros (`passesFilters`), título do email (`niceTitle` via `renderEmail`), dedup (`jobHash`), pool do Postgres (`toTransactionPooler`), memo do `getMatches`, crédito da Apify, **classificação persistida** (`classifyJob` x `detectArea/detectLevel/detectModality`), **billing** (`services/billingLogic.js` — modo do checkout, concessão/expiração de 30 dias, webhook, histórico).
 - **Pagamento é área crítica**: a lógica de decisão fica PURA em `services/billingLogic.js` (sem Stripe/SQL) para ser testável. Ao mexer em cobrança, mantenha a lógica lá e **adicione teste** em `backend/test/billing.test.js`.
 
 ## Matching (não regredir)

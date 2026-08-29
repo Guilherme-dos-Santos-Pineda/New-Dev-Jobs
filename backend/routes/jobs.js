@@ -1,31 +1,17 @@
 import { Router } from 'express';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
-import { listForUser, getMatches, shapeJob, countCandidatable } from '../services/jobsQuery.js';
+import { getMatches, shapeJob, countCandidatable } from '../services/jobsQuery.js';
 
 const router = Router();
 
-// GET /api/jobs?search=&minScore=&sort=&ignoreFilters=
-router.get('/', requireAuth, async (req, res) => {
-    const ignoreFilters = req.query.ignoreFilters === '1';
-    let { jobs, filteredOut } = await listForUser(req.user.Id, { ignoreFilters });
-
-    const search = (req.query.search || '').toString().toLowerCase();
-    const minScore = Number(req.query.minScore) || 0;
-    const sort = (req.query.sort || 'match').toString();
-
-    if (search) {
-        jobs = jobs.filter((j) =>
-            [j.title, j.company, ...(j.skills || [])].filter(Boolean)
-                .some((v) => v.toString().toLowerCase().includes(search)));
-    }
-    if (minScore > 0) jobs = jobs.filter((j) => j.matchScore >= minScore);
-    if (sort === 'recent') jobs.sort((a, b) => b.id - a.id);
-    else jobs.sort((a, b) => b.matchScore - a.matchScore);
-
-    // Não expõe o email de contato ao cliente (envio é server-side por jobId).
-    res.json({ jobs: jobs.map(({ email, ...j }) => j), total: jobs.length, filteredOut });
-});
+// GET /api/jobs foi REMOVIDO.
+//
+// Devolvia `select * from "Jobs"` inteiro — 11 MB de resposta e a tabela toda na
+// memória da VM — e nenhuma tela chamava: o app usa /jobs/matches, que já traz o
+// feed filtrado e pontuado. Um endpoint autenticado capaz de derrubar o processo
+// por RAM não fica de pé "por via das dúvidas"; se voltar a ser preciso listar
+// vagas sem filtro, volta paginado.
 
 // GET /api/jobs/matches  — vagas candidatáveis (filtros + com email + não enviadas)
 router.get('/matches', requireAuth, async (req, res) => {

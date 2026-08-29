@@ -148,3 +148,48 @@ export function detectModality(job) {
 }
 
 export { parseArr };
+
+// =========================
+// Classificação PERSISTIDA (colunas derivadas de "Jobs")
+// =========================
+// Antes, cada requisição de cada usuário reclassificava a base inteira em JS:
+// `select * from "Jobs"` (1,5 kB por linha) → filtro em memória. Com 6 mil vagas
+// isso já custava ~12 MB e ~1,2 s POR USUÁRIO; com 50 mil vagas e mil usuários a
+// conta não fecha em VM nenhuma — muito menos na de 954 MB.
+//
+// A classificação depende só da vaga, nunca do usuário. Então é calculada UMA vez
+// (na inserção) e gravada em "Area"/"Level"/"Mods"/"IsBR", com índice. O filtro
+// vira SQL: o banco devolve as dezenas de vagas que interessam em vez de as
+// dezenas de milhares que não.
+//
+// CLASSIFY_VERSION existe porque as regras MUDAM (e vão mudar). Toda linha guarda
+// a versão com que foi classificada; `npm run reclassify` reprocessa só as
+// defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
+// à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
+// velha para sempre.
+export const CLASSIFY_VERSION = 1;
+
+const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
+
+/** Heurística de país da vaga (mesma lógica do scraper). */
+export function jobIsBR(job) {
+    const dom = (job.Email || '').split('@')[1]?.toLowerCase() || '';
+    if (dom.endsWith('.br')) return true;
+    const text = `${job.Location || ''} ${job.JobTitle || ''} ${job.Description || ''}`;
+    if (BR_HINT.test(text)) return true;
+    return /[ãõçáéíóúâê]/i.test(job.Description || '') && /\b(vaga|currículo|contratando|desenvolvedor)\b/i.test(text);
+}
+
+/**
+ * Tudo o que dá para saber da vaga sem conhecer o usuário. É o que vai para as
+ * colunas derivadas — e o que o SQL passa a filtrar.
+ */
+export function classifyJob(job) {
+    return {
+        area: detectArea(job),
+        level: detectLevel(`${job.JobTitle || ''} ${job.Description || ''}`),
+        mods: detectModality(job), // array ou null ("não dá para afirmar")
+        isBR: jobIsBR(job),
+        version: CLASSIFY_VERSION,
+    };
+}

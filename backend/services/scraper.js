@@ -1,3 +1,4 @@
+import { classifyJob } from './classify.js';
 import crypto from 'crypto';
 import sql from '../lib/sql.js';
 import { config } from '../config.js';
@@ -106,11 +107,21 @@ function deriveJobFields(content, ai, item = {}) {
 // Insere a vaga (dedup por LinkedinId + JobHash). Retorna 'new' | 'duplicate'.
 async function insertJob({ f, content, postId, postedAt, recruiterId }) {
     const hash = jobHash(f.company, f.title, f.email);
+    // Classifica AGORA (área, nível, modalidade, país) e grava nas colunas
+    // derivadas. É o mesmo cálculo que o feed fazia em JavaScript a cada
+    // requisição de cada usuário; feito uma vez aqui, o filtro do feed vira uma
+    // consulta indexada em vez de uma varredura da tabela inteira em memória.
+    const c = classifyJob({
+        JobTitle: f.title, Description: content, Skills: f.skills,
+        Modality: f.modality, Location: f.location, Email: f.email,
+    });
     const res = await sql`
         insert into "Jobs" ("Company", "JobTitle", "Email", "Skills", "Description", "LinkedinId", "JobHash", "PostedAt", "RecruiterId",
-            "AiScore", "AiClassification", "Seniority", "Modality", "Location", "Salary")
+            "AiScore", "AiClassification", "Seniority", "Modality", "Location", "Salary",
+            "Area", "Level", "Mods", "IsBR", "ClassVersion")
         values (${f.company}, ${f.title}, ${f.email}, ${sql.json(f.skills)}, ${content}, ${postId}, ${hash}, ${postedAt}, ${recruiterId},
-            ${f.confidence}, ${f.classification}, ${f.seniority}, ${f.modality}, ${f.location}, ${f.salary})
+            ${f.confidence}, ${f.classification}, ${f.seniority}, ${f.modality}, ${f.location}, ${f.salary},
+            ${c.area}, ${c.level}, ${c.mods ? sql.json(c.mods) : null}, ${c.isBR}, ${c.version})
         on conflict do nothing
         returning "Id"`;
     return res.length ? 'new' : 'duplicate';

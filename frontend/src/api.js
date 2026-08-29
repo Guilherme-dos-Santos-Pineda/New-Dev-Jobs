@@ -116,14 +116,6 @@ export const api = {
         return request('POST', '/profile/import-linkedin', fd, { isForm: true });
     },
 
-    // jobs
-    getJobs: (params = {}) => {
-        const qs = new URLSearchParams(
-            Object.entries(params).filter(([, v]) => v !== '' && v != null)
-        ).toString();
-        return request('GET', `/jobs${qs ? `?${qs}` : ''}`);
-    },
-
     // applications
     getApplications: (params = {}) => {
         const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();

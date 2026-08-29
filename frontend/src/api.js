@@ -125,6 +125,8 @@ export const api = {
 
     // jobs matches + fila de envio
     getMatches: () => request('GET', '/jobs/matches'),
+    // A listagem manda a descrição truncada; esta busca o texto completo de UMA vaga.
+    getJob: (id) => request('GET', `/jobs/${id}`),
     queueStart: (mode, jobIds) => request('POST', '/queue', { mode, jobIds }),
     queueStatus: () => request('GET', '/queue'),
     queueStop: () => request('POST', '/queue/stop'),

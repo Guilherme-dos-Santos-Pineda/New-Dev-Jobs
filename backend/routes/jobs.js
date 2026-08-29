@@ -5,6 +5,10 @@ import { getMatches, shapeJob, countCandidatable } from '../services/jobsQuery.j
 
 const router = Router();
 
+// Quanto da descrição viaja na LISTAGEM. Cabe no card expandido sem obrigar uma
+// segunda requisição na maioria dos casos, e corta o grosso do tráfego.
+const PREVIEW_CHARS = 400;
+
 // GET /api/jobs foi REMOVIDO.
 //
 // Devolvia `select * from "Jobs"` inteiro — 11 MB de resposta e a tabela toda na
@@ -27,7 +31,13 @@ router.get('/matches', requireAuth, async (req, res) => {
     // Segurança: NUNCA devolve o email de contato (evita coletar contatos sem usar a
     // plataforma). No plano free também oculta a descrição (o post traz o email no texto).
     const isFree = (req.user.Plan || 'free') === 'free';
-    const safe = matches.map(({ email, description, ...m }) => (isFree ? m : { ...m, description }));
+    // A descrição vai TRUNCADA na listagem. A tela mostra uma descrição por vez
+    // (ao expandir a vaga), então mandar o texto inteiro de todas era pagar ~2 MB
+    // de tráfego para exibir alguns kB — e no celular isso é o carregamento
+    // inteiro da tela. Quem expande busca o texto completo em GET /jobs/:id.
+    const safe = matches.map(({ email, description, ...m }) => (
+        isFree ? m : { ...m, description: description ? description.slice(0, PREVIEW_CHARS) : description }
+    ));
     res.json({ matches: safe, total: matches.length, candidatable, filtered: Math.max(0, candidatable - matches.length) });
 });
 

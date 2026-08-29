@@ -15,6 +15,9 @@ export default function SearchSendModal({ onClose, onStarted }) {
     const [filtered, setFiltered] = useState(0); // vagas escondidas pelos filtros do perfil
     const [selected, setSelected] = useState(new Set());
     const [expanded, setExpanded] = useState(null);
+    // A listagem chega com a descrição truncada (a resposta inteira seria ~2 MB).
+    // O texto completo é buscado sob demanda, só da vaga que o usuário abriu.
+    const [fullDesc, setFullDesc] = useState({}); // id -> descrição completa
     const [starting, setStarting] = useState(false);
     const startingRef = useRef(false); // guarda síncrona contra duplo-clique
 
@@ -50,6 +53,20 @@ export default function SearchSendModal({ onClose, onStarted }) {
             else toast.show(e.message, 'error');
             startingRef.current = false;
             setStarting(false);
+        }
+    }
+
+    async function expandir(id) {
+        if (expanded === id) { setExpanded(null); return; }
+        setExpanded(id);
+        if (fullDesc[id] !== undefined) return;
+        try {
+            const { job } = await api.getJob(id);
+            setFullDesc((d) => ({ ...d, [id]: job?.description || '' }));
+        } catch {
+            // Falhou? Fica o trecho que já veio na listagem — melhor que um erro
+            // por causa de um detalhe opcional.
+            setFullDesc((d) => ({ ...d, [id]: null }));
         }
     }
 
@@ -143,8 +160,8 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontWeight: 600, fontSize: 13.5 }}>{m.title || 'Vaga'}</div>
                                         <div className="muted" style={{ fontSize: 12 }}>{m.company || '—'} · {m.matchScore}% match</div>
-                                        {expanded === m.id && <div className="muted" style={{ fontSize: 12, marginTop: 6, whiteSpace: 'pre-wrap', maxHeight: 160, overflow: 'auto' }}>{m.description || 'Sem descrição.'}</div>}
-                                        <button className="btn ghost sm" style={{ padding: '2px 0', marginTop: 4 }} onClick={() => setExpanded(expanded === m.id ? null : m.id)}>
+                                        {expanded === m.id && <div className="muted" style={{ fontSize: 12, marginTop: 6, whiteSpace: 'pre-wrap', maxHeight: 160, overflow: 'auto' }}>{fullDesc[m.id] || m.description || 'Sem descrição.'}</div>}
+                                        <button className="btn ghost sm" style={{ padding: '2px 0', marginTop: 4 }} onClick={() => expandir(m.id)}>
                                             <i className={`ti ti-chevron-${expanded === m.id ? 'up' : 'down'}`} /> {expanded === m.id ? t('ocultar') : t('ver detalhes')}
                                         </button>
                                     </div>

@@ -1,0 +1,53 @@
+# Monitor de disponibilidade da produção.
+#
+# HISTÓRIA: este arquivo era o keep-alive do Render, que dormia após 15 min
+# ociosos. Saímos do Render em agosto/2026; na VM Oracle o serviço roda sob
+# systemd e nunca hiberna, então o ping perdeu o propósito — mas continuou
+# apontando para um secret (API_URL) que não existe mais e FALHANDO a cada 10
+# minutos desde então. Isso é pior que inútil: um workflow que sempre falha
+# treina todo mundo a ignorar notificação de falha, e foi assim que uma falha
+# REAL de deploy passou batida.
+#
+# O que ele faz agora: confere de verdade se o site está no ar. Falha só quando
+# está fora — que é quando a notificação vale alguma coisa. Sem secret para
+# configurar; o domínio é público.
+#
+# Se um dia quiser aviso no celular: GitHub → Settings → Notifications →
+# Actions → "Only notify for failed workflows".
+
+name: uptime
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: API, app e landing respondendo
+        run: |
+          falhou=0
+          checar() {
+            # --retry 2: uma falha isolada de rede do runner não é queda do site.
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 10 "$1")
+            echo "$2: HTTP $code"
+            [ "$code" = "200" ] || { echo "::error::$2 fora do ar (HTTP $code) — $1"; falhou=1; }
+          }
+          checar https://newdevjobs.xyz/api/health "API"
+          checar https://newdevjobs.xyz/app/       "App"
+          checar https://newdevjobs.xyz/           "Landing"
+
+          # /api/health responde 200 com o Postgres fora — ele só prova que o
+          # processo Node está de pé. /api/health/db faz a outra pergunta.
+          resp=$(curl -sS --max-time 20 "https://newdevjobs.xyz/api/health/db" || echo '{}')
+          echo "Banco: $resp"
+          case "$resp" in *'"ok":true'*) ;; *) echo "::error::a API está de pé mas o banco não respondeu"; falhou=1;; esac
+
+          exit $falhou

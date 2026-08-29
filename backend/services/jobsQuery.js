@@ -179,7 +179,10 @@ const MATCHES_MAX = Number(process.env.MATCHES_MAX) || 1500;
 // jsonb_array_elements_text por linha — o resultado é o mesmo e não custa um
 // lateral join. Se este texto ficasse MENOR que o do JS, o SQL seria mais
 // restritivo que o filtro autoritativo e sumiria com vaga boa em silêncio.
-const TEXTO_DA_VAGA = sql`(
+// FUNÇÃO, não constante: `sql` é null quando DATABASE_URL não está definido, e um
+// sql`` no topo do módulo quebraria o IMPORT — o que derrubou a suíte inteira no
+// CI, que roda sem banco de propósito (os testes são de lógica pura).
+const textoDaVaga = () => sql`(
     coalesce(j."JobTitle",'') || ' ' || coalesce(j."Company",'') || ' ' ||
     coalesce(j."Description",'') || ' ' ||
     coalesce(regexp_replace(translate(j."Skills"::text, '[]",', '    '), '\\s+', ' ', 'g'), '')
@@ -222,8 +225,8 @@ async function buscarCandidatas(userId, profile) {
           ${areas.length ? sql`and (j."Area" is null or j."Area" = 'other' or j."Area" = any(${areas}))` : sql``}
           ${levels.length ? sql`and (j."Level" is null or j."Level" = any(${levels}))` : sql``}
           ${mods.length ? sql`and (j."Mods" is null or jsonb_exists_any(j."Mods", ${mods}))` : sql``}
-          ${exigidas.length ? sql`and ${TEXTO_DA_VAGA} ilike any (${exigidas})` : sql``}
-          ${bloqueadas.length ? sql`and not (${TEXTO_DA_VAGA} ilike any (${bloqueadas}))` : sql``}
+          ${exigidas.length ? sql`and ${textoDaVaga()} ilike any (${exigidas})` : sql``}
+          ${bloqueadas.length ? sql`and not (${textoDaVaga()} ilike any (${bloqueadas}))` : sql``}
         order by j."CreatedAt" desc, j."Id" desc
         limit ${MATCHES_MAX}`;
 }

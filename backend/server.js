@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import sql from './lib/sql.js';
 import rateLimit from 'express-rate-limit';
 
 import { config } from './config.js';
@@ -58,6 +59,23 @@ app.use('/api/profile/import-linkedin', strictLimiter); // parse de PDF (CPU)
 app.use(attachUser);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'newdevjobs-api' }));
+
+// Health COM banco, separado de propósito. O /api/health acima responde 200 com o
+// Postgres fora — ele só prova que o processo Node está de pé, e é ele que o
+// deploy usa para saber que a API voltou. Quem monitora precisa da outra
+// pergunta, e ela custa uma consulta: por isso vive num endpoint próprio, batido
+// a cada 30 min pelo workflow de uptime, não a cada request.
+app.get('/api/health/db', async (_req, res) => {
+    if (!sql) return res.status(503).json({ ok: false, error: 'DATABASE_URL ausente' });
+    const t0 = Date.now();
+    try {
+        const [row] = await sql`select 1 as ok`;
+        res.json({ ok: row?.ok === 1, ms: Date.now() - t0 });
+    } catch (e) {
+        console.error('health/db falhou:', e.message);
+        res.status(503).json({ ok: false, ms: Date.now() - t0 });
+    }
+});
 
 app.use('/api/public', publicRoutes); // rotas sem auth (ex.: descadastro de campanha)
 

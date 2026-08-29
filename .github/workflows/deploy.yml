@@ -34,7 +34,7 @@ on:
     # Mudanças que não afetam o que roda na VM não disparam deploy.
     paths-ignore:
       - '**.md'
-      - '.github/workflows/keepalive.yml'
+      - '.github/workflows/uptime.yml'
   workflow_dispatch:   # permite disparar à mão pela aba Actions
 
 # Dois deploys simultâneos escreveriam na mesma webroot; o segundo espera.

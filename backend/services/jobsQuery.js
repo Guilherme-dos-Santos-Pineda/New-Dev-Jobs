@@ -222,11 +222,17 @@ async function buscarCandidatas(userId, profile) {
           -- Área/nível/modalidade: o "is null" repete o critério do JS — vaga que
           -- não deu para classificar PASSA. Título ruim não é vaga ruim, e o balde
           -- dos indefinidos tinha Tech Lead e Arquiteto de Software dentro.
-          ${areas.length ? sql`and (j."Area" is null or j."Area" = 'other' or j."Area" = any(${areas}))` : sql``}
-          ${levels.length ? sql`and (j."Level" is null or j."Level" = any(${levels}))` : sql``}
-          ${mods.length ? sql`and (j."Mods" is null or jsonb_exists_any(j."Mods", ${mods}))` : sql``}
-          ${exigidas.length ? sql`and ${textoDaVaga()} ilike any (${exigidas})` : sql``}
-          ${bloqueadas.length ? sql`and not (${textoDaVaga()} ilike any (${bloqueadas}))` : sql``}
+          -- Os ::text[] são obrigatórios, não decoração. Sem eles o tipo do
+          -- parâmetro fica por conta da inferência do servidor, e atrás do
+          -- PgBouncer em transaction mode a mesma consulta cai em conexões
+          -- diferentes a cada execução: em produção isso deu "malformed array
+          -- literal" em 1 requisição de 8, e só sob concorrência. O cast explícito
+          -- tira a inferência da jogada.
+          ${areas.length ? sql`and (j."Area" is null or j."Area" = 'other' or j."Area" = any(${areas}::text[]))` : sql``}
+          ${levels.length ? sql`and (j."Level" is null or j."Level" = any(${levels}::text[]))` : sql``}
+          ${mods.length ? sql`and (j."Mods" is null or jsonb_exists_any(j."Mods", ${mods}::text[]))` : sql``}
+          ${exigidas.length ? sql`and ${textoDaVaga()} ilike any (${exigidas}::text[])` : sql``}
+          ${bloqueadas.length ? sql`and not (${textoDaVaga()} ilike any (${bloqueadas}::text[]))` : sql``}
         order by j."CreatedAt" desc, j."Id" desc
         limit ${MATCHES_MAX}`;
 }

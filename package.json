@@ -16,7 +16,8 @@
     "test:ai": "node backend/scripts/test-ai.mjs",
     "seed:robots": "node backend/scripts/seed-robots.mjs",
     "reclassify": "node backend/scripts/reclassify-jobs.mjs",
-    "check:feed": "node backend/scripts/check-feed-parity.mjs"
+    "check:feed": "node backend/scripts/check-feed-parity.mjs",
+    "loadtest": "node backend/scripts/load-test.mjs"
   },
   "keywords": [],
   "type": "module",

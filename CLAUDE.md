@@ -20,6 +20,9 @@ regra existente, não acrescente uma nova que a contradiga.
 - **pg-boss** (`lib/boss.js`) → **session mode (5432)**, porque depende de advisory locks. **Nunca** apontar o pg-boss para o 6543.
 - Motivo: o session mode limita **~15 conexões no projeto todo**; abríamos 16 (API 6 + worker 6 + cron 4) e a app caía sob carga. Regressão coberta em `backend/test/sqlPool.test.js`.
 - Antes de criar processo novo que fale com o banco, **refaça essa conta**.
+- **Nenhuma rota pode disparar muitas consultas em paralelo.** O pool tem 25 conexões; uma requisição que abre 10 faz 3 requisições simultâneas pedirem 30 — cada uma segura o que conseguiu e espera o resto, e o pool trava **sem voltar sozinho** (medido: até `select 1` deu timeout, com o Postgres ocioso). Foi o caso do `/dashboard`, que virou **uma** consulta com subconsultas escalares. `Promise.all` de queries só com contagem baixa e consciente.
+- **Parâmetro de array precisa de cast explícito** (`${arr}::text[]`). Sem ele o tipo fica por conta da inferência do servidor e, atrás do PgBouncer em transaction mode, a mesma consulta cai em conexões diferentes: deu `malformed array literal` em 1 requisição de 8, só sob concorrência.
+- Capacidade medida (`npm run loadtest`): **16 dashboards simultâneos, 100% ok**, mediana 903 ms em rajada e 112 ms em regime. Antes do conserto: 1 de 16, com timeout de 30 s. O `/auth/v1/token` do Supabase limita ~30 logins/5 min **por IP** — pesa no teste de carga, não em usuários reais.
 ## Escala do feed (não regredir)
 - **A classificação da vaga é PERSISTIDA**, não recalculada por requisição. `classifyJob()` (em `services/classify.js`) grava `Area`/`Level`/`Mods`/`IsBR`/`ClassVersion` em `Jobs` na inserção (migration `0014`).
 - **O filtro vive em dois lugares e a divisão é intencional**: o que depende só da vaga (área, nível, modalidade, país, data) e as palavras exigidas/bloqueadas vão no **SQL** (`buscarCandidatas`); o resto (domínios bloqueados) fica em `passesFilters`, que roda de novo sobre o resultado e é a **autoridade final**.
@@ -55,6 +58,7 @@ regra existente, não acrescente uma nova que a contradiga.
 
 ## Testes
 - `npm test` → `node --test backend/test/` (runner nativo do Node, sem dependência).
+- **A suíte roda SEM banco** (é lógica pura) e o CI não tem `.env`. Nunca ponha um `sql\`\`` no topo de um módulo: `sql` é `null` sem `DATABASE_URL` e o *import* quebra — passa local e derruba o CI, que foi como um deploy ficou parado sem ninguém ver.
 - Ao corrigir um bug em lógica pura do backend, **adicione um teste de regressão** em `backend/test/`.
 - Cobertura atual (93 testes): matching (`computeMatch`), classificação de vaga (`detectArea`/`detectLevel`) **incluindo `nontech`/`suporte`**, filtros (`passesFilters`), título do email (`niceTitle` via `renderEmail`), dedup (`jobHash`), pool do Postgres (`toTransactionPooler`), memo do `getMatches`, crédito da Apify, **classificação persistida** (`classifyJob` x `detectArea/detectLevel/detectModality`), **billing** (`services/billingLogic.js` — modo do checkout, concessão/expiração de 30 dias, webhook, histórico).
 - **Pagamento é área crítica**: a lógica de decisão fica PURA em `services/billingLogic.js` (sem Stripe/SQL) para ser testável. Ao mexer em cobrança, mantenha a lógica lá e **adicione teste** em `backend/test/billing.test.js`.

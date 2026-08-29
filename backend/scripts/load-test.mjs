@@ -78,7 +78,14 @@ try {
     console.log(`  ${criados.length} usuários de teste criados`);
 
     const tokens = [];
-    for (const u of criados) tokens.push(await entrar(u.email, SENHA));
+    // Sequencial e com pausa: o /auth/v1/token do Supabase tem limite POR IP (o
+    // free tier corta em ~30 logins a cada 5 min). Rajada de login mede o limite do
+    // Auth, nao o da aplicacao — e o teste morre antes de medir o que interessa.
+    // Para usuarios reais o limite nao pesa: cada um vem de um IP diferente.
+    for (const u of criados) {
+        tokens.push(await entrar(u.email, SENHA));
+        await new Promise((r) => setTimeout(r, 250));
+    }
 
     const carregar = async (token) => {
         const t0 = Date.now();
@@ -93,7 +100,7 @@ try {
     };
 
     console.log('\n=== RAMPA: N usuários DISTINTOS carregando o dashboard ao mesmo tempo ===');
-    for (const n of [1, 2, 4, 8, 16].filter((x) => x <= MAX)) {
+    for (const n of [1, 2, 4, 8, 16, 32, 64, 100].filter((x) => x <= MAX)) {
         const t0 = Date.now();
         const rs = await Promise.all(tokens.slice(0, n).map(carregar));
         const ok = rs.filter((r) => r.ok);
@@ -102,6 +109,19 @@ try {
         console.log(`  ${String(n).padStart(2)} simultâneos: ${ok.length}/${n} ok · mediana ${String(ms[Math.floor(ms.length / 2)]).padStart(6)}ms · pior ${String(ms[ms.length - 1]).padStart(6)}ms · ${kb} kB/resposta`);
         const ruins = rs.filter((r) => !r.ok);
         if (ruins.length) console.log(`     ⚠️  ${ruins.length} falharam (${ruins.map((r) => r.status).join(',')})`);
+    }
+
+    // A rampa mede rajada. Isto mede REGIME: as mesmas N requisicoes, varias vezes
+    // seguidas, sem pausa. E onde vazamento de conexao aparece — a rampa passa e a
+    // terceira rodada trava, que foi exatamente o que o pool fez antes do conserto.
+    const nSust = Math.min(tokens.length, 16);
+    console.log(`
+=== REGIME: ${nSust} simultaneos, 5 rodadas seguidas ===`);
+    for (let r = 1; r <= 5; r++) {
+        const rs = await Promise.all(tokens.slice(0, nSust).map(carregar));
+        const ok = rs.filter((x) => x.ok).length;
+        const ms = rs.map((x) => x.ms).sort((a, b) => a - b);
+        console.log(`  rodada ${r}: ${ok}/${nSust} ok - mediana ${String(ms[Math.floor(ms.length / 2)]).padStart(5)}ms - pior ${String(ms[ms.length - 1]).padStart(6)}ms`);
     }
 
     const depois = (await sql`select count(*)::int n from "Users"`)[0].n;

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
+import { ALLOWED_AREAS, ALLOWED_LEVELS, ALLOWED_MODALITIES } from '../config/profileOptions.js';
 import { parseLinkedInText } from '../services/linkedinParser.js';
 import { pdfToText } from '../services/pdfText.js';
 import { normalizeList, normalizeDomain } from '../services/normalize.js';
@@ -96,9 +97,6 @@ router.get('/', requireAuth, async (req, res) => {
 // PUT /api/profile
 router.put('/', requireAuth, async (req, res) => {
     const b = req.body || {};
-    const ALLOWED_LEVELS = ['estagio', 'junior', 'pleno', 'senior', 'lead', 'manager'];
-    const ALLOWED_MODALITIES = ['remoto', 'hibrido', 'presencial'];
-    const ALLOWED_AREAS = ['dev', 'qa', 'po', 'data', 'design', 'devops', 'mobile'];
     const filterAllowed = (v, allowed) => toArr(v).map((x) => x.toLowerCase()).filter((x) => allowed.includes(x));
 
     await upsertProfile(req.user.Id, {

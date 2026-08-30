@@ -261,7 +261,7 @@ try {
     // teste mostra isso em vez de esconder atras de um "logout ok".
     await api(c0.token, 'POST', '/auth/logout');
     const soPurge = await api(c0.token, 'GET', '/auth/me');
-    console.log(`   so /api/auth/logout: HTTP ${soPurge.status} (o JWT do Supabase ainda nao foi revogado)`);
+    checa(soPurge.status === 401, 'so /api/auth/logout ja invalida o token (lista de recusa)', `HTTP ${soPurge.status}`);
     const out = await fetch(`${SB}/auth/v1/logout`, {
         method: 'POST',
         headers: { apikey: process.env.SUPABASE_ANON_KEY, Authorization: `Bearer ${c0.token}`, 'Content-Type': 'application/json' },

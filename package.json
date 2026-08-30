@@ -17,7 +17,8 @@
     "seed:robots": "node backend/scripts/seed-robots.mjs",
     "reclassify": "node backend/scripts/reclassify-jobs.mjs",
     "check:feed": "node backend/scripts/check-feed-parity.mjs",
-    "loadtest": "node backend/scripts/load-test.mjs"
+    "loadtest": "node backend/scripts/load-test.mjs",
+    "prova": "node backend/scripts/prova-real.mjs"
   },
   "keywords": [],
   "type": "module",

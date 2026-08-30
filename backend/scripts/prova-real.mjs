@@ -233,9 +233,9 @@ try {
     const bug = await api(vivas[1].token, 'POST', '/bugs', { message: 'Relato criado pela prova real automatizada. Pode apagar.', page: '/app/vagas' });
     checa([200, 201].includes(bug.status), 'relato de bug e aceito', `HTTP ${bug.status} ${JSON.stringify(bug.data).slice(0, 80)}`);
     const meusBugs = await api(vivas[1].token, 'GET', '/bugs/mine');
-    checa(meusBugs.status === 200 && (meusBugs.data?.bugs || []).length >= 1, 'o autor ve o proprio relato');
+    checa(meusBugs.status === 200 && (meusBugs.data?.reports || []).length >= 1, 'o autor ve o proprio relato', JSON.stringify(meusBugs.data).slice(0, 80));
     const bugsDeOutro = await api(vivas[2].token, 'GET', '/bugs/mine');
-    checa((bugsDeOutro.data?.bugs || []).length === 0, 'SEGURANCA: um usuario NAO ve o relato de bug de outro');
+    checa((bugsDeOutro.data?.reports || []).length === 0, 'SEGURANCA: um usuario NAO ve o relato de bug de outro');
     const bugsAdmin = await api(vivas[2].token, 'GET', '/bugs');
     checa([401, 403].includes(bugsAdmin.status), 'SEGURANCA: usuario comum nao acessa a lista de bugs do admin', `HTTP ${bugsAdmin.status}`);
 

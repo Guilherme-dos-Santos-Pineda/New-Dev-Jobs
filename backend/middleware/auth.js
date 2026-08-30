@@ -12,10 +12,44 @@ import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 const cache = new Map(); // token -> { authUser, exp }
 const TTL = 60 * 1000;
 
-// Logout: derruba o token do cache na hora. Sem isto, um token deslogado no
-// Supabase ainda seria aceito por até TTL (60s) — janela pequena, mas fechável.
+// =========================
+// Tokens deslogados
+// =========================
+// O access_token do Supabase é um JWT: vale pela ASSINATURA, não por uma sessão
+// consultada a cada uso. Encerrar a sessão no Supabase revoga o refresh token,
+// mas o access token que já está na mão de alguém CONTINUA VÁLIDO até expirar —
+// medido: até 1 hora depois do logout, `getUser()` ainda devolvia o usuário.
+//
+// Tirar do cache local não resolvia: sem cache, a próxima requisição pergunta ao
+// Supabase e o Supabase responde que o token é bom. O logout precisa de uma
+// lista de recusa própria — é o único jeito de o "sair" significar sair AGORA.
+//
+// A entrada morre junto com o token (usamos o `exp` do próprio JWT), então a
+// lista não cresce: no pior caso guarda os logouts da última hora.
+const deslogados = new Map(); // token -> expira em (ms)
+
+/** Lê o `exp` do JWT sem validar assinatura — serve só para limitar a memória. */
+function expiraEm(token) {
+    try {
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+        if (Number.isFinite(payload?.exp)) return payload.exp * 1000;
+    } catch { /* token malformado: cai no padrão abaixo */ }
+    return Date.now() + 60 * 60 * 1000; // 1h é o tempo de vida padrão do Supabase
+}
+
+/** Logout: invalida este token AGORA, no cache e para o resto da vida dele. */
 export function purgeToken(token) {
-    if (token) cache.delete(token);
+    if (!token) return;
+    cache.delete(token);
+    deslogados.set(token, expiraEm(token));
+}
+
+/** Este token foi deslogado e ainda não expirou? */
+export function foiDeslogado(token) {
+    const ate = deslogados.get(token);
+    if (ate === undefined) return false;
+    if (ate <= Date.now()) { deslogados.delete(token); return false; }
+    return true;
 }
 
 // Remove entradas expiradas (tokens que rotacionaram e nunca mais voltam ficariam
@@ -26,6 +60,7 @@ function sweepCache() {
     if (now - lastSweep < TTL) return;
     lastSweep = now;
     for (const [token, v] of cache) if (v.exp <= now) cache.delete(token);
+    for (const [token, ate] of deslogados) if (ate <= now) deslogados.delete(token);
 }
 
 async function loadUserRow(authUser) {
@@ -46,7 +81,7 @@ export async function attachUser(req, _res, next) {
     try {
         const header = req.headers.authorization || '';
         const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-        if (token && supabaseAdmin) {
+        if (token && supabaseAdmin && !foiDeslogado(token)) {
             let authUser;
             const cached = cache.get(token);
             if (cached && cached.exp > Date.now()) {

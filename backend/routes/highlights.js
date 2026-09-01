@@ -31,9 +31,14 @@ async function doDia() {
     return cache.payload;
 }
 
-// GET /api/highlights — vagas remotas do dia (+ post pronto, só para admin)
+// GET /api/highlights[?post=1] — vagas remotas do dia.
+//
+// O post pronto NÃO vem por padrão nem para admin: ele só é pedido pela tela do
+// admin (`?post=1`). Assim a resposta do dashboard nunca carrega ~900 caracteres
+// de texto que aquela tela não usa, e o campo não fica circulando à toa.
 router.get('/', requireAuth, async (req, res) => {
     const { post, ...publico } = await doDia();
+    const querPost = req.query.post === '1' && ehAdmin(req.user);
 
     // Quais dessas o usuário já enviou: sem isso o botão "candidatar-se" some
     // depois do envio só quando a página é recarregada, e a pessoa clica de novo
@@ -52,8 +57,10 @@ router.get('/', requireAuth, async (req, res) => {
         // O post pronto é ferramenta de DIVULGAÇÃO, não de uso do produto: quem
         // publica em nome da plataforma é quem responde por ela. Mandar o texto
         // para todo usuário seria distribuir material de marketing assinado pela
-        // empresa sem nenhum controle sobre onde ele vai parar.
-        ...(ehAdmin(req.user) ? { post } : {}),
+        // empresa sem nenhum controle sobre onde ele vai parar. A checagem é no
+        // SERVIDOR: esconder só no frontend deixaria o texto na resposta da API
+        // para qualquer um ler no DevTools.
+        ...(querPost ? { post } : {}),
     });
 });
 

@@ -83,19 +83,12 @@ const EN = {
 
     // Vagas em destaque / post pronto para divulgar
     'Vagas remotas em destaque': 'Featured remote jobs',
-    'post pronto p/ LinkedIn': 'ready-made LinkedIn post',
-    'ocultar post': 'hide post',
     'Selecionadas hoje entre as {n} vagas remotas do Brasil na base. A lista muda todo dia.':
         'Picked today from the {n} remote jobs in Brazil in our database. The list changes daily.',
-    'Copie e publique. Ajuda quem está procurando vaga e traz gente para a plataforma.':
-        'Copy and post it. It helps people looking for work and brings them here.',
-    'copiar': 'copy',
-    'copiado!': 'copied!',
     'remoto': 'remote',
     'candidatar-se': 'apply',
     'enviando…': 'sending…',
     'selecionar vaga': 'select job',
-    'Post de divulgação do dia (visível só para admin).': "Today's promo post (admin only).",
     'Máximo de {n} vagas por vez.': 'At most {n} jobs at a time.',
     '{n} de {max} selecionadas': '{n} of {max} selected',
     'Marque até {max} vagas para enviar seu currículo.': 'Pick up to {max} jobs to send your CV to.',

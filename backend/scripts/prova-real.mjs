@@ -213,7 +213,10 @@ try {
         // admin recebe. Nenhuma destas contas e admin, entao o campo nem pode vir.
         checa(d.post === undefined, 'SEGURANCA: usuario comum NAO recebe o post de divulgacao',
             d.post ? `veio com ${d.post.length} caracteres` : '');
-        checa(hl2.data?.post === undefined, 'nem por outra conta comum');
+        // Pedir explicitamente nao contorna a trava: a checagem e de papel, no servidor.
+        const forcado = await api(vivas[0].token, 'GET', '/highlights?post=1');
+        checa(forcado.data?.post === undefined, 'SEGURANCA: usuario comum pedindo ?post=1 tambem nao recebe',
+            forcado.data?.post ? 'VAZOU' : '');
 
         // Candidatura a partir dos destaques: teto de 10 e trava de plano.
         const idsParaEnviar = (d.vagas || []).slice(0, 3).map((v) => v.id);
@@ -233,7 +236,11 @@ try {
         const adminDeMentira = vivas[vivas.length - 1];
         await sql`update "Users" set "Role" = 'admin' where "Id" = ${adminDeMentira.id}`;
         await new Promise((r) => setTimeout(r, 1200)); // cache de token do middleware
-        const hlAdmin = await api(adminDeMentira.token, 'GET', '/highlights');
+        // Sem ?post=1 o texto nao vem NEM para admin — a tela do dashboard nao
+        // deve carregar 900 caracteres que nao usa.
+        const semPedir = await api(adminDeMentira.token, 'GET', '/highlights');
+        checa(semPedir.data?.post === undefined, 'admin sem ?post=1 tambem nao recebe o post');
+        const hlAdmin = await api(adminDeMentira.token, 'GET', '/highlights?post=1');
         const post = hlAdmin.data?.post;
         if (checa(typeof post === 'string' && post.length > 50, 'admin RECEBE o post de divulgacao', `${post?.length ?? 0} caracteres`)) {
             checa(!/[\w.+-]+@[\w-]+\.[\w.]+/.test(post), 'SEGURANCA: o post NAO contem email de contato');
@@ -245,7 +252,7 @@ try {
             const pessoas = empresas.filter(pareceNomeDePessoa);
             checa(pessoas.length === 0, 'SEGURANCA: nenhum nome de pessoa publicado como empresa', pessoas.join(', '));
         }
-        await sql`update "Users" set "Role" = null where "Id" = ${adminDeMentira.id}`;
+        await sql`update "Users" set "Role" = 'user' where "Id" = ${adminDeMentira.id}`; // Role e not null, default 'user'
 
         console.log(`   ${d.vagas?.length} vagas · ${d.totalRemotas} remotas na base · post so para admin (${post?.length ?? 0} caracteres)`);
     }
@@ -335,6 +342,12 @@ try {
     await new Promise((r) => setTimeout(r, 1500)); // o cache do middleware tem TTL curto
     const depoisLogout = await api(c0.token, 'GET', '/auth/me');
     checa(depoisLogout.status === 401, 'depois do logout COMPLETO o token para de valer', `HTTP ${depoisLogout.status}`);
+} catch (erro) {
+    // Sem este catch o `finally` chamava process.exit() ANTES de a exceção subir,
+    // e um crash no meio virava "todas as verificações passaram" — com metade
+    // das verificações. Teste que esconde a própria falha é pior que teste nenhum.
+    falhas.push(`O TESTE PAROU NO MEIO: ${erro?.message || erro}`);
+    console.log(`\n[CRASH] ${erro?.stack || erro}`);
 } finally {
     console.log('\n=== LIMPEZA ===');
     await limpar();
@@ -348,6 +361,11 @@ try {
     checa(depois.sobrou === 0, 'nenhuma conta de teste sobrou', `${depois.sobrou} sobraram`);
     checa(depois.apps === antes.apps && depois.fila === antes.fila, 'nada foi criado em Applications/SendQueue');
     console.log(`   Users ${antes.users} -> ${depois.users} · Applications ${antes.apps} -> ${depois.apps} · SendQueue ${antes.fila} -> ${depois.fila}`);
+
+    // Uma rodada que termina cedo tem MENOS verificações, e "todas passaram" com
+    // metade delas não é sucesso — é um crash disfarçado. O piso é conferido.
+    const MINIMO = Number(process.env.PROVA_MINIMO) || 200;
+    checa(ok >= MINIMO, `a prova rodou inteira (>= ${MINIMO} verificacoes)`, `so ${ok} rodaram`);
 
     console.log(`\n${'='.repeat(62)}`);
     console.log(falhas.length ? `${ok} verificacoes passaram, ${falhas.length} FALHARAM:` : `TODAS as ${ok} verificacoes passaram`);

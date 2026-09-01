@@ -126,7 +126,8 @@ export const api = {
     // jobs matches + fila de envio
     getMatches: () => request('GET', '/jobs/matches'),
     // Vagas remotas do dia + post pronto para divulgar (igual para todos).
-    getHighlights: () => request('GET', '/highlights'),
+    // O post pronto so vem com ?post=1 E se o usuario for admin (checado no servidor).
+    getHighlights: ({ post } = {}) => request('GET', `/highlights${post ? '?post=1' : ''}`),
     applyHighlights: (jobIds) => request('POST', '/highlights/apply', { jobIds }),
     // A listagem manda a descrição truncada; esta busca o texto completo de UMA vaga.
     getJob: (id) => request('GET', `/jobs/${id}`),

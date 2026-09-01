@@ -64,13 +64,16 @@ regra existente, não acrescente uma nova que a contradiga.
 - **Pagamento é área crítica**: a lógica de decisão fica PURA em `services/billingLogic.js` (sem Stripe/SQL) para ser testável. Ao mexer em cobrança, mantenha a lógica lá e **adicione teste** em `backend/test/billing.test.js`.
 
 ## Divulgação (vagas em destaque)
-- `GET /api/highlights` devolve as vagas remotas do dia + um **post pronto para o LinkedIn**; aparece no dashboard (`HighlightsSection`). Lógica em [backend/services/highlights.js](backend/services/highlights.js).
+- `GET /api/highlights` devolve as vagas remotas do dia; a seção no dashboard (`HighlightsSection`) deixa o usuário marcar **até 10** e candidatar-se em lote (`POST /api/highlights/apply`). Lógica em [backend/services/highlights.js](backend/services/highlights.js).
+- **O post pronto para o LinkedIn vive em Admin › Divulgação**, não no dashboard: é material assinado pela plataforma. A trava é no **servidor** — `?post=1` só devolve o texto para admin; esconder no frontend deixaria o post na resposta da API para qualquer um ler no DevTools.
+- `POST /highlights/apply` só aceita ids **da lista do dia** (senão viraria um caminho paralelo para enviar a qualquer vaga da base, pulando os filtros do perfil), exige plano com `allowManual` (escolher a dedo é o recurso pago), e **recusa se já houver lote na fila** — `enqueue()` substitui o lote anterior, e fazer isso a partir de um botão pequeno apagaria um envio em andamento.
 - **A lista é igual para todos e muda uma vez por dia** (janela determinística por data), com cache de processo — 1000 usuários abrindo o dashboard custam **uma** consulta por dia, não mil. Sorteio por request faria quem copiou de manhã achar que copiou errado à tarde.
 - **O post NUNCA leva email de contato.** Mesmo invariante do `/jobs`, e aqui pesa mais: o texto vai para rede social pública. Coberto por teste.
 - Filtros de qualidade que só valem aqui (no feed essas vagas continuam passando): título vago (`Vaga`, `Oportunidade`), título que lista vários cargos, empresa que na verdade é **nome de pessoa** (a extração cai no autor do post) ou uma descrição solta, e **nível lido da descrição** (`detectLevel` erra quando o anúncio cita outra senioridade — no post o nível vem só do título).
 
 ## Prova real (ponta a ponta)
-- `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **209 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.
+- **O harness falha alto:** há `catch` explícito (o `finally` chamava `process.exit()` antes de a exceção subir, e um crash virava "todas passaram" com metade das verificações) e um piso mínimo — rodada curta é falha.
+- `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **219 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.
 - **Não dispara email.** As contas de teste não têm Google conectado, então o envio é barrado pelo próprio sistema — e é isso que o teste confere. Mandar email de verdade para recrutador real a partir de conta falsa não é teste, é spam.
 - Cada passo **afirma o resultado esperado**, nunca só o status HTTP: a maioria dos bugs daqui devolve **200 com o conteúdo errado** (perfil salvo pela metade, filtro ignorado, email de contato vazando). Foi assim que apareceram o `suporte` descartado no `PUT /profile` e o token que continuava válido depois do logout.
 - Rodar antes de cada mudança de preço/plano e depois de mexer em perfil, feed, auth ou cobrança.

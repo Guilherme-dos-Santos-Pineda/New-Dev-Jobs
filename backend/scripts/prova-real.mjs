@@ -185,6 +185,34 @@ try {
     await conferirTexto(feeds['Palavra bloqueada'], 'palavra BLOQUEADA nao aparece em nenhuma vaga do feed',
         (t) => !/est[áa]gio/i.test(t));
 
+    // ---------- 6b. DESTAQUES / POST DE DIVULGACAO ----------
+    console.log('\n6b) DESTAQUES DO DIA (post pronto para o LinkedIn)');
+    const hl = await api(vivas[0].token, 'GET', '/highlights');
+    if (checa(hl.status === 200, '/highlights responde', `HTTP ${hl.status}`)) {
+        const d = hl.data || {};
+        checa(Array.isArray(d.vagas) && d.vagas.length > 0, 'tem vagas em destaque', `${d.vagas?.length} vagas`);
+        // O invariante que mais importa aqui, conferido contra os DADOS REAIS e
+        // nao contra um fixture: o texto vai para rede social publica.
+        checa(!/[\w.+-]+@[\w-]+\.[\w.]+/.test(d.post || ''), 'SEGURANCA: o post NAO contem email de contato');
+        checa(!(d.vagas || []).some((v) => v.email !== undefined), 'SEGURANCA: /highlights nao devolve email');
+        checa((d.post || '').includes('newdevjobs.xyz'), 'o post leva para o site');
+        // Todas as vagas do post tem de ser mesmo remotas e do Brasil — a lista e
+        // propaganda, e propaganda errada e pior que propaganda nenhuma.
+        const idsHl = (d.vagas || []).map((v) => Number(v.id));
+        if (idsHl.length) {
+            const erradas = await sql`
+                select "Id","JobTitle" from "Jobs"
+                where "Id" = any(${idsHl}::bigint[])
+                  and (not jsonb_exists("Mods",'remoto') or "IsBR" is not true or "Area" in ('nontech','other'))`;
+            checa(erradas.length === 0, 'toda vaga do post e remota, do Brasil e de tecnologia',
+                `${erradas.length} erradas · ex.: ${erradas[0]?.JobTitle || ''}`);
+        }
+        // Mesma lista para todos os usuarios (e conteudo de divulgacao, nao feed).
+        const hl2 = await api(vivas[3].token, 'GET', '/highlights');
+        checa(JSON.stringify(hl2.data?.vagas) === JSON.stringify(d.vagas), 'a lista de destaques e igual para todos');
+        console.log(`   ${d.vagas?.length} vagas · ${d.totalRemotas} remotas na base · post com ${(d.post || '').length} caracteres`);
+    }
+
     // ---------- 7. DASHBOARD ----------
     console.log('\n7) DASHBOARD');
     for (const c of vivas) {

@@ -193,9 +193,7 @@ try {
         checa(Array.isArray(d.vagas) && d.vagas.length > 0, 'tem vagas em destaque', `${d.vagas?.length} vagas`);
         // O invariante que mais importa aqui, conferido contra os DADOS REAIS e
         // nao contra um fixture: o texto vai para rede social publica.
-        checa(!/[\w.+-]+@[\w-]+\.[\w.]+/.test(d.post || ''), 'SEGURANCA: o post NAO contem email de contato');
         checa(!(d.vagas || []).some((v) => v.email !== undefined), 'SEGURANCA: /highlights nao devolve email');
-        checa((d.post || '').includes('newdevjobs.xyz'), 'o post leva para o site');
         // Todas as vagas do post tem de ser mesmo remotas e do Brasil — a lista e
         // propaganda, e propaganda errada e pior que propaganda nenhuma.
         const idsHl = (d.vagas || []).map((v) => Number(v.id));
@@ -210,7 +208,46 @@ try {
         // Mesma lista para todos os usuarios (e conteudo de divulgacao, nao feed).
         const hl2 = await api(vivas[3].token, 'GET', '/highlights');
         checa(JSON.stringify(hl2.data?.vagas) === JSON.stringify(d.vagas), 'a lista de destaques e igual para todos');
-        console.log(`   ${d.vagas?.length} vagas · ${d.totalRemotas} remotas na base · post com ${(d.post || '').length} caracteres`);
+
+        // O post pronto e material de divulgacao assinado pela plataforma: so
+        // admin recebe. Nenhuma destas contas e admin, entao o campo nem pode vir.
+        checa(d.post === undefined, 'SEGURANCA: usuario comum NAO recebe o post de divulgacao',
+            d.post ? `veio com ${d.post.length} caracteres` : '');
+        checa(hl2.data?.post === undefined, 'nem por outra conta comum');
+
+        // Candidatura a partir dos destaques: teto de 10 e trava de plano.
+        const idsParaEnviar = (d.vagas || []).slice(0, 3).map((v) => v.id);
+        const app1 = await api(vivas[0].token, 'POST', '/highlights/apply', { jobIds: idsParaEnviar });
+        checa(app1.status === 402, 'plano free NAO se candidata a dedo pelos destaques', `HTTP ${app1.status}`);
+        checa(app1.data?.upgrade === true, 'a recusa avisa que e caso de upgrade');
+
+        const demais = await api(vivas[0].token, 'POST', '/highlights/apply', { jobIds: Array.from({ length: 11 }, (_, i) => i + 1) });
+        checa(demais.status === 400, 'pedir mais de 10 vagas e recusado antes de qualquer envio', `HTTP ${demais.status}`);
+
+        const vazio = await api(vivas[0].token, 'POST', '/highlights/apply', { jobIds: [] });
+        checa(vazio.status === 400, 'lista vazia e recusada', `HTTP ${vazio.status}`);
+
+        // Agora pelo lado do admin: o post TEM de vir, e o conteudo dele e
+        // conferido contra os dados reais. Testar isso com conta comum passaria
+        // por vacuidade — sem post, nao ha email para vazar.
+        const adminDeMentira = vivas[vivas.length - 1];
+        await sql`update "Users" set "Role" = 'admin' where "Id" = ${adminDeMentira.id}`;
+        await new Promise((r) => setTimeout(r, 1200)); // cache de token do middleware
+        const hlAdmin = await api(adminDeMentira.token, 'GET', '/highlights');
+        const post = hlAdmin.data?.post;
+        if (checa(typeof post === 'string' && post.length > 50, 'admin RECEBE o post de divulgacao', `${post?.length ?? 0} caracteres`)) {
+            checa(!/[\w.+-]+@[\w-]+\.[\w.]+/.test(post), 'SEGURANCA: o post NAO contem email de contato');
+            checa(post.includes('newdevjobs.xyz'), 'o post leva para o site');
+            // Nome de pessoa no lugar da empresa: a extracao cai no autor do post
+            // quando nao acha empresa, e publicar isso expoe gente de verdade.
+            const { pareceNomeDePessoa } = await import('../services/highlights.js');
+            const empresas = (hlAdmin.data.vagas || []).map((v) => v.company).filter(Boolean);
+            const pessoas = empresas.filter(pareceNomeDePessoa);
+            checa(pessoas.length === 0, 'SEGURANCA: nenhum nome de pessoa publicado como empresa', pessoas.join(', '));
+        }
+        await sql`update "Users" set "Role" = null where "Id" = ${adminDeMentira.id}`;
+
+        console.log(`   ${d.vagas?.length} vagas · ${d.totalRemotas} remotas na base · post so para admin (${post?.length ?? 0} caracteres)`);
     }
 
     // ---------- 7. DASHBOARD ----------

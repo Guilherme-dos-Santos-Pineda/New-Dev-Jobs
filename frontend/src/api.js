@@ -127,6 +127,7 @@ export const api = {
     getMatches: () => request('GET', '/jobs/matches'),
     // Vagas remotas do dia + post pronto para divulgar (igual para todos).
     getHighlights: () => request('GET', '/highlights'),
+    applyHighlights: (jobIds) => request('POST', '/highlights/apply', { jobIds }),
     // A listagem manda a descrição truncada; esta busca o texto completo de UMA vaga.
     getJob: (id) => request('GET', `/jobs/${id}`),
     queueStart: (mode, jobIds) => request('POST', '/queue', { mode, jobIds }),

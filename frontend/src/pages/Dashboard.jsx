@@ -289,7 +289,7 @@ export default function Dashboard() {
             )}
 
             {/* Vagas remotas do dia + post pronto para divulgar */}
-            <HighlightsSection />
+            <HighlightsSection onQueued={startPolling} />
 
             {/* Feedback */}
             <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>

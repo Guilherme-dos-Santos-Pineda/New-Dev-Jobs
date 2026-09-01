@@ -125,6 +125,8 @@ export const api = {
 
     // jobs matches + fila de envio
     getMatches: () => request('GET', '/jobs/matches'),
+    // Vagas remotas do dia + post pronto para divulgar (igual para todos).
+    getHighlights: () => request('GET', '/highlights'),
     // A listagem manda a descrição truncada; esta busca o texto completo de UMA vaga.
     getJob: (id) => request('GET', `/jobs/${id}`),
     queueStart: (mode, jobIds) => request('POST', '/queue', { mode, jobIds }),

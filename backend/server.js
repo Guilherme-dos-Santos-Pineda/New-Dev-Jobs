@@ -10,6 +10,7 @@ import { attachUser } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import jobsRoutes from './routes/jobs.js';
+import highlightsRoutes from './routes/highlights.js';
 import applicationsRoutes from './routes/applications.js';
 import statsRoutes from './routes/stats.js';
 import templatesRoutes from './routes/templates.js';
@@ -82,6 +83,7 @@ app.use('/api/public', publicRoutes); // rotas sem auth (ex.: descadastro de cam
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/highlights', highlightsRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/templates', templatesRoutes);

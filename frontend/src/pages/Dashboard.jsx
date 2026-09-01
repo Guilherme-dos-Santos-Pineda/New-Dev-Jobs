@@ -9,6 +9,7 @@ import FeedbackSection from '../components/FeedbackSection.jsx';
 import SearchSendModal from '../components/SearchSendModal.jsx';
 import Sparkline from '../components/Sparkline.jsx';
 import CommunityBanner from '../components/CommunityBanner.jsx';
+import HighlightsSection from '../components/HighlightsSection.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 const fmtSaved = (min) => {
@@ -286,6 +287,9 @@ export default function Dashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Vagas remotas do dia + post pronto para divulgar */}
+            <HighlightsSection />
 
             {/* Feedback */}
             <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>

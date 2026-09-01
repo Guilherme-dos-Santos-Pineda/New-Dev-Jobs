@@ -80,6 +80,18 @@ const EN = {
     'Ranking de usuários': 'User ranking',
     'Candidaturas recentes': 'Recent applications',
     'ver todas': 'see all',
+
+    // Vagas em destaque / post pronto para divulgar
+    'Vagas remotas em destaque': 'Featured remote jobs',
+    'post pronto p/ LinkedIn': 'ready-made LinkedIn post',
+    'ocultar post': 'hide post',
+    'Selecionadas hoje entre as {n} vagas remotas do Brasil na base. A lista muda todo dia.':
+        'Picked today from the {n} remote jobs in Brazil in our database. The list changes daily.',
+    'Copie e publique. Ajuda quem está procurando vaga e traz gente para a plataforma.':
+        'Copy and post it. It helps people looking for work and brings them here.',
+    'copiar': 'copy',
+    'copiado!': 'copied!',
+    'remoto': 'remote',
     'Nenhuma candidatura ainda.': 'No applications yet.',
     'Últimos feedbacks': 'Latest feedback',
     'ver todos / avaliar': 'see all / rate',

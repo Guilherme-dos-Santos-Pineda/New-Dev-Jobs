@@ -897,3 +897,68 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     line-height: 1.6; color: var(--color-text-secondary);
     white-space: pre-wrap; word-break: break-all; max-height: 150px; overflow-y: auto;
 }
+
+/* ============================================
+   Perfil — painéis internos, progresso no cabeçalho e barra de salvar
+   ============================================ */
+
+/* Bloco DENTRO de um .card (ex.: "Como funciona o match", "Importar do
+   LinkedIn"). Antes eram `.card` aninhados em `.card`: repetiam fundo, borda E
+   sombra do pai — caixa dentro de caixa — e somavam 40px de padding horizontal
+   só de moldura. O painel usa o fundo secundário, sem sombra, então se lê como
+   parte do cartão em vez de um segundo cartão. */
+.panel {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+.panel > :last-child { margin-bottom: 0; }
+
+/* Cabeçalho clicável do painel recolhível: o alvo é a linha inteira, não só o
+   texto — botão de 14px de altura é difícil de acertar no celular. */
+.panel-toggle {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; font-weight: 600; color: var(--color-text); text-align: left;
+}
+.panel-toggle > i:first-child { color: var(--color-accent); font-size: 16px; }
+.panel-toggle .chev { margin-left: auto; color: var(--color-text-tertiary); }
+
+/* Progresso do perfil no cabeçalho da página. Ocupava um .card inteiro (20px de
+   padding + borda + sombra) para mostrar uma linha de texto e uma barra de 8px. */
+.profile-progress { min-width: 190px; }
+.profile-progress .pp-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.profile-progress .pp-top b { font-size: 13px; font-weight: 600; }
+.profile-progress .pp-top span { margin-left: auto; font-size: 12.5px; color: var(--color-accent); }
+
+/* Barra de salvar: gruda no rodapé da área de conteúdo ENQUANTO houver alteração
+   pendente. O botão vivia no fim do formulário e saía de vista na aba Filtros —
+   a pessoa marcava um chip, rolava, e nada na tela dizia que faltava salvar.
+   Alteração de formulário que se perde ao trocar de aba é o tipo de erro que o
+   usuário atribui a si mesmo e não reporta. */
+.save-bar {
+    position: sticky; bottom: 0; z-index: 20;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-top: 18px; padding: 12px 16px;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    backdrop-filter: saturate(160%) blur(10px);
+    box-shadow: var(--shadow-md);
+}
+.save-bar.limpo { box-shadow: none; background: transparent; border-color: transparent; justify-content: flex-end; padding: 8px 4px; }
+.save-bar .tudo-salvo { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--color-text-tertiary); }
+.save-bar .tudo-salvo i { color: var(--color-success); font-size: 15px; }
+.save-bar .aviso { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--color-text-secondary); }
+.save-bar .aviso i { color: var(--color-warn); }
+.save-bar .acoes { margin-left: auto; display: flex; gap: 8px; }
+
+@media (max-width: 560px) {
+    /* No celular a barra ocupa a largura toda e o botão principal vira bloco:
+       alvo pequeno em barra fixa é o pior dos dois mundos. */
+    .save-bar { padding: 10px 12px; }
+    .save-bar .acoes { width: 100%; margin-left: 0; }
+    .save-bar .acoes .btn { flex: 1; justify-content: center; }
+}

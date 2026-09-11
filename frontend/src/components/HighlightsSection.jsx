@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import { api } from '../api.js';
-import { useAuth } from '../auth.jsx';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useToast } from './Toast.jsx';
 import { useT } from '../lib/i18n.jsx';

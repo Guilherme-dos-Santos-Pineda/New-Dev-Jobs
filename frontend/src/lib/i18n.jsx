@@ -81,6 +81,11 @@ const EN = {
     'Candidaturas recentes': 'Recent applications',
     'ver todas': 'see all',
 
+    // Perfil — barra de alteracoes nao salvas
+    'Descartar': 'Discard',
+    'Tudo salvo': 'All saved',
+    'Você tem alterações não salvas.': 'You have unsaved changes.',
+
     // Vagas em destaque / post pronto para divulgar
     'Vagas remotas em destaque': 'Featured remote jobs',
     'Selecionadas hoje entre as {n} vagas remotas do Brasil na base. A lista muda todo dia.':

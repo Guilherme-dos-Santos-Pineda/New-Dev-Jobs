@@ -42,9 +42,15 @@ export default function Profile() {
     const liRef = useRef();
     const busyRef = useRef({}); // travas síncronas anti duplo-clique (upload/import/save)
 
+    // Retrato do que está GRAVADO no servidor. Comparar o formulário com ele é o
+    // que permite dizer "você tem alterações não salvas" — sem isso a pessoa
+    // marcava um chip, trocava de aba e perdia a mudança sem nenhum aviso, um
+    // erro que o usuário costuma atribuir a si mesmo e não reporta.
+    const salvoRef = useRef(JSON.stringify(EMPTY));
+
     function applyProfile(p) {
         if (!p) return;
-        setForm({
+        const novo = {
             skills: p.skills || [], seniorities: p.seniorities || [], modalities: p.modalities || [], areas: p.areas || [],
             salaryMin: p.salaryMin ?? '', salaryMax: p.salaryMax ?? '', headline: p.headline || '',
             phone: p.phone ? maskPhone(p.phone) : '', whatsapp: p.whatsapp ? maskWhatsapp(p.whatsapp) : '',
@@ -52,7 +58,9 @@ export default function Profile() {
             requiredKeywords: p.requiredKeywords || [], blockedWords: p.blockedWords || [],
             blockedDomains: p.blockedDomains || [],
             strictLevel: !!p.strictLevel, postingDays: p.postingDays ?? '', region: p.region || 'br',
-        });
+        };
+        setForm(novo);
+        salvoRef.current = JSON.stringify(novo);
         setCvName(p.cvName);
     }
 
@@ -148,7 +156,9 @@ export default function Profile() {
     const required = sections.filter((s) => !s.optional);
     const pct = Math.round((required.filter((s) => s.complete).length / required.length) * 100);
 
+    // A aba de Email salva por conta própria (é outro componente).
     const showSave = section !== 'email';
+    const sujo = JSON.stringify(form) !== salvoRef.current;
 
     return (
         <div className="page" style={{ maxWidth: 1080 }}>
@@ -158,16 +168,16 @@ export default function Profile() {
                     <p>{t('Configure suas preferências para receber as melhores vagas.')}</p>
                 </div>
                 <div className="spacer" />
-                <button className="btn ghost sm" onClick={resetConfig}><i className="ti ti-rotate" /> {t('Resetar configuração')}</button>
-            </div>
-
-            <div className="card" style={{ marginBottom: 20, padding: 16 }}>
-                <div className="row" style={{ alignItems: 'center', marginBottom: 8 }}>
-                    <strong style={{ fontSize: 13 }}>Perfil</strong>
-                    <div className="spacer" />
-                    <span className="mono" style={{ fontSize: 13, color: 'var(--color-accent)' }}>{pct}{t('% completo')}</span>
+                {/* O progresso mora aqui, não num cartão só dele: era um .card de
+                    20px de padding para uma linha de texto e uma barra de 8px. */}
+                <div className="profile-progress">
+                    <div className="pp-top">
+                        <b>{t('Perfil')}</b>
+                        <span className="mono">{pct}{t('% completo')}</span>
+                    </div>
+                    <div className="progress"><span style={{ width: `${pct}%` }} /></div>
                 </div>
-                <div className="progress"><span style={{ width: `${pct}%` }} /></div>
+                <button className="btn ghost sm" onClick={resetConfig}><i className="ti ti-rotate" /> {t('Resetar configuração')}</button>
             </div>
 
             <div className="settings-grid">
@@ -191,13 +201,28 @@ export default function Profile() {
                             <div className="sec-card-head"><h2>Skills &amp; Keywords</h2></div>
                             <div className="why"><i className="ti ti-info-circle" />Essas keywords calculam o match de cada vaga com seu perfil. Quanto mais precisas, melhores os resultados.</div>
 
+                            {/* Os CAMPOS vêm primeiro. Antes as duas caixas de ajuda
+                                abriam a seção e empurravam headline e keywords ~250px
+                                para baixo: quem clicava em "Skills & Keywords" para
+                                editar as skills caía em dois acordeões de explicação. */}
+                            <div className="field">
+                                <label>Headline</label>
+                                <input className="input" value={form.headline} maxLength={120}
+                                    onChange={(e) => set('headline', e.target.value)} placeholder="Ex.: Desenvolvedor Backend Pleno" />
+                            </div>
+                            <div className="field">
+                                <label>Keywords de busca</label>
+                                <TagInput value={form.skills} onChange={(v) => set('skills', v)} suggestions={SUGGESTED}
+                                    normalize={normalizeKeyword} placeholder="Digite uma skill e pressione Enter" />
+                                <div className="hint">Padronizamos automaticamente (ex.: "js" → JavaScript, ".net" → .NET).</div>
+                            </div>
+
                             {/* Como funciona o match (recolhível) */}
-                            <div className="card" style={{ marginBottom: 18 }}>
-                                <button type="button" className="row" style={{ alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 0, cursor: 'pointer', padding: 0, fontWeight: 600, color: 'var(--color-text)' }}
-                                    onClick={() => setShowMatch((v) => !v)}>
-                                    <i className="ti ti-target-arrow" style={{ color: 'var(--color-accent)' }} />
+                            <div className="panel">
+                                <button type="button" className="panel-toggle" onClick={() => setShowMatch((v) => !v)}>
+                                    <i className="ti ti-target-arrow" />
                                     Como funciona o match?
-                                    <i className={`ti ti-chevron-${showMatch ? 'down' : 'right'}`} style={{ marginLeft: 'auto' }} />
+                                    <i className={`ti ti-chevron-${showMatch ? 'down' : 'right'} chev`} />
                                 </button>
                                 {showMatch && (
                                     <div style={{ marginTop: 12, fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.65 }}>
@@ -221,7 +246,7 @@ export default function Profile() {
                             </div>
 
                             {/* Importar do LinkedIn */}
-                            <div className="card" style={{ marginBottom: 18, borderColor: 'var(--color-accent-light)' }}>
+                            <div className="panel" style={{ borderColor: 'var(--color-accent-light)' }}>
                                 <div className="row" style={{ alignItems: 'center', gap: 10 }}>
                                     <div className="feat-ico" style={{ width: 34, height: 34, marginBottom: 0 }}><i className="ti ti-file-cv" /></div>
                                     <div style={{ fontWeight: 600 }}>Importar currículo do LinkedIn</div>
@@ -252,18 +277,6 @@ export default function Profile() {
                                 <div className="notice info" style={{ marginTop: 12, marginBottom: 0 }}>
                                     <i className="ti ti-info-circle" /><span>Este PDF é só para extrair dados — <b>não</b> é o currículo anexado nos emails.</span>
                                 </div>
-                            </div>
-
-                            <div className="field">
-                                <label>Headline</label>
-                                <input className="input" value={form.headline} maxLength={120}
-                                    onChange={(e) => set('headline', e.target.value)} placeholder="Ex.: Desenvolvedor Backend Pleno" />
-                            </div>
-                            <div className="field">
-                                <label>Keywords de busca</label>
-                                <TagInput value={form.skills} onChange={(v) => set('skills', v)} suggestions={SUGGESTED}
-                                    normalize={normalizeKeyword} placeholder="Digite uma skill e pressione Enter" />
-                                <div className="hint">Padronizamos automaticamente (ex.: "js" → JavaScript, ".net" → .NET).</div>
                             </div>
                         </div>
                     )}
@@ -433,10 +446,30 @@ export default function Profile() {
                     {section === 'email' && <EmailSettings />}
 
                     {showSave && (
-                        <div className="row" style={{ marginTop: 20, justifyContent: 'flex-end' }}>
-                            <button className="btn primary" disabled={saving} onClick={save}>
-                                {saving ? t('Salvando…') : (<><i className="ti ti-device-floppy" /> {t('Salvar configurações')}</>)}
-                            </button>
+                        // Sem alteração pendente NÃO mostramos um botão desabilitado:
+                        // botão que nunca funciona é ruído, e o usuário aprende a
+                        // ignorar aquele canto da tela — justamente onde o aviso de
+                        // "não salvo" vai aparecer depois. No lugar, uma confirmação
+                        // discreta de que está tudo gravado.
+                        <div className={`save-bar ${sujo ? '' : 'limpo'}`}>
+                            {sujo ? (
+                                <>
+                                    <span className="aviso">
+                                        <i className="ti ti-alert-circle" /> {t('Você tem alterações não salvas.')}
+                                    </span>
+                                    <div className="acoes">
+                                        <button className="btn sm" disabled={saving}
+                                            onClick={() => applyProfile(data?.profile)}>
+                                            <i className="ti ti-arrow-back-up" /> {t('Descartar')}
+                                        </button>
+                                        <button className="btn primary" disabled={saving} onClick={save}>
+                                            {saving ? t('Salvando…') : (<><i className="ti ti-device-floppy" /> {t('Salvar configurações')}</>)}
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <span className="tudo-salvo"><i className="ti ti-circle-check" /> {t('Tudo salvo')}</span>
+                            )}
                         </div>
                     )}
                 </div>

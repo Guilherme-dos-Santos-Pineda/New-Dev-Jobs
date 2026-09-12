@@ -62,9 +62,19 @@ router.get('/google/callback', async (req, res) => {
     const { code, state, error } = req.query;
     const redirect = (status) => res.redirect(`${config.frontendUrl}/app/perfil?google=${status}`);
 
-    if (error) return redirect('denied');
+    // Estes dois caminhos NÃO logavam nada. Quando o primeiro usuário de fora
+    // falhou ao conectar o Gmail, não havia uma linha sequer dizendo se ele
+    // recusou no Google, se o state não bateu ou se o código não veio — o log
+    // limpo parecia "não chegou aqui". Agora cada saída diz por quê.
+    if (error) {
+        console.warn(`Google callback: recusado no consentimento (${error})`);
+        return redirect('denied');
+    }
     const userId = consumeState(state);
-    if (!code || !userId) return redirect('invalid');
+    if (!code || !userId) {
+        console.warn(`Google callback: ${!code ? 'sem code' : 'state invalido ou expirado'}`);
+        return redirect('invalid');
+    }
 
     try {
         await exchangeCodeAndStore(code, userId);

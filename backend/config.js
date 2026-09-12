@@ -22,7 +22,12 @@ const {
     STRIPE_PRICE_PRO = '',
     // IA — pré-análise do scraper (cadeia de provedores com fallback)
     GROQ_API_KEY = '',
-    GROQ_MODEL = 'llama-3.3-70b-versatile',
+    // O padrão foi 'llama-3.3-70b-versatile' até a Groq descontinuar o modelo: a
+    // API passou a devolver 404 em TODA chamada e a classificação caiu no fallback
+    // por regex sem nada gritar — só uma linha de log por vez, no meio de milhares.
+    // Modelo de IA é um nome que expira; conferir a lista da conta (GET /models)
+    // faz parte de diagnosticar "a IA parou".
+    GROQ_MODEL = 'openai/gpt-oss-20b',
     OPENAI_API_KEY = '',
     OPENAI_MODEL = 'gpt-4o-mini',
     AI_PROVIDER_ORDER = 'groq,openai', // ordem de tentativa; cai para o próximo quando um falha

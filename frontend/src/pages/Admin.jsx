@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast.jsx';
 import { fmtDate } from '../utils.js';
 import BotsPanel from '../components/BotsPanel.jsx';
 import AdminPromoPost from '../components/AdminPromoPost.jsx';
+import AdminProfileBackups from '../components/AdminProfileBackups.jsx';
 import AdminJobs from '../components/AdminJobs.jsx';
 import AdminRecruiters from '../components/AdminRecruiters.jsx';
 import AdminRawContent from '../components/AdminRawContent.jsx';
@@ -90,6 +91,7 @@ export default function Admin() {
                     ['report', 'Relatório', 'ti-report-analytics'],
                     ['campanhas', 'Campanhas', 'ti-mail-forward'],
                     ['divulgacao', 'Divulgação', 'ti-brand-linkedin'],
+                    ['backups', 'Perfis apagados', 'ti-archive'],
                 ].map(([id, label, icon]) => (
                     <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
                         <i className={`ti ${icon}`} /> {label}
@@ -106,6 +108,7 @@ export default function Admin() {
             {tab === 'report' && <AdminReport />}
             {tab === 'campanhas' && <AdminCampaigns />}
             {tab === 'divulgacao' && <AdminPromoPost />}
+            {tab === 'backups' && <AdminProfileBackups />}
 
             {tab === 'geral' && (<>
             {/* ---- Números da plataforma ---- */}

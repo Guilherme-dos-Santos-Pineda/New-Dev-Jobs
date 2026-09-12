@@ -38,6 +38,8 @@ export default function Profile() {
     const [showHelp, setShowHelp] = useState(false);
     const [showMatch, setShowMatch] = useState(false);
     const [drag, setDrag] = useState(false);
+    const [confirmaApagar, setConfirmaApagar] = useState('');
+    const [apagando, setApagando] = useState(false);
     const fileRef = useRef();
     const liRef = useRef();
     const busyRef = useRef({}); // travas síncronas anti duplo-clique (upload/import/save)
@@ -140,6 +142,22 @@ export default function Profile() {
         finally { busyRef.current.imp = false; setImporting(false); if (liRef.current) liRef.current.value = ''; }
     }
 
+    async function apagarPerfil() {
+        if (busyRef.current.del) return;
+        busyRef.current.del = true;
+        setApagando(true);
+        try {
+            await api.deleteProfile(confirmaApagar.trim().toUpperCase());
+            applyProfile({ ...EMPTY, cvName: null });
+            mutateCache('profile', { profile: null });
+            await refreshUser();
+            setConfirmaApagar('');
+            setSection('skills');
+            toast.show('Perfil apagado. Guardamos uma cópia de segurança.');
+        } catch (e) { toast.show(e.message, 'error'); }
+        finally { busyRef.current.del = false; setApagando(false); }
+    }
+
     const toggleIn = (key, v) => setForm((f) => ({ ...f, [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] }));
 
     if (loading) return <div className="page center"><div className="spinner" /></div>;
@@ -153,15 +171,19 @@ export default function Profile() {
         { id: 'contact', label: 'Contato & Currículo', icon: 'ti-address-book', complete: !!cvName },
         { id: 'email', label: 'Email & Templates', icon: 'ti-mail-cog', complete: !!user.googleConnected },
     ];
+    // Fora do checklist de propósito: apagar não é um passo da configuração, e
+    // contá-la como "pendente" colocaria um alerta permanente ao lado de uma ação
+    // destrutiva — convite para a pessoa clicar só para zerar o aviso.
+    const perigo = { id: 'perigo', label: 'Apagar meu perfil', icon: 'ti-trash' };
     const required = sections.filter((s) => !s.optional);
     const pct = Math.round((required.filter((s) => s.complete).length / required.length) * 100);
 
     // A aba de Email salva por conta própria (é outro componente).
-    const showSave = section !== 'email';
+    const showSave = section !== 'email' && section !== 'perigo';
     const sujo = JSON.stringify(form) !== salvoRef.current;
 
     return (
-        <div className="page" style={{ maxWidth: 1080 }}>
+        <div className="page" style={{ maxWidth: 1160 }}>
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
                     <h1>{t('Meu Perfil')}</h1>
@@ -182,17 +204,26 @@ export default function Profile() {
 
             <div className="settings-grid">
                 <nav className="section-nav">
+                    <div className="nav-topo">
+                        {t('Configuração')}
+                        <span>{required.filter((s) => s.complete).length}/{required.length}</span>
+                    </div>
                     {sections.map((s) => (
                         <button key={s.id} className={section === s.id ? 'active' : ''} onClick={() => setSection(s.id)}>
-                            <i className={`ti ${s.icon} lead`} />
-                            {t(s.label)}
-                            <span className="st">
-                                {s.optional
-                                    ? (s.complete ? <i className="ti ti-circle-check st-ok" /> : <span className="st-opt">opcional</span>)
-                                    : (s.complete ? <i className="ti ti-circle-check st-ok" /> : <i className="ti ti-alert-circle st-no" />)}
-                            </span>
+                            {/* O estado vem PRIMEIRO: o olho percorre a coluna de
+                                marcações para achar o que falta, e um check no fim de
+                                rótulos de larguras diferentes não forma coluna. */}
+                            {s.complete
+                                ? <i className="ti ti-circle-check st-ok" />
+                                : <i className={`ti ti-circle st-${s.optional ? 'opt' : 'no'}`} />}
+                            <span className="nav-lbl">{t(s.label)}</span>
+                            {s.optional && !s.complete && <span className="st-opt">{t('opcional')}</span>}
                         </button>
                     ))}
+                    <button className={`perigo ${section === perigo.id ? 'active' : ''}`} onClick={() => setSection(perigo.id)}>
+                        <i className={`ti ${perigo.icon}`} />
+                        <span className="nav-lbl">{t(perigo.label)}</span>
+                    </button>
                 </nav>
 
                 <div>
@@ -444,6 +475,43 @@ export default function Profile() {
                     )}
 
                     {section === 'email' && <EmailSettings />}
+
+                    {section === 'perigo' && (
+                        <div className="card">
+                            <div className="sec-card-head"><h2>Apagar meu perfil</h2></div>
+                            <div className="why"><i className="ti ti-info-circle" />
+                                Isto apaga suas skills, filtros, contatos e a referência do currículo. Sua conta e
+                                seu histórico de candidaturas continuam.
+                            </div>
+
+                            <div className="perigo-box">
+                                <div className="row" style={{ alignItems: 'flex-start', gap: 10 }}>
+                                    <i className="ti ti-alert-triangle" style={{ color: 'var(--color-danger)', fontSize: 20, flexShrink: 0 }} />
+                                    <div>
+                                        <div style={{ fontWeight: 600, marginBottom: 6 }}>O que acontece ao apagar</div>
+                                        <ul style={{ margin: '0 0 0 18px', fontSize: 13, lineHeight: 1.75, color: 'var(--color-text-secondary)' }}>
+                                            <li>Os envios que estão na fila são cancelados.</li>
+                                            <li>Você deixa de receber vagas até preencher o perfil de novo.</li>
+                                            <li>{/* Dito porque muda a decisão de quem está apagando por privacidade. */}
+                                                Guardamos uma cópia por segurança, visível só para o administrador —
+                                                é o que permite desfazer caso alguém entre na sua conta e apague por você.
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="field" style={{ marginTop: 18, maxWidth: 340 }}>
+                                <label>Digite <b>APAGAR</b> para confirmar</label>
+                                <input className="input" value={confirmaApagar} placeholder="APAGAR"
+                                    onChange={(e) => setConfirmaApagar(e.target.value)} />
+                            </div>
+                            <button className="btn danger" disabled={apagando || confirmaApagar.trim().toUpperCase() !== 'APAGAR'}
+                                onClick={apagarPerfil}>
+                                <i className="ti ti-trash" /> {apagando ? 'Apagando…' : 'Apagar meu perfil'}
+                            </button>
+                        </div>
+                    )}
 
                     {showSave && (
                         // Sem alteração pendente NÃO mostramos um botão desabilitado:

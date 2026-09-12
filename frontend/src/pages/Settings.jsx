@@ -188,7 +188,7 @@ export default function EmailSettings() {
                 {user.googleConnected ? (
                     <div className="row" style={{ alignItems: 'center' }}>
                         <div className="job-logo" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>
-                            <i className="ti ti-brand-google-filled" />
+                            <i className="ti ti-brand-google" />
                         </div>
                         <div>
                             <div style={{ fontWeight: 600 }}>{user.googleEmail || 'Conta conectada'}</div>
@@ -216,7 +216,7 @@ export default function EmailSettings() {
                     title="Este app passou pela verificação de segurança do Google (OAuth). Acesso restrito ao envio (gmail.send).">
                     <i className="ti ti-brand-google" aria-hidden="true" />
                     <span><b>App verificado pelo Google</b><br /><span className="gv-sub">Acesso restrito a envio · nunca lemos seus emails</span></span>
-                    <i className="ti ti-discount-check-filled gv-check" aria-hidden="true" />
+                    <i className="ti ti-discount-check gv-check" aria-hidden="true" />
                 </a>
 
                 {/* Enviar email de teste */}

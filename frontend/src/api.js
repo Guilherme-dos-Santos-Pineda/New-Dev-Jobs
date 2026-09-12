@@ -105,6 +105,9 @@ export const api = {
     getProfile: () => request('GET', '/profile'),
     updateProfile: (data) => request('PUT', '/profile', data),
     resetProfile: () => request('POST', '/profile/reset'),
+    // A confirmacao digitada vai no corpo: o servidor recusa sem ela, entao um
+    // DELETE disparado por engano (ou por CSRF) nao apaga nada.
+    deleteProfile: (confirmacao) => request('DELETE', '/profile', { confirmacao }),
     uploadCv: (file) => {
         const fd = new FormData();
         fd.append('cv', file);
@@ -181,6 +184,11 @@ export const api = {
     adminRawBulk: (action, status) => request('POST', '/admin/raw/bulk', { action, status }),
     adminAiStats: () => request('GET', '/admin/ai-stats'),
     adminApifyReset: () => request('POST', '/admin/apify/reset'),
+    // Perfis apagados: so admin ve. Se a conta foi tomada, quem esta com ela nao
+    // pode apagar o backup tambem.
+    adminProfileBackups: () => request('GET', '/admin/profile-backups'),
+    adminProfileBackup: (id) => request('GET', `/admin/profile-backups/${id}`),
+    adminRestoreProfile: (id) => request('POST', `/admin/profile-backups/${id}/restore`),
     adminReport: () => request('GET', '/admin/report'),
     adminCampaigns: () => request('GET', '/admin/campaigns'),
     adminCreateCampaign: (payload) => request('POST', '/admin/campaigns', payload),

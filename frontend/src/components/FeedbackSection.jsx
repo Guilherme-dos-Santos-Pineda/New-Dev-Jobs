@@ -9,7 +9,7 @@ function Stars({ value = 0, onChange, size }) {
     return (
         <span className={`stars ${onChange ? 'input' : ''}`} style={size ? { fontSize: size } : undefined}>
             {[1, 2, 3, 4, 5].map((n) => (
-                <i key={n} className={`ti ti-star-filled ${n <= value ? 'on' : ''}`}
+                <i key={n} className={`ti ti-star ${n <= value ? 'on' : ''}`}
                     onClick={onChange ? () => onChange(n === value ? 0 : n) : undefined} />
             ))}
         </span>
@@ -101,7 +101,7 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
                             const c = summary.distribution[star] || 0;
                             return (
                                 <div key={star} className="fb-dist-row">
-                                    <span className="lbl">{star}<i className="ti ti-star-filled" /></span>
+                                    <span className="lbl">{star}<i className="ti ti-star" /></span>
                                     <span className="fb-bar"><span style={{ width: `${(c / maxDist) * 100}%` }} /></span>
                                     <span className="cnt">{c}</span>
                                 </div>

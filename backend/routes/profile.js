@@ -132,6 +132,50 @@ router.post('/reset', requireAuth, async (req, res) => {
     res.json({ profile: publicProfile(await getProfile(req.user.Id)) });
 });
 
+// =========================
+// DELETE /api/profile  { confirmacao: "APAGAR" }
+// =========================
+// Apagar o próprio perfil é direito do usuário e negar isso é pior que o risco.
+// Mas um DELETE autenticado é IDÊNTICO vindo do dono cansado ou de alguém que
+// entrou na conta — não há como distinguir os dois no momento do pedido.
+//
+// Por isso aqui não se destrói: arquiva-se. A linha vira um retrato em JSON em
+// "ProfileBackups", que só o admin enxerga e restaura. Para o usuário o efeito é
+// o que ele pediu (o perfil some, os envios param); para uma conta sequestrada,
+// o estrago é reversível.
+//
+// O arquivo do currículo NÃO é removido do Storage de propósito: sem ele, a
+// restauração devolveria um perfil sem o PDF — ou seja, não restauraria nada.
+router.delete('/', requireAuth, async (req, res) => {
+    // Confirmação explícita: um DELETE que dispara sozinho por um clique errado
+    // (ou por um CSRF qualquer) não pode apagar o trabalho de configuração de
+    // alguém. A palavra vem digitada do cliente.
+    if (String(req.body?.confirmacao || '').trim().toUpperCase() !== 'APAGAR') {
+        return res.status(400).json({ error: 'Confirmação inválida. Digite APAGAR para confirmar.' });
+    }
+
+    const atual = await getProfile(req.user.Id);
+    if (!atual) return res.status(404).json({ error: 'Você ainda não tem um perfil para apagar.' });
+
+    await sql.begin(async (tx) => {
+        // O backup é gravado ANTES de apagar, na mesma transação: se o insert
+        // falhar, o delete não acontece. Backup "quase sempre" não é backup.
+        await tx`
+            insert into "ProfileBackups" ("UserId", "Snapshot", "DeletedBy", "Ip", "UserAgent")
+            values (${req.user.Id}, ${tx.json(atual)}, 'user',
+                    ${(req.headers['x-forwarded-for'] || req.ip || '').toString().slice(0, 90)},
+                    ${(req.headers['user-agent'] || '').toString().slice(0, 200)})`;
+        await tx`delete from "Profiles" where "UserId" = ${req.user.Id}`;
+        // Fila pendente morre junto: sem perfil e sem CV, cada envio agendado
+        // falharia um a um e encheria o histórico de erro.
+        await tx`delete from "SendQueue" where "UserId" = ${req.user.Id} and "Status" = 'queued'`;
+    });
+
+    invalidateMatches(req.user.Id);
+    console.log(`🗑️  perfil apagado por ${req.user.Email} (backup guardado)`);
+    res.json({ ok: true });
+});
+
 // POST /api/profile/cv  (multipart/form-data, campo "cv")
 router.post('/cv', requireAuth, (req, res) => {
     uploadCvMem.single('cv')(req, res, async (err) => {

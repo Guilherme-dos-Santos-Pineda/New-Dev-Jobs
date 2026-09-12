@@ -64,7 +64,7 @@ const PERFIS = [
 const contas = [];
 async function limpar() {
     for (const c of contas) {
-        for (const tabela of ['BugReports', 'Feedback', 'SendQueue', 'Applications', 'Profiles']) {
+        for (const tabela of ['ProfileBackups', 'BugReports', 'Feedback', 'SendQueue', 'Applications', 'Profiles']) {
             try { await sql.unsafe(`delete from "${tabela}" where "UserId" = $1`, [c.id]); } catch { /* tabela pode não existir */ }
         }
         try { await sql`delete from "Users" where "Id" = ${c.id}`; } catch { /* ignore */ }
@@ -356,6 +356,56 @@ try {
 
     const adm = await api(c0.token, 'GET', '/admin/overview');
     checa([401, 403].includes(adm.status), 'SEGURANCA: conta comum nao entra no /admin', `HTTP ${adm.status}`);
+
+    // ---------- 10b. APAGAR PERFIL + BACKUP ----------
+    console.log('\n10b) APAGAR O PROPRIO PERFIL (com backup)');
+    const vitima = vivas[4];
+
+    const semConfirmar = await api(vitima.token, 'DELETE', '/profile', {});
+    checa(semConfirmar.status === 400, 'apagar SEM confirmacao e recusado', `HTTP ${semConfirmar.status}`);
+    const confirmaErrada = await api(vitima.token, 'DELETE', '/profile', { confirmacao: 'sim' });
+    checa(confirmaErrada.status === 400, 'confirmacao errada e recusada', `HTTP ${confirmaErrada.status}`);
+    const aindaTem = await api(vitima.token, 'GET', '/profile');
+    checa(!!aindaTem.data?.profile, 'o perfil continua la depois das tentativas recusadas');
+
+    const perfilAntes = aindaTem.data.profile;
+    const apagou = await api(vitima.token, 'DELETE', '/profile', { confirmacao: 'APAGAR' });
+    checa(apagou.status === 200, 'apagar COM confirmacao funciona', `HTTP ${apagou.status}`);
+    const [{ n: sobrou }] = await sql`select count(*)::int n from "Profiles" where "UserId" = ${vitima.id}`;
+    checa(sobrou === 0, 'o perfil sai mesmo da tabela', `${sobrou} linha(s)`);
+
+    const bks = await sql`select * from "ProfileBackups" where "UserId" = ${vitima.id}`;
+    checa(bks.length === 1, 'o backup foi gravado', `${bks.length} backups`);
+    checa(bks[0]?.Snapshot?.UserId === vitima.id, 'o backup guarda o retrato do perfil certo');
+    checa(!!bks[0]?.UserAgent, 'o backup guarda o contexto de quem apagou');
+
+    // A rede de protecao so vale se a propria vitima nao alcancar o backup: conta
+    // tomada nao pode apagar a prova.
+    const tentaVer = await api(vitima.token, 'GET', '/admin/profile-backups');
+    checa([401, 403].includes(tentaVer.status), 'SEGURANCA: usuario comum NAO acessa os backups', `HTTP ${tentaVer.status}`);
+    const tentaRestaurar = await api(vitima.token, 'POST', `/admin/profile-backups/${Number(bks[0].Id)}/restore`, {});
+    checa([401, 403].includes(tentaRestaurar.status), 'SEGURANCA: usuario comum NAO restaura', `HTTP ${tentaRestaurar.status}`);
+
+    // Admin ve e restaura.
+    const adminTmp = vivas[vivas.length - 1];
+    await sql`update "Users" set "Role" = 'admin' where "Id" = ${adminTmp.id}`;
+    await new Promise((r) => setTimeout(r, 1200)); // cache de token do middleware
+    const lista = await api(adminTmp.token, 'GET', '/admin/profile-backups');
+    checa(lista.status === 200, 'admin lista os backups', `HTTP ${lista.status}`);
+    checa((lista.data?.backups || []).some((b) => b.userId === vitima.id), 'o backup da vitima aparece na lista');
+
+    const restaurou = await api(adminTmp.token, 'POST', `/admin/profile-backups/${Number(bks[0].Id)}/restore`, {});
+    checa(restaurou.status === 200, 'admin restaura o perfil', `HTTP ${restaurou.status} ${JSON.stringify(restaurou.data).slice(0, 80)}`);
+    const voltou = await api(vitima.token, 'GET', '/profile');
+    checa(!!voltou.data?.profile, 'o perfil voltou para o usuario');
+    checa(JSON.stringify(voltou.data?.profile?.skills) === JSON.stringify(perfilAntes.skills),
+        'as skills voltaram identicas', `${JSON.stringify(voltou.data?.profile?.skills)}`);
+    checa(voltou.data?.profile?.headline === perfilAntes.headline, 'a headline voltou identica');
+
+    // Restaurar de novo tem de ser recusado: sobrescreveria o perfil ativo.
+    const deNovo = await api(adminTmp.token, 'POST', `/admin/profile-backups/${Number(bks[0].Id)}/restore`, {});
+    checa(deNovo.status === 409, 'restaurar por cima de perfil ativo e recusado', `HTTP ${deNovo.status}`);
+    await sql`update "Users" set "Role" = 'user' where "Id" = ${adminTmp.id}`;
 
     // ---------- 11. SESSÃO ----------
     console.log('\n11) SESSAO');

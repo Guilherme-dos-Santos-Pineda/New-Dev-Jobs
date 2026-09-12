@@ -61,6 +61,14 @@ jobs:
           npm install --no-audit --no-fund
           npm test
 
+      # Icone que nao existe na fonte nao da erro: a regra CSS nao casa, o glifo
+      # nao aparece e sobra um espaco vazio. Varios botoes do app sao SO icone,
+      # entao um nome errado vira botao invisivel e a funcao parece quebrada.
+      # Conferimos tambem que a propria URL da fonte responde 200 — ja publicamos
+      # uma que dava 404 e sumiu com todos os icones de uma vez.
+      - name: Icones existem na fonte
+        run: npm run check:icons
+
       - name: Build do frontend
         working-directory: frontend
         env:

@@ -79,7 +79,7 @@ regra existente, não acrescente uma nova que a contradiga.
 
 ## Prova real (ponta a ponta)
 - **O harness falha alto:** há `catch` explícito (o `finally` chamava `process.exit()` antes de a exceção subir, e um crash virava "todas passaram" com metade das verificações) e um piso mínimo — rodada curta é falha.
-- `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **229 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.
+- `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **249 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.
 - **Não dispara email.** As contas de teste não têm Google conectado, então o envio é barrado pelo próprio sistema — e é isso que o teste confere. Mandar email de verdade para recrutador real a partir de conta falsa não é teste, é spam.
 - Cada passo **afirma o resultado esperado**, nunca só o status HTTP: a maioria dos bugs daqui devolve **200 com o conteúdo errado** (perfil salvo pela metade, filtro ignorado, email de contato vazando). Foi assim que apareceram o `suporte` descartado no `PUT /profile` e o token que continuava válido depois do logout.
 - Rodar antes de cada mudança de preço/plano e depois de mexer em perfil, feed, auth ou cobrança.
@@ -97,7 +97,16 @@ regra existente, não acrescente uma nova que a contradiga.
 - Vagas filtradas por **área profissional** (`detectArea`) além de skills/senioridade. Auto-send só dispara em match **≥ 50%**.
 - Gerador de robôs: `npm run seed:robots` (simula por padrão; `--commit` cria; queries naturais de posts reais). Cuidado: cada robô gasta crédito Apify.
 
+## Apagar perfil (e a rede de proteção)
+- `DELETE /api/profile` exige a palavra **APAGAR** no corpo — um DELETE que dispara por clique errado ou CSRF não pode destruir a configuração de alguém.
+- **Não destrói: arquiva.** A linha inteira vira um retrato jsonb em `ProfileBackups` (migration `0015`) **na mesma transação** do delete — backup "quase sempre" não é backup. Um DELETE autenticado é idêntico vindo do dono ou de quem entrou na conta; arquivar é o que torna o sequestro reversível.
+- **O snapshot é jsonb, não colunas espelhadas**: o perfil ganha campo novo a cada mês e um espelho desatualizado restauraria um perfil pela metade, em silêncio.
+- **O usuário não alcança os backups** — nem para listar (`/api/admin/profile-backups` é `requireAdmin`). Se a conta foi tomada, quem está com ela não pode apagar a prova também.
+- O arquivo do CV **não** é removido do Storage: sem ele a restauração devolveria um perfil sem PDF, ou seja, não restauraria nada.
+- Restaurar por cima de um perfil ativo é recusado (409): trocaria um estrago por outro.
+
 ## Frontend — armadilhas
+- **`npm run check:icons` roda no CI.** Ícone inexistente não dá erro: a regra CSS não casa, o glifo não aparece, sobra espaço vazio — e vários botões do app são só ícone, então viram quadrados invisíveis e a função parece quebrada. Já aconteceu com `ti-star-filled` (as estrelas de avaliação inteiras), `ti-brand-google-filled` e `ti-discount-check-filled`. O script também confere que a URL da fonte responde **200**.
 - **A fonte de ícones (Tabler) vem de CDN com versão FIXA e o caminho tem `dist/`.** `@latest` deixa o icon set mudar sozinho entre deploys; e uma URL errada devolve 404 e **todos os ícones somem de uma vez**, sem erro em log nenhum — vários botões do app são só ícone (o de relatar bug, por exemplo), então eles viram quadrados invisíveis e a função parece quebrada. Ao mexer nessa URL, **abra-a e confira o HTTP 200** antes de publicar.
 - Botão importante não deve depender só do ícone: os de negrito/itálico são **B** e **I** em texto justamente por isso.
 

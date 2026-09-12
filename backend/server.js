@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import jobsRoutes from './routes/jobs.js';
 import highlightsRoutes from './routes/highlights.js';
+import profileBackupsRoutes from './routes/profileBackups.js';
 import applicationsRoutes from './routes/applications.js';
 import statsRoutes from './routes/stats.js';
 import templatesRoutes from './routes/templates.js';
@@ -84,6 +85,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/highlights', highlightsRoutes);
+// Antes de /api/admin para o prefixo mais especifico casar primeiro.
+app.use('/api/admin/profile-backups', profileBackupsRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/templates', templatesRoutes);

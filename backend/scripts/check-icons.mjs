@@ -45,11 +45,16 @@ function arquivos(dir) {
 const usados = new Map();
 for (const cam of [...arquivos(join(RAIZ, 'frontend/src')), join(RAIZ, 'frontend/index.html')]) {
     const txt = readFileSync(cam, 'utf8');
-    for (const m of txt.matchAll(/\bti ti-([a-z0-9-]+)/g)) {
-        // `ti-chevron-${aberto ? 'up' : 'down'}` casa como "chevron-" e não é um
-        // nome de verdade: o sufixo só existe em tempo de execução. Conferimos as
-        // variantes conhecidas em vez de acusar um falso positivo toda vez.
-        const nome = m[1];
+    // Duas formas de escrever o nome, e a segunda escapou da primeira versão
+    // deste script: dentro de template literal o nome aparece SEM o "ti " na
+    // frente — `ti ${feito ? 'ti-circle-check-filled' : s.icon}`. Foi assim que um
+    // ícone inexistente ficou invisível no onboarding, justamente o check de
+    // "passo concluído", com o verificador dizendo que estava tudo certo.
+    const achados = [
+        ...[...txt.matchAll(/\bti ti-([a-z0-9-]+)/g)].map((x) => x[1]),
+        ...[...txt.matchAll(/['"`](ti-[a-z0-9-]+)['"`]/g)].map((x) => x[1].slice(3)),
+    ];
+    for (const nome of achados) {
         if (nome.endsWith('-')) {
             for (const sufixo of ['up', 'down', 'right', 'left']) usados.set(nome + sufixo, cam);
             continue;

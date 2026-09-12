@@ -9,6 +9,7 @@ import FeedbackSection from '../components/FeedbackSection.jsx';
 import SearchSendModal from '../components/SearchSendModal.jsx';
 import Sparkline from '../components/Sparkline.jsx';
 import CommunityBanner from '../components/CommunityBanner.jsx';
+import Onboarding from '../components/Onboarding.jsx';
 import HighlightsSection from '../components/HighlightsSection.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
@@ -70,44 +71,26 @@ export default function Dashboard() {
 
     const m = data?.metrics;
 
-    const kpis = m ? [
-        { label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}`, spark: data.sparkJobs },
+    // Antes de a configuração terminar, mostramos só os números da BASE — os
+    // pessoais são todos zero e uma parede de zeros lê como "não funciona", bem na
+    // hora em que a pessoa está decidindo se vale continuar. Os da base fazem o
+    // trabalho contrário: provam que existe vaga de verdade esperando.
+    const todosKpis = m ? [
+        { base: true, label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}`, spark: data.sparkJobs },
         { label: t('Vagas compatíveis'), icon: 'ti-checklist', value: nf(m.compatible), sub: t('prontas para enviar') },
-        { label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
-        { label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
+        { base: true, label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
+        { base: true, label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
         { label: t('Currículos enviados'), icon: 'ti-send', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} ${t('na semana')}`, spark: data.sparkSent, color: 'var(--color-success)' },
         { label: t('Match acima de 90%'), icon: 'ti-target', value: nf(m.matchesAbove90), sub: `${t('match médio')} ${m.avgMatch}%` },
         { label: t('Tempo economizado'), icon: 'ti-clock-bolt', value: fmtSaved(m.timeSavedMin), sub: t('pela automação') },
         { label: t('Envios restantes hoje'), icon: 'ti-gauge', value: nf(m.remainingToday), sub: `${t('de')} ${nf(m.dailyLimit)} ${t('do plano')}` },
     ] : [];
+    const kpis = configurado ? todosKpis : todosKpis.filter((k) => k.base);
 
-    const steps = [
-        {
-            done: !!profile?.areas?.length, icon: 'ti-briefcase', highlight: true,
-            label: 'Escolha sua área profissional',
-            hint: 'Define quais vagas você recebe (ex.: um QA não recebe vaga de Dev).',
-            to: '/app/perfil?section=work', cta: 'Escolher área',
-        },
-        {
-            done: !!profile?.skills?.length, icon: 'ti-tags',
-            label: 'Adicione suas skills e keywords',
-            hint: 'Calculam o match de cada vaga com o seu perfil.',
-            to: '/app/perfil?section=skills', cta: 'Adicionar skills',
-        },
-        {
-            done: !!profile?.hasCv, icon: 'ti-paperclip',
-            label: 'Envie seu currículo (PDF)',
-            hint: 'É o PDF anexado nas suas candidaturas.',
-            to: '/app/perfil?section=contact', cta: 'Enviar CV',
-        },
-        {
-            done: user?.googleConnected, icon: 'ti-brand-google',
-            label: 'Conecte sua conta Google',
-            hint: 'Os emails são enviados do seu Gmail.',
-            to: '/app/perfil?tab=email', cta: 'Conectar Google',
-        },
-    ];
-    const pending = steps.filter((s) => !s.done);
+    // Configuração incompleta muda o que o painel mostra: ver oito KPIs zerados
+    // antes de entender o produto parece defeito, não painel.
+    const configurado = !!profile?.areas?.length && !!profile?.skills?.length
+        && !!profile?.hasCv && !!user?.googleConnected;
     const q = queue;
     const qActive = q && (q.active || q.pending > 0);
 
@@ -146,31 +129,8 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Onboarding */}
-            {!loading && pending.length > 0 && (
-                <div className="card fade-in" style={{ marginBottom: 22 }}>
-                    <div className="section-title">{t('Conclua sua configuração')} ({steps.length - pending.length}/{steps.length})</div>
-                    <p className="muted" style={{ fontSize: 12.5, marginTop: -6, marginBottom: 14 }}>
-                        {t('Quanto mais completo o perfil, mais certeiras são as vagas que você recebe.')}
-                    </p>
-                    <div className="job-list">
-                        {steps.map((s, i) => (
-                            <div key={i} className="row" style={{ alignItems: 'flex-start', gap: 12, padding: '10px 0', borderTop: i ? '1px solid var(--color-border-light)' : 'none' }}>
-                                <i className={`ti ${s.done ? 'ti-circle-check-filled' : s.icon}`}
-                                    style={{ fontSize: 22, marginTop: 1, flexShrink: 0, color: s.done ? 'var(--color-success)' : (s.highlight ? 'var(--color-accent)' : 'var(--color-text-tertiary)') }} />
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div className="row" style={{ alignItems: 'center', gap: 8 }}>
-                                        <span style={{ fontWeight: 600, textDecoration: s.done ? 'line-through' : 'none', color: s.done ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{t(s.label)}</span>
-                                        {s.highlight && !s.done && <span className="badge ok">{t('recomendado')}</span>}
-                                    </div>
-                                    {!s.done && <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{t(s.hint)}</div>}
-                                </div>
-                                {!s.done && <Link to={s.to} className="btn sm" style={{ flexShrink: 0 }}>{t(s.cta)}</Link>}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {/* Primeiro acesso: o que é isto e o que fazer agora */}
+            {!loading && <Onboarding profile={profile} user={user} />}
 
             {/* Comunidade no WhatsApp (dispensável) */}
             <CommunityBanner style={{ marginBottom: 22 }} />

@@ -92,6 +92,25 @@ const EN = {
         'Picked today from the {n} remote jobs in Brazil in our database. The list changes daily.',
     'remoto': 'remote',
     'detalhes': 'details',
+
+    // Onboarding do primeiro acesso
+    'Como o newdevjobs funciona': 'How newdevjobs works',
+    'Todo dia a gente garimpa vagas que recrutadores publicam soltas — muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.':
+        'Every day we dig up jobs recruiters post loosely — many never reach any job board. You set it up once, and the system sends your resume to the matching ones, from your own Gmail.',
+    '{n} passo(s) · ~{m} min': '{n} step(s) · ~{m} min',
+    'Diga o que você faz': 'Tell us what you do',
+    'Sua área e suas skills decidem quais vagas chegam até você — e quais nem aparecem.':
+        'Your field and skills decide which jobs reach you — and which never show up.',
+    'Preencher perfil': 'Fill in profile',
+    'Envie seu currículo em PDF': 'Upload your resume (PDF)',
+    'É o arquivo que vai anexado em cada candidatura.': 'This is the file attached to every application.',
+    'Enviar currículo': 'Upload resume',
+    'Conecte seu Gmail': 'Connect your Gmail',
+    'Os emails saem da SUA conta, com o seu nome no remetente. O recrutador responde direto para você.':
+        'Emails go out from YOUR account, with your name as sender. The recruiter replies straight to you.',
+    'Conectar Gmail': 'Connect Gmail',
+    'Não lemos sua caixa de entrada. A permissão que pedimos é só a de ENVIAR, e você pode desconectar quando quiser.':
+        'We do not read your inbox. The only permission we ask for is SEND, and you can disconnect whenever you want.',
     'Configuração': 'Setup',
     'Apagar meu perfil': 'Delete my profile',
     'opcional': 'optional',

@@ -77,6 +77,12 @@ regra existente, não acrescente uma nova que a contradiga.
 - **O post NUNCA leva email de contato.** Mesmo invariante do `/jobs`, e aqui pesa mais: o texto vai para rede social pública. Coberto por teste.
 - Filtros de qualidade que só valem aqui (no feed essas vagas continuam passando): título vago (`Vaga`, `Oportunidade`), título que lista vários cargos, empresa que na verdade é **nome de pessoa** (a extração cai no autor do post) ou uma descrição solta, e **nível lido da descrição** (`detectLevel` erra quando o anúncio cita outra senioridade — no post o nível vem só do título).
 
+## Onboarding (primeiro acesso)
+- **O funil real diz onde perder gente**, não o palpite: em 13 contas, 8 salvaram perfil, 5 preencheram skills, 3 enviaram — e **7 pararam no mesmo buraco** (sem skills, sem currículo, sem Gmail). Ou seja: a landing converte, o app é que perde. Meça antes de redesenhar.
+- `Onboarding.jsx` **diz o que o produto faz antes de pedir qualquer coisa**. O checklist antigo abria com "Conclua sua configuração", que só faz sentido para quem já entendeu que o sistema manda email por você.
+- **Três passos, não quatro**: área e skills são a mesma tela; pedir duas vezes faz a lista parecer maior do que é. E **só o próximo passo tem botão em destaque** — lista toda clicável divide a atenção de quem já não sabe por onde começar.
+- **Antes da configuração terminar, o painel só mostra os KPIs da BASE** (vagas coletadas, recrutadores, empresas). Os pessoais são zero, e uma parede de zeros lê como "não funciona" bem na hora de decidir se vale continuar. Cuidado ao classificar: "Vagas compatíveis" PARECE métrica da base mas depende do perfil — dá zero justamente para quem não configurou.
+
 ## Prova real (ponta a ponta)
 - **O harness falha alto:** há `catch` explícito (o `finally` chamava `process.exit()` antes de a exceção subir, e um crash virava "todas passaram" com metade das verificações) e um piso mínimo — rodada curta é falha.
 - `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **247 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.
@@ -106,7 +112,7 @@ regra existente, não acrescente uma nova que a contradiga.
 - Restaurar por cima de um perfil ativo é recusado (409): trocaria um estrago por outro.
 
 ## Frontend — armadilhas
-- **`npm run check:icons` roda no CI.** Ícone inexistente não dá erro: a regra CSS não casa, o glifo não aparece, sobra espaço vazio — e vários botões do app são só ícone, então viram quadrados invisíveis e a função parece quebrada. Já aconteceu com `ti-star-filled` (as estrelas de avaliação inteiras), `ti-brand-google-filled` e `ti-discount-check-filled`. O script também confere que a URL da fonte responde **200**.
+- **`npm run check:icons` roda no CI** e enxerga as DUAS formas de escrever o nome: `ti ti-nome` e dentro de template literal (`ti ${feito ? 'ti-circle-check' : s.icon}`). A segunda escapou da primeira versão do script e deixou um `ti-circle-check-filled` invisível no onboarding — o verificador dizia que estava tudo certo. Ícone inexistente não dá erro: a regra CSS não casa, o glifo não aparece, sobra espaço vazio — e vários botões do app são só ícone, então viram quadrados invisíveis e a função parece quebrada. Já aconteceu com `ti-star-filled` (as estrelas de avaliação inteiras), `ti-brand-google-filled` e `ti-discount-check-filled`. O script também confere que a URL da fonte responde **200**.
 - **A fonte de ícones (Tabler) vem de CDN com versão FIXA e o caminho tem `dist/`.** `@latest` deixa o icon set mudar sozinho entre deploys; e uma URL errada devolve 404 e **todos os ícones somem de uma vez**, sem erro em log nenhum — vários botões do app são só ícone (o de relatar bug, por exemplo), então eles viram quadrados invisíveis e a função parece quebrada. Ao mexer nessa URL, **abra-a e confira o HTTP 200** antes de publicar.
 - Botão importante não deve depender só do ícone: os de negrito/itálico são **B** e **I** em texto justamente por isso.
 

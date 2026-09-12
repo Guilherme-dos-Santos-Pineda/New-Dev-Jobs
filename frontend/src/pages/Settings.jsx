@@ -250,7 +250,7 @@ export default function EmailSettings() {
                     Personalize o assunto e o corpo. Use as variáveis (clique para inserir).
                 </p>
 
-                <div className="grid-2" style={{ alignItems: 'start' }}>
+                <div className="grid-2 tpl-grid" style={{ alignItems: 'start' }}>
                     {/* Coluna editor */}
                     <div>
                         <div className="field">
@@ -266,32 +266,11 @@ export default function EmailSettings() {
                                 <button type="button" className="fmt-btn" title="Negrito (**texto**)" onClick={() => wrapFormat('**')}><i className="ti ti-bold" /></button>
                                 <button type="button" className="fmt-btn" title="Itálico (*texto*)" onClick={() => wrapFormat('*')}><i className="ti ti-italic" /></button>
                             </div>
-                            <textarea ref={bodyRef} className="input mono" rows={12} value={body}
+                            <textarea ref={bodyRef} className="input mono" rows={14} value={body}
                                 onFocus={() => (activeField.current = 'body')}
                                 onChange={(e) => setBody(e.target.value)} style={{ resize: 'vertical', lineHeight: 1.6 }} />
                         </div>
 
-                        <div className="field">
-                            <label>Variáveis disponíveis</label>
-                            <div className="chips">
-                                {variables.map((v) => (
-                                    <span key={v.key} className="chip" title={v.desc} style={{ cursor: 'pointer' }}
-                                        onClick={() => insertVar(v.label)}>
-                                        <i className="ti ti-plus" style={{ fontSize: 12 }} />{v.label}
-                                    </span>
-                                ))}
-                            </div>
-                            <div className="hint">
-                                {variables.map((v) => <div key={v.key}><code>{v.label}</code> — {v.desc}</div>)}
-                            </div>
-                        </div>
-
-                        <div className="row">
-                            <button className="btn primary" disabled={saving} onClick={save}>
-                                {saving ? 'Salvando…' : (<><i className="ti ti-device-floppy" /> Salvar modelo</>)}
-                            </button>
-                            <button className="btn ghost" onClick={resetTpl}><i className="ti ti-restore" /> Restaurar padrão</button>
-                        </div>
                     </div>
 
                     {/* Coluna preview */}
@@ -320,6 +299,41 @@ export default function EmailSettings() {
                         </div>
                         <div className="hint">Exemplo com uma vaga fictícia e seus dados de contato.</div>
                     </div>
+                </div>
+
+                    {/* Cada variável é UM item que já se explica. Antes eram os 8
+                        chips e, logo abaixo, os MESMOS 8 repetidos como texto
+                        corrido — a descrição ficava longe do botão que ela
+                        descrevia, e o bloco virava uma parede de letra miúda no
+                        meio do editor. Agora a explicação está dentro do próprio
+                        alvo de clique. */}
+                    <div className="field tpl-vars">
+                        <label>
+                            Variáveis disponíveis
+                            <span className="muted" style={{ fontWeight: 400, fontSize: 11, marginLeft: 6 }}>
+                                (clique para inserir onde o cursor está)
+                            </span>
+                        </label>
+                        <div className="var-grid">
+                            {variables.map((v) => (
+                                <button type="button" key={v.key} className="var-item" onClick={() => insertVar(v.label)}>
+                                    <code>{v.label}</code>
+                                    <span>{v.desc}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                {/* As ações ficam FORA das duas colunas, atravessando o cartão. Dentro
+                    da coluna do editor elas apareciam na metade esquerda, na altura do
+                    meio da pré-visualização — parecia botão de uma subseção, não o
+                    "salvar" do modelo inteiro. */}
+                <div className="tpl-acoes">
+                    <button className="btn ghost" onClick={resetTpl}><i className="ti ti-restore" /> Restaurar padrão</button>
+                    <div className="spacer" />
+                    <button className="btn primary" disabled={saving} onClick={save}>
+                        {saving ? 'Salvando…' : (<><i className="ti ti-device-floppy" /> Salvar modelo</>)}
+                    </button>
                 </div>
             </div>
         </>

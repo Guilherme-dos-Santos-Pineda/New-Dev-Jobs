@@ -962,3 +962,47 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     .save-bar .acoes { width: 100%; margin-left: 0; }
     .save-bar .acoes .btn { flex: 1; justify-content: center; }
 }
+
+/* ============================================
+   Editor do modelo de email
+   ============================================ */
+
+/* Variáveis do template. Cada item é o botão E a explicação dele. Antes eram 8
+   chips e, logo abaixo, os MESMOS 8 repetidos como texto corrido em letra
+   miúda: a descrição ficava longe do alvo de clique e o bloco virava uma parede
+   no meio do editor — a parte que mais "polui" a tela. */
+.var-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.var-item {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    padding: 8px 10px; text-align: left; cursor: pointer; font: inherit;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light); border-radius: 10px;
+    transition: var(--transition);
+}
+.var-item:hover { border-color: var(--color-accent); background: var(--color-accent-light); }
+.var-item code { font-size: 12px; color: var(--color-accent); }
+/* text-tertiary sobre bg-secondary dá 2,37:1 — metade do mínimo de 4,5:1 da
+   WCAG AA. Texto de 11,5px nesse contraste é exatamente o "poluído e ilegível"
+   que esta tela tinha; secondary dá 6,34:1. */
+.var-item span { font-size: 12px; color: var(--color-text-secondary); line-height: 1.4; }
+
+/* Editor e pré-visualização precisam de mais respiro entre si que o grid-2
+   padrão (16px): são dois blocos densos lado a lado, não dois campos. */
+.tpl-grid { gap: 28px; }
+
+/* As variáveis valem para o assunto E para o corpo, então vivem abaixo das duas
+   colunas, na largura toda do cartão. Dentro da coluna do editor (~380px) o grid
+   caía para UMA coluna e os 8 itens viravam uma pilha ainda mais alta que a
+   legenda que eles substituíram. */
+.tpl-vars { margin-top: 6px; padding-top: 18px; border-top: 1px solid var(--color-border-light); }
+
+/* Ações do modelo: atravessam o cartão, abaixo das duas colunas. */
+.tpl-acoes {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-top: 22px; padding-top: 18px;
+    border-top: 1px solid var(--color-border-light);
+}
+@media (max-width: 560px) {
+    .tpl-acoes .btn { flex: 1; justify-content: center; }
+    .tpl-acoes .spacer { display: none; }
+}

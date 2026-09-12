@@ -54,7 +54,7 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
         if (editing) return;
         setMessage(mine?.message || '');
         setRating(mine?.rating || 0);
-    }, [mine?.id, mine?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [mine?.id, mine?.updatedAt]);  
 
     const load = refresh;
 

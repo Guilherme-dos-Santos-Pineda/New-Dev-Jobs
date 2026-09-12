@@ -24,7 +24,7 @@ export default function AdminProfileBackups() {
         try { setBackups((await api.adminProfileBackups()).backups); }
         catch (e) { toast.show(e.message, 'error'); setBackups([]); }
     }
-    useEffect(() => { carregar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { carregar(); }, []);  
 
     async function ver(id) {
         if (aberto === id) { setAberto(null); return; }

@@ -66,10 +66,15 @@ export default function Dashboard() {
                 if (status.active || status.pending > 0) startPolling();
             } catch { /* ignore */ }
         })();
-        return stopPolling; // eslint-disable-next-line react-hooks/exhaustive-deps
+        return stopPolling;  
     }, []);
 
     const m = data?.metrics;
+
+    // Configuração incompleta muda o que o painel mostra: ver oito KPIs zerados
+    // antes de entender o produto parece defeito, não painel.
+    const configurado = !!profile?.areas?.length && !!profile?.skills?.length
+        && !!profile?.hasCv && !!user?.googleConnected;
 
     // Antes de a configuração terminar, mostramos só os números da BASE — os
     // pessoais são todos zero e uma parede de zeros lê como "não funciona", bem na
@@ -87,10 +92,6 @@ export default function Dashboard() {
     ] : [];
     const kpis = configurado ? todosKpis : todosKpis.filter((k) => k.base);
 
-    // Configuração incompleta muda o que o painel mostra: ver oito KPIs zerados
-    // antes de entender o produto parece defeito, não painel.
-    const configurado = !!profile?.areas?.length && !!profile?.skills?.length
-        && !!profile?.hasCv && !!user?.googleConnected;
     const q = queue;
     const qActive = q && (q.active || q.pending > 0);
 

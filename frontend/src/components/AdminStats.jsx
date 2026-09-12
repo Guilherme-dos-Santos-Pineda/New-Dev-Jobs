@@ -17,7 +17,7 @@ export default function AdminStats() {
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load(); }, []);  
 
     if (loading) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;
     if (!data) return null;

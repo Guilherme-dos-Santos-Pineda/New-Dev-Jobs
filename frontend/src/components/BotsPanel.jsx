@@ -3,6 +3,12 @@ import { api } from '../api.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtDate } from '../utils.js';
 
+// Fora do componente de proposito: era declarado no corpo, DEPOIS do early return
+// de `loading`. O callback do polling fecha sobre o `fmtStats` do render em que
+// nasceu, e num render que voltou cedo ele nunca chegou a existir. Robo terminando
+// enquanto o painel carrega = ReferenceError.
+const fmtStats = (s) => (s && Object.keys(s).length ? Object.entries(s).map(([k, v]) => `${k}: ${v}`).join(' · ') : '');
+
 const STATUS_BADGE = { discovered: 'warn', approved: 'ok', rejected: 'danger' };
 const RUN_BADGE = { queued: 'warn', running: 'warn', done: 'ok', failed: 'danger' };
 
@@ -90,7 +96,7 @@ export default function BotsPanel() {
             } catch { /* ignore */ }
         }, 4000);
         return () => clearInterval(iv);
-    }, [runs, watchUntil]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [runs, watchUntil]);  
 
     // Carrega recrutadores monitoráveis (com LinkedIn) para o seletor do modo 'selected'.
     const loadPicker = useCallback(async (q, status) => {
@@ -104,7 +110,7 @@ export default function BotsPanel() {
         finally { setPickerLoading(false); }
     }, [toast]);
 
-    useEffect(() => { if (monSource === 'selected') loadPicker(pickerQ, pickerStatus); }, [monSource]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (monSource === 'selected') loadPicker(pickerQ, pickerStatus); }, [monSource]);  
 
     async function setStatus(r, status) {
         try {
@@ -214,7 +220,6 @@ export default function BotsPanel() {
 
     if (loading) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;
 
-    const fmtStats = (s) => (s && Object.keys(s).length ? Object.entries(s).map(([k, v]) => `${k}: ${v}`).join(' · ') : '');
 
     return (
         <>

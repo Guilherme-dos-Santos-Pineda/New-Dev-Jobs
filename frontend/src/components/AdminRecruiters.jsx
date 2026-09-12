@@ -35,7 +35,7 @@ export default function AdminRecruiters() {
         } catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load(1); }, []);  
 
     const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
     const apply = () => load(1);

@@ -24,7 +24,7 @@ export default function AdminUsers() {
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load('', 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load('', 1); }, []);  
 
     async function openDetail(u) {
         setOpen(u); setDetail(null);

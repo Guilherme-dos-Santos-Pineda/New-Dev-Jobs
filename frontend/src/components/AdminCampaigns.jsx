@@ -74,7 +74,7 @@ export default function AdminCampaigns() {
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load(); }, []);  
 
     const emailsArr = form.emails.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
 

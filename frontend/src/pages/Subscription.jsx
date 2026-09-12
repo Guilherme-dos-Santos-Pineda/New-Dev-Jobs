@@ -64,7 +64,7 @@ export default function Subscription() {
         if (c === 'success') { toast.show('Pagamento concluído! Atualizando seu plano…'); refreshUser(); refreshHist(); refreshSub(); }
         else if (c === 'cancel') toast.show('Checkout cancelado.', 'error');
         params.delete('checkout'); setParams(params, { replace: true });
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);  
 
     async function upgrade(planId) {
         setBusy(planId);

@@ -24,7 +24,7 @@ export default function AdminRawContent() {
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load('', 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load('', 1); }, []);  
 
     function pick(status) { setFilter(status); load(status, 1); }
 

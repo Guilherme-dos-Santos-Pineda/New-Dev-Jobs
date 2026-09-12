@@ -20,7 +20,7 @@ export default function AdminJobs() {
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(f, 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load(f, 1); }, []);  
 
     const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
     const jobs = data.jobs || [];

@@ -59,7 +59,7 @@ export default function EmailSettings() {
             params.delete('google');
             setParams(params, { replace: true });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []);
 
     useEffect(() => {

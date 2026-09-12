@@ -19,7 +19,8 @@
     "check:feed": "node backend/scripts/check-feed-parity.mjs",
     "loadtest": "node backend/scripts/load-test.mjs",
     "prova": "node backend/scripts/prova-real.mjs",
-    "check:icons": "node backend/scripts/check-icons.mjs"
+    "check:icons": "node backend/scripts/check-icons.mjs",
+    "lint": "npm run lint --prefix frontend"
   },
   "keywords": [],
   "type": "module",

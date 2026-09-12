@@ -39,7 +39,7 @@ export default function Admin() {
             setLoading(false);
         }
     }
-    useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { load(); }, []);  
 
     if (!user?.isAdmin) return <Navigate to="/app" replace />;
 

@@ -64,7 +64,7 @@ export function useCachedResource(key, fetcher, { enabled = true } = {}) {
             setLoading(false);
         }
         // fetcher é assumido estável por key (não entra nas deps de propósito)
-    }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [key]);  
 
     useEffect(() => {
         if (!enabled) return;
@@ -72,7 +72,7 @@ export function useCachedResource(key, fetcher, { enabled = true } = {}) {
         setData(cache.get(key));
         setLoading(!cached);
         load(cached); // se já tinha cache, revalida em silêncio
-    }, [key, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [key, enabled]);  
 
     return { data, loading, error, refresh: () => load(false), setData };
 }

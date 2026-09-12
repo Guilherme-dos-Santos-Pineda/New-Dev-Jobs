@@ -76,7 +76,7 @@ export default function Profile() {
             applyProfile(data.profile);
             appliedRef.current = true;
         }
-    }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [data]);  
 
     const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 

@@ -9,7 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/tabler-icons.min.css" />
+    <!-- Versao FIXA de proposito: em @latest o icon set muda sozinho entre deploys.
+         O caminho tem `dist/` — sem ele o CDN devolve 404 e TODOS os icones somem
+         da aplicacao de uma vez, sem erro visivel em lugar nenhum. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css" />
     <script>
         // aplica tema antes do render para evitar flash
         (function () {

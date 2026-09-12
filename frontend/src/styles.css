@@ -1053,3 +1053,15 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     .destaque-linha > .btn { margin-left: auto; }
     .destaque-detalhe { margin-left: 0; }
 }
+
+/* Atalho para o grupo, dentro do modal de bug. O relato escrito entra numa fila
+   assíncrona; quem acabou de esbarrar num problema muitas vezes quer resposta
+   agora, e no grupo tem gente para responder. */
+.bug-grupo {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin-top: 14px; padding: 10px 12px;
+    background: var(--color-success-bg); border-radius: 10px;
+    font-size: 12.5px; color: var(--color-text-secondary);
+}
+.bug-grupo i { color: var(--color-success); font-size: 16px; flex-shrink: 0; }
+.bug-grupo a { color: var(--color-success); font-weight: 600; }

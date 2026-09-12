@@ -191,6 +191,9 @@ try {
     if (checa(hl.status === 200, '/highlights responde', `HTTP ${hl.status}`)) {
         const d = hl.data || {};
         checa(Array.isArray(d.vagas) && d.vagas.length > 0, 'tem vagas em destaque', `${d.vagas?.length} vagas`);
+        // A lista tem o mesmo tamanho do teto diario: mostrar mais do que a pessoa
+        // pode mandar so a obriga a descartar algumas sem criterio.
+        checa(d.vagas.length <= 7, 'a lista do dia traz no maximo 7 vagas', `${d.vagas.length} vagas`);
         // O invariante que mais importa aqui, conferido contra os DADOS REAIS e
         // nao contra um fixture: o texto vai para rede social publica.
         checa(!(d.vagas || []).some((v) => v.email !== undefined), 'SEGURANCA: /highlights nao devolve email');

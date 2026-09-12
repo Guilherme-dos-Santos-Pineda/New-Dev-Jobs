@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useT } from '../lib/i18n.jsx';
+import { GRUPO_WHATSAPP as GROUP_URL } from '../lib/comunidade.js';
 
 // Banner do grupo no WhatsApp. Vivia duplicado em Dashboard.jsx e Feedback.jsx;
 // centralizado aqui para o "dispensar" valer nos dois lugares de uma vez.
@@ -7,7 +8,7 @@ import { useT } from '../lib/i18n.jsx';
 // O card NÃO é mais um <a> envolvendo tudo: botão dentro de link é HTML inválido
 // e o clique no X acabaria abrindo o WhatsApp. Agora o link cobre só o conteúdo
 // e o X é irmão dele.
-const GROUP_URL = 'https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG';
+
 const KEY = 'commBanner';   // 'dismissed' = usuário fechou
 
 export default function CommunityBanner({ variant = 'arrow', style }) {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api.js';
 import { useT } from '../lib/i18n.jsx';
+import { GRUPO_WHATSAPP } from '../lib/comunidade.js';
 import { ultimoErro } from '../lib/errorLog.js';
 
 // Canal de relato de bug. Envia junto o CONTEXTO capturado do navegador — rota,
@@ -61,7 +62,15 @@ export default function BugReportModal({ onClose }) {
                         <p className="muted" style={{ fontSize: 14, marginBottom: 20 }}>
                             {t('Obrigado. Vamos investigar e você pode acompanhar o status em Feedback.')}
                         </p>
-                        <button className="btn primary" onClick={onClose}>{t('Fechar')}</button>
+                        {/* O relato entra numa fila que o admin lê quando lê. Quem acabou
+                            de esbarrar num problema quer resposta agora — e no grupo tem
+                            gente (inclusive o dono) para responder na hora. */}
+                        <div className="row" style={{ justifyContent: 'center', gap: 10 }}>
+                            <button className="btn ghost" onClick={onClose}>{t('Fechar')}</button>
+                            <a className="btn primary" href={GRUPO_WHATSAPP} target="_blank" rel="noopener">
+                                <i className="ti ti-brand-whatsapp" /> {t('Falar no grupo')}
+                            </a>
+                        </div>
                     </div>
                 ) : (
                     <form onSubmit={enviar}>
@@ -102,6 +111,14 @@ ${t('Navegador')}: ${contexto.userAgent.slice(0, 90)}
 ${t('Último erro')}: ${contexto.appError || t('nenhum')}`}
                             </pre>
                         )}
+
+                        <div className="bug-grupo">
+                            <i className="ti ti-brand-whatsapp" />
+                            <span>
+                                {t('Prefere falar com alguém?')}{' '}
+                                <a href={GRUPO_WHATSAPP} target="_blank" rel="noopener">{t('Entre no grupo do WhatsApp')}</a>.
+                            </span>
+                        </div>
 
                         </div>
 

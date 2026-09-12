@@ -15,6 +15,9 @@ import { useT } from '../lib/i18n.jsx';
 // tela diz isso antes e depois de enviar, porque gastar a cota do dia sem saber é
 // o tipo de surpresa que faz a pessoa desconfiar do resto.
 //
+// São 7 vagas — o mesmo teto diário de envio do plano free. Mostrar mais do que
+// a pessoa pode mandar só a obriga a descartar algumas sem critério.
+//
 // A lista muda uma vez por dia (não a cada recarga): quem olhou de manhã e
 // voltou à tarde precisa ver a mesma coisa.
 //

@@ -14,7 +14,10 @@ import sql from '../lib/sql.js';
 // coisa que a plataforma tem de próprio, além de expor contato de terceiro sem
 // permissão nenhuma.
 
-const QUANTAS = 10;          // no post: o LinkedIn corta o texto longo mesmo
+// Quantas vagas a lista do dia traz. É o MESMO número do teto diário de envio do
+// plano free (7): mostrar 10 e deixar mandar 7 obriga a pessoa a escolher três
+// para descartar sem critério nenhum — a lista inteira é o que ela pode enviar.
+const QUANTAS = 7;
 const TAMANHO_DA_URNA = 120; // de onde as QUANTAS do dia são sorteadas
 
 // Título que não diz nada não pode ir para um post público: "Vaga",

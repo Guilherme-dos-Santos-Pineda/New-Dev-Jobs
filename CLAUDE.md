@@ -72,6 +72,7 @@ regra existente, não acrescente uma nova que a contradiga.
 - **Candidatura repetida é impossível por construção**: índice `UNIQUE (UserId, JobId)` em `Applications`, mais a checagem em `applyToJob`. Não é "o código evita" — o banco recusa.
 - **`semContato()` tira email, telefone e link da descrição** antes de mostrá-la nos detalhes. A descrição é o post do recrutador e é nela que mora o email de contato: cru, transformaria a plataforma numa lista de contatos. Ao mexer no regex, valide contra as descrições REAIS — o 9 do celular separado (`(11) 9 4111-4322`, `(11) 9.6402-5258`) passou batido na primeira versão.
 - A consulta exige `Email like '%@%.%'`: a extração às vezes grava lixo (a palavra "Gmail") e essa vaga gastaria um lugar na lista do dia para falhar no envio.
+- **A lista traz 7 vagas** — o mesmo teto diário de envio do free. Mostrar mais do que a pessoa pode mandar só a obriga a descartar algumas sem critério.
 - **A lista é igual para todos e muda uma vez por dia** (janela determinística por data), com cache de processo — 1000 usuários abrindo o dashboard custam **uma** consulta por dia, não mil. Sorteio por request faria quem copiou de manhã achar que copiou errado à tarde.
 - **O post NUNCA leva email de contato.** Mesmo invariante do `/jobs`, e aqui pesa mais: o texto vai para rede social pública. Coberto por teste.
 - Filtros de qualidade que só valem aqui (no feed essas vagas continuam passando): título vago (`Vaga`, `Oportunidade`), título que lista vários cargos, empresa que na verdade é **nome de pessoa** (a extração cai no autor do post) ou uma descrição solta, e **nível lido da descrição** (`detectLevel` erra quando o anúncio cita outra senioridade — no post o nível vem só do título).
@@ -95,6 +96,10 @@ regra existente, não acrescente uma nova que a contradiga.
 - Apify aceita **no máx. 10 `authorUrls` por execução** → fatiar em lotes (já feito em `runMonitoring`).
 - Vagas filtradas por **área profissional** (`detectArea`) além de skills/senioridade. Auto-send só dispara em match **≥ 50%**.
 - Gerador de robôs: `npm run seed:robots` (simula por padrão; `--commit` cria; queries naturais de posts reais). Cuidado: cada robô gasta crédito Apify.
+
+## Frontend — armadilhas
+- **A fonte de ícones (Tabler) vem de CDN com versão FIXA e o caminho tem `dist/`.** `@latest` deixa o icon set mudar sozinho entre deploys; e uma URL errada devolve 404 e **todos os ícones somem de uma vez**, sem erro em log nenhum — vários botões do app são só ícone (o de relatar bug, por exemplo), então eles viram quadrados invisíveis e a função parece quebrada. Ao mexer nessa URL, **abra-a e confira o HTTP 200** antes de publicar.
+- Botão importante não deve depender só do ícone: os de negrito/itálico são **B** e **I** em texto justamente por isso.
 
 ## Segurança (invariantes)
 - Admin = allowlist `ADMIN_EMAILS` **ou** `Users.Role='admin'`. **Sem fallback aberto.**

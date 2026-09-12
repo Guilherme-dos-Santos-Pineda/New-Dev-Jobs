@@ -79,7 +79,7 @@ regra existente, não acrescente uma nova que a contradiga.
 
 ## Prova real (ponta a ponta)
 - **O harness falha alto:** há `catch` explícito (o `finally` chamava `process.exit()` antes de a exceção subir, e um crash virava "todas passaram" com metade das verificações) e um piso mínimo — rodada curta é falha.
-- `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **249 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.
+- `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **247 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.
 - **Não dispara email.** As contas de teste não têm Google conectado, então o envio é barrado pelo próprio sistema — e é isso que o teste confere. Mandar email de verdade para recrutador real a partir de conta falsa não é teste, é spam.
 - Cada passo **afirma o resultado esperado**, nunca só o status HTTP: a maioria dos bugs daqui devolve **200 com o conteúdo errado** (perfil salvo pela metade, filtro ignorado, email de contato vazando). Foi assim que apareceram o `suporte` descartado no `PUT /profile` e o token que continuava válido depois do logout.
 - Rodar antes de cada mudança de preço/plano e depois de mexer em perfil, feed, auth ou cobrança.

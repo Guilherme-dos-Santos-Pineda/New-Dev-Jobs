@@ -145,7 +145,7 @@ export default function EmailSettings() {
             } else {
                 await api.connectGoogle(); // fallback mock
                 await refreshUser();
-                toast.show('Conta conectada (mock — Google OAuth não configurado)');
+                toast.show('Conta conectada (mock: Google OAuth não configurado)');
             }
         } catch (e) {
             toast.show(e.message, 'error');
@@ -181,7 +181,7 @@ export default function EmailSettings() {
                 {!googleConfigured && (
                     <div className="notice warn">
                         <i className="ti ti-alert-triangle" />
-                        <div>Google OAuth ainda não configurado no servidor — os emails são <b>simulados</b>.
+                        <div>Google OAuth ainda não configurado no servidor, então os emails são <b>simulados</b>.
                             Veja <a href="https://console.cloud.google.com" target="_blank" rel="noopener">o guia</a> em <code>backend/SETUP_GOOGLE.md</code>.</div>
                     </div>
                 )}
@@ -263,8 +263,8 @@ export default function EmailSettings() {
                             <div className="row" style={{ alignItems: 'center', marginBottom: 7 }}>
                                 <label style={{ margin: 0 }}>Corpo do email</label>
                                 <div className="spacer" />
-                                <button type="button" className="fmt-btn b" title="Negrito — envolve a seleção com **" onClick={() => wrapFormat('**')}>B</button>
-                                <button type="button" className="fmt-btn i" title="Itálico — envolve a seleção com *" onClick={() => wrapFormat('*')}>I</button>
+                                <button type="button" className="fmt-btn b" title="Negrito: envolve a seleção com **" onClick={() => wrapFormat('**')}>B</button>
+                                <button type="button" className="fmt-btn i" title="Itálico: envolve a seleção com *" onClick={() => wrapFormat('*')}>I</button>
                             </div>
                             <textarea ref={bodyRef} className="input mono" rows={14} value={body}
                                 onFocus={() => (activeField.current = 'body')}
@@ -293,11 +293,11 @@ export default function EmailSettings() {
                                     <div className="avatar">{(preview?.fromName || preview?.from || '?').slice(0, 1).toUpperCase()}</div>
                                     <div>
                                         <div className="nm">{preview?.fromName || 'Você'}</div>
-                                        <div className="em">{preview?.from || '—'}</div>
+                                        <div className="em">{preview?.from || 'seu email'}</div>
                                     </div>
                                 </div>
-                                <div className="mailprev-to">para <b>{preview?.to || '—'}</b></div>
-                                <div className="mailprev-subj">{preview?.subject || '—'}</div>
+                                <div className="mailprev-to">para <b>{preview?.to || 'o recrutador'}</b></div>
+                                <div className="mailprev-subj">{preview?.subject || 'sem assunto'}</div>
                             </div>
                             <div className="mailprev-body" dangerouslySetInnerHTML={{ __html: preview?.html || '' }} />
                             {preview?.attachment && (

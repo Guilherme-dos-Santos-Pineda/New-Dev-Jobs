@@ -4,7 +4,7 @@ import { useToast } from './Toast.jsx';
 import Sparkline from './Sparkline.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
-const usd = (n) => (n == null ? '—' : `US$${Number(n).toFixed(2)}`);
+const usd = (n) => (n == null ? '' : `US$${Number(n).toFixed(2)}`);
 
 // Relatório de custo × coleta: gasto real da Apify cruzado com as vagas coletadas,
 // para medir "quantas vagas por dólar" e projetar até onde o crédito grátis leva.
@@ -34,7 +34,7 @@ export default function AdminReport() {
         { l: 'Na semana', v: nf(jobs.week), i: 'ti-calendar-week' },
         { l: 'Coletadas hoje', v: nf(jobs.today), i: 'ti-clock' },
         { l: 'Com email (candidatável)', v: nf(jobs.with_email), i: 'ti-mail' },
-        { l: 'Custo por vaga', v: eff.costPerJob ? usd(eff.costPerJob) : '—', i: 'ti-coin', sub: 'gasto Apify ÷ vagas do mês' },
+        { l: 'Custo por vaga', v: eff.costPerJob ? usd(eff.costPerJob) : '', i: 'ti-coin', sub: 'gasto Apify ÷ vagas do mês' },
     ];
 
     return (
@@ -89,14 +89,14 @@ export default function AdminReport() {
                 <div className="card" style={{ flex: 1, minWidth: 280 }}>
                     <div className="section-title"><i className="ti ti-target-arrow" /> Eficiência</div>
                     <div className="stat"><div className="stat-l">Custo por vaga coletada</div>
-                        <div className="stat-n" style={{ fontSize: 26 }}>{eff.costPerJob ? usd(eff.costPerJob) : '—'}</div></div>
+                        <div className="stat-n" style={{ fontSize: 26 }}>{eff.costPerJob ? usd(eff.costPerJob) : ''}</div></div>
                     <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
                         {eff.jobsPerDollar ? <>≈ <b>{nf(eff.jobsPerDollar)}</b> vagas por US$1</> : 'sem dados suficientes ainda'}
                     </div>
                     <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--color-border-light)' }}>
                         <div className="stat-l">Projeção até o free tier acabar</div>
                         <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: 'var(--color-accent)' }}>
-                            {eff.projectedLeft != null ? `+${nf(eff.projectedLeft)} vagas` : '—'}
+                            {eff.projectedLeft != null ? `+${nf(eff.projectedLeft)} vagas` : ''}
                         </div>
                         <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>estimativa com o custo/vaga atual e o crédito restante</div>
                     </div>
@@ -139,7 +139,7 @@ export default function AdminReport() {
                     ))}
                 </div>
                 <div className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
-                    Funil conforme registrado nos runs (parcial — runs sem crédito/falhos não gravam stats). A contagem confiável de vagas vem da tabela Jobs (cards acima). Custo/vaga = gasto real Apify ÷ vagas do mês.
+                    Funil conforme registrado nos runs (parcial: runs sem crédito ou falhos não gravam stats). A contagem confiável de vagas vem da tabela Jobs (cards acima). Custo/vaga = gasto real Apify ÷ vagas do mês.
                 </div>
             </div>
         </>

@@ -111,6 +111,12 @@ regra existente, não acrescente uma nova que a contradiga.
 - O arquivo do CV **não** é removido do Storage: sem ele a restauração devolveria um perfil sem PDF, ou seja, não restauraria nada.
 - Restaurar por cima de um perfil ativo é recusado (409): trocaria um estrago por outro.
 
+## Escrita (texto que o usuário lê)
+- **Nada de travessão (—).** É a marca registrada de texto gerado por IA e foi o que o dono apontou. Quebre a frase em duas, use vírgula, ou dois-pontos em lista de definição (`<strong>Termo:</strong> descrição`).
+- **Não é substituir por hífen**: cada frase precisa ser reescrita para continuar natural. Um `sed` global quebra texto (`<strong>sua:</strong> conta. o recrutador`) e quebra JSX (`cond ? <x/> : }`).
+- **`—` como "sem valor" também sai.** Em prosa, omita o trecho (`{empresa ? \`${empresa} · \` : ''}`); em célula de tabela, deixe vazio.
+- Comentário de código pode manter travessão: ninguém além de quem edita o arquivo lê.
+
 ## Frontend — armadilhas
 - **`npm run check:icons` roda no CI** e enxerga as DUAS formas de escrever o nome: `ti ti-nome` e dentro de template literal (`ti ${feito ? 'ti-circle-check' : s.icon}`). A segunda escapou da primeira versão do script e deixou um `ti-circle-check-filled` invisível no onboarding — o verificador dizia que estava tudo certo. Ícone inexistente não dá erro: a regra CSS não casa, o glifo não aparece, sobra espaço vazio — e vários botões do app são só ícone, então viram quadrados invisíveis e a função parece quebrada. Já aconteceu com `ti-star-filled` (as estrelas de avaliação inteiras), `ti-brand-google-filled` e `ti-discount-check-filled`. O script também confere que a URL da fonte responde **200**.
 - **A fonte de ícones (Tabler) vem de CDN com versão FIXA e o caminho tem `dist/`.** `@latest` deixa o icon set mudar sozinho entre deploys; e uma URL errada devolve 404 e **todos os ícones somem de uma vez**, sem erro em log nenhum — vários botões do app são só ícone (o de relatar bug, por exemplo), então eles viram quadrados invisíveis e a função parece quebrada. Ao mexer nessa URL, **abra-a e confira o HTTP 200** antes de publicar.

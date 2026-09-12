@@ -83,13 +83,13 @@ export default function AdminRawContent() {
                             <div className="spacer" />
                             {p.ai && (
                                 <span className={`badge ${ai.isJob ? 'ok' : 'neutral'}`} title="classificação IA">
-                                    {ai.isJob ? 'vaga' : ai.isAd ? 'propaganda' : ai.isGeneric ? 'genérico' : ai.isRecruiter ? 'recrutador' : '—'} {ai.confidence != null ? `· ${ai.confidence}%` : ''}
+                                    {ai.isJob ? 'vaga' : ai.isAd ? 'propaganda' : ai.isGeneric ? 'genérico' : ai.isRecruiter ? 'recrutador' : ''} {ai.confidence != null ? `· ${ai.confidence}%` : ''}
                                 </span>
                             )}
                         </div>
                         {p.ai && (ai.cargo || ai.empresa) && (
                             <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                                {ai.cargo || '—'}{ai.empresa ? ` · ${ai.empresa}` : ''}{ai.email ? ` · ${ai.email}` : ''}
+                                {ai.cargo || ''}{ai.empresa ? ` · ${ai.empresa}` : ''}{ai.email ? ` · ${ai.email}` : ''}
                                 {ai.tecnologias?.length ? ` · ${ai.tecnologias.slice(0, 6).join(', ')}` : ''}
                             </div>
                         )}

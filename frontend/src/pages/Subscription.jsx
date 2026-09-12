@@ -25,7 +25,7 @@ const INV_STATUS = {
     void: { label: 'Cancelado', cls: 'neutral', kind: 'other' },
     uncollectible: { label: 'Não paga', cls: 'danger', kind: 'other' },
 };
-const invStatus = (s) => INV_STATUS[s] || { label: s || '—', cls: 'neutral', kind: 'other' };
+const invStatus = (s) => INV_STATUS[s] || { label: s || 'sem status', cls: 'neutral', kind: 'other' };
 const METHOD_LABEL = { card: 'Cartão', pix: 'PIX', boleto: 'Boleto' };
 const PROVIDER_LABEL = { stripe: 'Stripe', woovi: 'Woovi' };
 
@@ -54,7 +54,7 @@ export default function Subscription() {
     const current = user?.plan || 'free';
     const usage = user?.usage;
     const planExpiresAt = user?.planExpiresAt || null; // pagamento único: validade do plano
-    const planLabel = (id) => plans.find((p) => p.id === id)?.label || (id ? id : '—');
+    const planLabel = (id) => plans.find((p) => p.id === id)?.label || (id ? id : 'nenhum');
     const currentPlan = plans.find((p) => p.id === current);
 
     // Retorno do checkout
@@ -261,14 +261,14 @@ export default function Subscription() {
                                             <td>{METHOD_LABEL[i.method] || t('Cartão')}</td>
                                             <td><span className={`badge ${st.cls}`}>{t(st.label)}</span></td>
                                             <td>{planLabel(i.plan)}</td>
-                                            <td>{PROVIDER_LABEL[i.provider] || '—'}</td>
+                                            <td>{PROVIDER_LABEL[i.provider] || 'não informado'}</td>
                                             <td>
                                                 {i.url || i.pdf ? (
                                                     <div className="row" style={{ gap: 6 }}>
                                                         {i.url && <a className="btn ghost sm" href={i.url} target="_blank" rel="noopener" title={t('Ver fatura')}><i className="ti ti-external-link" /></a>}
                                                         {i.pdf && <a className="btn ghost sm" href={i.pdf} target="_blank" rel="noopener" title={t('Baixar PDF')}><i className="ti ti-download" /></a>}
                                                     </div>
-                                                ) : <span className="muted">—</span>}
+                                                ) : <span className="muted">não informado</span>}
                                             </td>
                                         </tr>
                                     );

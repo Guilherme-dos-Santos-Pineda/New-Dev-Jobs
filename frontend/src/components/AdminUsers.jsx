@@ -7,7 +7,7 @@ const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 const PLAN_BADGE = { free: 'neutral', starter: 'info', pro: 'ok' };
 const APP_BADGE = { sent: 'ok', failed: 'danger', skipped: 'neutral' };
 const PAGE = 25;
-const fmtFull = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+const fmtFull = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
 
 export default function AdminUsers() {
     const toast = useToast();
@@ -32,7 +32,7 @@ export default function AdminUsers() {
         catch (e) { toast.show(e.message, 'error'); }
     }
     async function del(u) {
-        if (!window.confirm(`Apagar ${u.email}?\n\nRemove a conta, perfil e candidaturas — irreversível.`)) return;
+        if (!window.confirm(`Apagar ${u.email}?\n\nRemove a conta, perfil e candidaturas. É irreversível.`)) return;
         setDeleting(true);
         try { await api.adminDeleteUser(u.id); toast.show('Usuário apagado'); setOpen(null); load(q, data.page); }
         catch (e) { toast.show(e.message, 'error'); }
@@ -65,12 +65,12 @@ export default function AdminUsers() {
                         <tbody>
                             {users.map((u) => (
                                 <tr key={u.id} style={{ cursor: 'pointer' }} onClick={() => openDetail(u)}>
-                                    <td style={{ fontWeight: 600 }}>{u.name || '—'}
+                                    <td style={{ fontWeight: 600 }}>{u.name || ''}
                                         <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>{u.email}{u.role === 'admin' ? ' · admin' : ''}</div>
                                     </td>
                                     <td><span className={`badge ${PLAN_BADGE[u.plan] || 'neutral'}`}>{u.plan}</span></td>
-                                    <td>{u.googleConnected ? <span className="badge ok" style={{ fontSize: 10 }}>conectado</span> : <span className="muted" style={{ fontSize: 12 }}>—</span>}</td>
-                                    <td style={{ fontSize: 12 }}>{(u.areas || []).join(', ') || '—'}</td>
+                                    <td>{u.googleConnected ? <span className="badge ok" style={{ fontSize: 10 }}>conectado</span> : null}</td>
+                                    <td style={{ fontSize: 12 }}>{(u.areas || []).join(', ') || ''}</td>
                                     <td className="mono">{nf(u.apps)}</td>
                                     <td className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(u.createdAt)}</td>
                                     <td className="col-actions">
@@ -119,9 +119,9 @@ export default function AdminUsers() {
                                     <div className="section-title" style={{ fontSize: 13 }}>Perfil</div>
                                     {detail.profile ? (
                                         <div style={{ fontSize: 12.5, lineHeight: 1.8, marginBottom: 14 }}>
-                                            <div><b>Áreas:</b> {(detail.profile.areas || []).join(', ') || '—'} · <b>Senioridade:</b> {(detail.profile.seniorities || []).join(', ') || '—'}</div>
-                                            <div><b>Skills:</b> {(detail.profile.skills || []).join(', ') || '—'}</div>
-                                            <div><b>Headline:</b> {detail.profile.headline || '—'} · <b>Região:</b> {detail.profile.region || '—'}</div>
+                                            <div><b>Áreas:</b> {(detail.profile.areas || []).join(', ') || ''} · <b>Senioridade:</b> {(detail.profile.seniorities || []).join(', ') || ''}</div>
+                                            <div><b>Skills:</b> {(detail.profile.skills || []).join(', ') || ''}</div>
+                                            <div><b>Headline:</b> {detail.profile.headline || ''} · <b>Região:</b> {detail.profile.region || ''}</div>
                                             <div><b>CV:</b> {detail.profile.hasCv ? (detail.profile.cvName || 'enviado') : 'não enviado'}{detail.profile.linkedin ? ` · LinkedIn: ${detail.profile.linkedin}` : ''}</div>
                                         </div>
                                     ) : <div className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>Perfil não preenchido.</div>}
@@ -135,7 +135,7 @@ export default function AdminUsers() {
                                                 <div key={a.id} className="rank-row">
                                                     <div style={{ minWidth: 0, flex: 1 }}>
                                                         <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.title || 'Vaga'}</div>
-                                                        <div className="muted" style={{ fontSize: 11.5 }}>{a.company || '—'} · {fmtDate(a.createdAt)}</div>
+                                                        <div className="muted" style={{ fontSize: 11.5 }}>{a.company || ''} · {fmtDate(a.createdAt)}</div>
                                                     </div>
                                                     <span className={`badge ${APP_BADGE[a.status] || 'neutral'}`} style={{ fontSize: 10 }}>{a.status}</span>
                                                     {a.matchScore != null && <span className={`score ${scoreClass(a.matchScore)}`}>{a.matchScore}%</span>}

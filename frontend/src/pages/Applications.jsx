@@ -49,7 +49,7 @@ export default function Applications() {
                                     <div className="app-avatar"><i className="ti ti-building" /></div>
                                     <div style={{ minWidth: 0, flex: 1 }}>
                                         <div className="app-card-title">{a.title || 'Vaga'}</div>
-                                        <div className="app-card-meta">{a.company || '—'} · {fmtDate(a.sentAt || a.createdAt)}</div>
+                                        <div className="app-card-meta">{a.company ? `${a.company} · ` : ''}{fmtDate(a.sentAt || a.createdAt)}</div>
                                     </div>
                                     <span className={`score ${scoreClass(a.matchScore)}`} style={{ flexShrink: 0 }}>{a.matchScore}%</span>
                                 </div>
@@ -62,7 +62,7 @@ export default function Applications() {
 
                                 <div className="app-card-foot">
                                     <span className="muted" style={{ fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        <i className="ti ti-mail" /> {a.to || '—'}
+                                        <i className="ti ti-mail" /> {a.to || 'sem destinatário'}
                                     </span>
                                     <div className="spacer" />
                                     <button className="btn ghost sm" onClick={() => setOpen(a)}><i className="ti ti-eye" /> {t('ver email')}</button>
@@ -92,11 +92,11 @@ export default function Applications() {
                         </div>
                         <div className="modal-body" style={{ padding: 20 }}>
                             <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
-                                {open.company || '—'} · para <b>{open.to}</b> · {fmtDate(open.sentAt || open.createdAt)}
+                                {open.company ? `${open.company} · ` : ''}para <b>{open.to}</b> · {fmtDate(open.sentAt || open.createdAt)}
                             </div>
                             <div className="app-card-status" style={{ marginBottom: 14 }}>
                                 <i className="ti ti-mail-cog lead" style={{ color: 'var(--color-accent)' }} />
-                                <span style={{ fontWeight: 600 }}>{open.subject || '—'}</span>
+                                <span style={{ fontWeight: 600 }}>{open.subject || 'sem assunto'}</span>
                             </div>
                             {open.body ? (
                                 <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--color-text-secondary)' }}>{open.body}</div>

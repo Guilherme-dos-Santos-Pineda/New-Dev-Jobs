@@ -108,7 +108,7 @@ export default function AdminCampaigns() {
         <>
             <div className="notice warn" style={{ marginBottom: 14 }}>
                 <i className="ti ti-alert-triangle" />
-                <span>Envio espaçado (60–120s) e com teto diário. <b>Link de descadastro</b> automático + header List-Unsubscribe. Envie só para quem <b>consentiu</b> (LGPD). O remetente usa o <b>Resend</b> (domínio autenticado) — o <b>domínio precisa estar verificado</b> no Resend (SPF/DKIM), senão a campanha pausa. Se o Resend não estiver configurado, cai no Gmail da conta conectada.</span>
+                <span>Envio espaçado (60–120s) e com teto diário. <b>Link de descadastro</b> automático + header List-Unsubscribe. Envie só para quem <b>consentiu</b> (LGPD). O remetente usa o <b>Resend</b> (domínio autenticado). O <b>domínio precisa estar verificado</b> no Resend (SPF/DKIM), senão a campanha pausa. Se o Resend não estiver configurado, cai no Gmail da conta conectada.</span>
             </div>
 
             {/* Criar campanha */}

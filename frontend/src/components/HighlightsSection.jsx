@@ -132,7 +132,7 @@ export default function HighlightsSection({ onQueued }) {
                                 : <p className="muted" style={{ fontSize: 12.5 }}>{t('Esta vaga não trouxe descrição.')}</p>}
                             <div className="hint" style={{ marginTop: 10 }}>
                                 {/* Dizer POR QUE o contato está oculto evita que pareça defeito. */}
-                                <i className="ti ti-lock" /> {t('Email e telefone do recrutador ficam ocultos — quem envia sua candidatura é a plataforma.')}
+                                <i className="ti ti-lock" /> {t('Email e telefone do recrutador ficam ocultos. Quem envia sua candidatura é a plataforma.')}
                             </div>
                         </div>
                     )}
@@ -144,7 +144,7 @@ export default function HighlightsSection({ onQueued }) {
                     {semCota
                         ? t('Você já usou seus {n} envios grátis de hoje. A cota volta amanhã.', { n: limiteDiario })
                         : marcadas.size
-                            ? t('{n} de {max} selecionadas — usa seus envios grátis de hoje.', { n: marcadas.size, max: maximo })
+                            ? t('{n} de {max} selecionadas. Usa seus envios grátis de hoje.', { n: marcadas.size, max: maximo })
                             : t('Marque até {max} vagas. O envio usa sua cota grátis diária ({d}/dia).', { max: maximo, d: limiteDiario })}
                 </span>
                 <div className="spacer" />

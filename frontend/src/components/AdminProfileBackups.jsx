@@ -51,7 +51,7 @@ export default function AdminProfileBackups() {
             <div className="section-title"><i className="ti ti-archive" /> Perfis apagados</div>
             <p className="muted" style={{ fontSize: 12.5, marginTop: -6, marginBottom: 16 }}>
                 Cópia guardada automaticamente quando alguém apaga o próprio perfil. Serve para desfazer
-                exclusão feita por quem invadiu a conta — o usuário não vê nem consegue remover estas cópias.
+                exclusão feita por quem invadiu a conta. O usuário não vê nem consegue remover estas cópias.
             </p>
 
             {backups.length === 0 ? (
@@ -78,7 +78,7 @@ export default function AdminProfileBackups() {
                             <i className={`ti ti-chevron-${aberto === b.id ? 'up' : 'down'}`} /> ver
                         </button>
                         <button className="btn sm" disabled={restaurando === b.id || b.temPerfilAgora}
-                            title={b.temPerfilAgora ? 'O usuário já tem um perfil ativo — restaurar apagaria o atual.' : ''}
+                            title={b.temPerfilAgora ? 'O usuário já tem um perfil ativo. Restaurar apagaria o atual.' : ''}
                             onClick={() => restaurar(b)}>
                             <i className="ti ti-restore" /> {restaurando === b.id ? 'Restaurando…' : 'Restaurar'}
                         </button>
@@ -89,7 +89,7 @@ export default function AdminProfileBackups() {
                             {/* IP e navegador de quem disparou: é o que permite julgar se
                                 partiu do dono ou de outro lugar. */}
                             <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
-                                IP <b>{b.ip || '—'}</b> · {b.userAgent || 'sem user agent'}
+                                IP <b>{b.ip || ''}</b> · {b.userAgent || 'sem user agent'}
                             </div>
                             {detalhe
                                 ? <pre className="bug-ctx" style={{ maxHeight: 320, overflow: 'auto' }}>

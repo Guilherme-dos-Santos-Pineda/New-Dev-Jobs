@@ -103,10 +103,10 @@ export default function AdminRecruiters() {
                                             {r.linkedinUrl ? <a href={r.linkedinUrl} target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>{r.name || 'Recrutador'}</a> : (r.name || 'Recrutador')}
                                             <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>
                                                 {r.title || ''}{r.source && r.source !== 'linkedin' ? `${r.title ? ' · ' : ''}${r.source}` : ''}
-                                                {!r.linkedinUrl && <span title="Sem perfil do LinkedIn — não monitorável"> · não monitorável</span>}
+                                                {!r.linkedinUrl && <span title="Sem perfil do LinkedIn, não monitorável"> · não monitorável</span>}
                                             </div>
                                         </td>
-                                        <td>{r.company || '—'}</td>
+                                        <td>{r.company || ''}</td>
                                         <td>{r.email || <span className="muted">sem email</span>}</td>
                                         <td>{r.jobsCount > 0 ? <span className="badge ok">{r.jobsCount}</span> : <span className="badge neutral">órfão</span>}</td>
                                         <td className="mono">{nf(r.emailsSent)}</td>

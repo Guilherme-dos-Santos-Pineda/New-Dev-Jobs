@@ -27,7 +27,7 @@ export default function Onboarding({ profile, user }) {
         {
             feito: !!profile?.areas?.length && !!profile?.skills?.length,
             titulo: 'Diga o que você faz',
-            porque: 'Sua área e suas skills decidem quais vagas chegam até você — e quais nem aparecem.',
+            porque: 'Sua área e suas skills decidem quais vagas chegam até você, e quais nem aparecem.',
             para: '/app/perfil?section=work',
             acao: 'Preencher perfil',
             minutos: 2,
@@ -65,7 +65,7 @@ export default function Onboarding({ profile, user }) {
                 <div>
                     <h2>{t('Como o newdevjobs funciona')}</h2>
                     <p>
-                        {t('Todo dia a gente garimpa vagas que recrutadores publicam soltas — muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.')}
+                        {t('Todo dia a gente garimpa vagas que recrutadores publicam soltas. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.')}
                     </p>
                 </div>
                 <div className="onb-prog">

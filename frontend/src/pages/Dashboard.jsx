@@ -171,7 +171,7 @@ export default function Dashboard() {
                         {data.nextBest ? (
                             <>
                                 <div style={{ fontSize: 19, fontWeight: 700, marginTop: 10, lineHeight: 1.25 }}>{data.nextBest.title || 'Vaga'}</div>
-                                <div style={{ opacity: 0.9, marginTop: 4 }}>{data.nextBest.company || '—'}</div>
+                                <div style={{ opacity: 0.9, marginTop: 4 }}>{data.nextBest.company || 'empresa não informada'}</div>
                                 <div className="row" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                                     <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}><i className="ti ti-target" /> {data.nextBest.matchScore}% match</span>
                                     {(data.nextBest.skills || []).map((s) => <span key={s} className="badge" style={{ background: 'rgba(255,255,255,.14)', color: '#fff' }}>{s}</span>)}

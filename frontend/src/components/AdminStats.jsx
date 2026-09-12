@@ -67,7 +67,7 @@ export default function AdminStats() {
             )}
 
             {apify && apify.accounts && (() => {
-                const usdf = (n) => (n == null ? '—' : `US$${Number(n).toFixed(2)}`);
+                const usdf = (n) => (n == null ? '' : `US$${Number(n).toFixed(2)}`);
                 const withCredit = apify.accounts.filter((a) => (a.remainingUsd ?? 0) > 0.05).length;
                 return (
                     <div className="card" style={{ marginBottom: 18 }}>

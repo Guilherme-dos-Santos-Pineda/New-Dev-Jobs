@@ -95,12 +95,12 @@ const EN = {
 
     // Onboarding do primeiro acesso
     'Como o newdevjobs funciona': 'How newdevjobs works',
-    'Todo dia a gente garimpa vagas que recrutadores publicam soltas — muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.':
-        'Every day we dig up jobs recruiters post loosely — many never reach any job board. You set it up once, and the system sends your resume to the matching ones, from your own Gmail.',
+    'Todo dia a gente garimpa vagas que recrutadores publicam soltas. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.':
+        'Every day we dig up jobs recruiters post loosely. many never reach any job board. You set it up once, and the system sends your resume to the matching ones, from your own Gmail.',
     '{n} passo(s) · ~{m} min': '{n} step(s) · ~{m} min',
     'Diga o que você faz': 'Tell us what you do',
-    'Sua área e suas skills decidem quais vagas chegam até você — e quais nem aparecem.':
-        'Your field and skills decide which jobs reach you — and which never show up.',
+    'Sua área e suas skills decidem quais vagas chegam até você, e quais nem aparecem.':
+        'Your field and skills decide which jobs reach you. and which never show up.',
     'Preencher perfil': 'Fill in profile',
     'Envie seu currículo em PDF': 'Upload your resume (PDF)',
     'É o arquivo que vai anexado em cada candidatura.': 'This is the file attached to every application.',
@@ -119,14 +119,14 @@ const EN = {
     'Entre no grupo do WhatsApp': 'Join the WhatsApp group',
     '{n} já saíram daqui porque você se candidatou.': '{n} already left this list because you applied.',
     'Esta vaga não trouxe descrição.': 'This job came without a description.',
-    'Email e telefone do recrutador ficam ocultos — quem envia sua candidatura é a plataforma.':
-        'The recruiter’s email and phone stay hidden — the platform is what sends your application.',
+    'Email e telefone do recrutador ficam ocultos. Quem envia sua candidatura é a plataforma.':
+        'The recruiter’s email and phone stay hidden. the platform is what sends your application.',
     'Você pode enviar para até {n} vagas hoje.': 'You can apply to up to {n} jobs today.',
     '{n} vaga(s) na fila. Restam {r} envios grátis hoje.': '{n} job(s) queued. {r} free sends left today.',
     'Você já usou seus {n} envios grátis de hoje. A cota volta amanhã.':
         'You have used your {n} free sends for today. The quota resets tomorrow.',
-    '{n} de {max} selecionadas — usa seus envios grátis de hoje.':
-        '{n} of {max} selected — uses your free sends for today.',
+    '{n} de {max} selecionadas. Usa seus envios grátis de hoje.':
+        '{n} of {max} selected. uses your free sends for today.',
     'Marque até {max} vagas. O envio usa sua cota grátis diária ({d}/dia).':
         'Pick up to {max} jobs. Sending uses your free daily quota ({d}/day).',
     'candidatar-se': 'apply',

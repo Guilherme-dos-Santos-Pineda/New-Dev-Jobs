@@ -13,7 +13,7 @@ const INTERVALS = [
     { v: 720, l: 'a cada 12h' }, { v: 1440, l: '1x ao dia' },
 ];
 const fmtInterval = (m) => INTERVALS.find((i) => i.v === m)?.l || `a cada ${m}min`;
-const fmtWhen = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+const fmtWhen = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 
 export default function BotsPanel() {
     const toast = useToast();
@@ -139,7 +139,7 @@ export default function BotsPanel() {
         if (!name) return;
         try {
             await api.adminCreateSchedule({ name, type, intervalMinutes: Number(schedInterval[type]) || 360, params: buildParams(type) });
-            toast.show('Robô agendado criado — começa no próximo ciclo.');
+            toast.show('Robô agendado criado. Começa no próximo ciclo.');
             setWatchUntil(Date.now() + 90000);
             load();
         } catch (e) { toast.show(e.message, 'error'); }
@@ -152,7 +152,7 @@ export default function BotsPanel() {
         setRunningSched(s.id);
         try {
             await api.adminUpdateSchedule(s.id, { runNow: true });
-            toast.show(`"${s.name}" enfileirado — rodando em até 1 min…`);
+            toast.show(`"${s.name}" enfileirado, rodando em até 1 min…`);
             setWatchUntil(Date.now() + 90000); // segue puxando ~90s até o run aparecer/terminar
             await load();
         } catch (e) { toast.show(e.message, 'error'); setRunningSched(''); }
@@ -190,7 +190,7 @@ export default function BotsPanel() {
         try {
             const r = await api.adminRunScraper(type, params);
             started = r.run;
-            toast.show('Run iniciado — atualizando ao concluir…');
+            toast.show('Run iniciado, atualizando ao concluir…');
             await load(); // mostra o run "running" na hora
         } catch (e) { toast.show(e.message, 'error'); setRunning(''); return; }
 
@@ -214,7 +214,7 @@ export default function BotsPanel() {
 
     if (loading) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;
 
-    const fmtStats = (s) => (s && Object.keys(s).length ? Object.entries(s).map(([k, v]) => `${k}: ${v}`).join(' · ') : '—');
+    const fmtStats = (s) => (s && Object.keys(s).length ? Object.entries(s).map(([k, v]) => `${k}: ${v}`).join(' · ') : '');
 
     return (
         <>
@@ -273,7 +273,7 @@ export default function BotsPanel() {
                             <label>Quantos recrutadores por run (mais obsoletos primeiro)</label>
                             <input className="input" type="number" min="1" max="500" value={monMaxRecruiters}
                                 onChange={(e) => setMonMaxRecruiters(e.target.value)} />
-                            <div className="hint">Rotaciona pela base aprovada (os mais obsoletos primeiro). Apify processa em lotes de 10 — cada 10 = 1 chamada (mais custo).</div>
+                            <div className="hint">Rotaciona pela base aprovada (os mais obsoletos primeiro). Apify processa em lotes de 10, e cada 10 é 1 chamada (mais custo).</div>
                         </div>
                     )}
                     {monSource === 'selected' && (
@@ -300,7 +300,7 @@ export default function BotsPanel() {
                                         : pickerList.map((r) => {
                                             const monitorable = !!r.linkedinUrl;
                                             return (
-                                                <label key={r.id} className="row" title={monitorable ? '' : 'Sem perfil do LinkedIn — não dá para monitorar posts'}
+                                                <label key={r.id} className="row" title={monitorable ? '' : 'Sem perfil do LinkedIn, não dá para monitorar posts'}
                                                     style={{ alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0', fontWeight: 400, opacity: monitorable ? 1 : 0.55, cursor: monitorable ? 'pointer' : 'not-allowed' }}>
                                                     <input type="checkbox" disabled={!monitorable} checked={monSelected.includes(r.id)}
                                                         onChange={(e) => setMonSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))} />
@@ -313,7 +313,7 @@ export default function BotsPanel() {
                                             );
                                         })}
                             </div>
-                            <div className="hint">Mostra todos os recrutadores. Só os com LinkedIn são monitoráveis (os de email só servem como alvo de envio). Apify processa 10 por execução — acima disso, em lotes.</div>
+                            <div className="hint">Mostra todos os recrutadores. Só os com LinkedIn são monitoráveis (os de email só servem como alvo de envio). Apify processa 10 por execução. Acima disso, em lotes.</div>
                         </div>
                     )}
                     <div className="field">
@@ -403,12 +403,12 @@ export default function BotsPanel() {
                                             <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>
                                                 {s.type === 'monitoring'
                                                     ? `${s.params?.region === 'br' ? 'BR' : (s.params?.source || 'global')} · ${(s.params?.queries || []).length} queries`
-                                                    : ((s.params?.locations || []).join(', ') || '—')}
+                                                    : ((s.params?.locations || []).join(', ') || '')}
                                             </div>
                                         </td>
                                         <td><span className="badge neutral">{s.type === 'discovery' ? 'descoberta' : 'monitoramento'}</span></td>
                                         <td>{fmtInterval(s.intervalMinutes)}</td>
-                                        <td className="muted" style={{ fontSize: 12 }}>{s.active ? fmtWhen(s.nextRunAt) : '—'}</td>
+                                        <td className="muted" style={{ fontSize: 12 }}>{s.active ? fmtWhen(s.nextRunAt) : ''}</td>
                                         <td className="muted" style={{ fontSize: 12 }}>{fmtWhen(s.lastRunAt)}</td>
                                         <td>
                                             {runningSched === s.id ? (

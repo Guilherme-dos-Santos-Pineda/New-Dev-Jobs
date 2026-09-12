@@ -56,7 +56,7 @@ export default function AdminPromoPost() {
             </div>
             <p className="muted" style={{ fontSize: 12, marginTop: 0, marginBottom: 14 }}>
                 {vagas.length} vagas escolhidas entre as {(dados.totalRemotas || 0).toLocaleString('pt-BR')} remotas do Brasil na base.
-                A lista muda todo dia — não a cada recarga, então dá para conferir depois de copiar.
+                A lista muda todo dia, não a cada recarga, então dá para conferir depois de copiar.
                 O texto nunca leva o email de contato das vagas.
             </p>
 

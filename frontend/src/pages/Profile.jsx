@@ -259,8 +259,8 @@ export default function Profile() {
                                     <div style={{ marginTop: 12, fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.65 }}>
                                         <p style={{ marginTop: 0 }}>O match (0–100%) mede o quanto cada vaga combina com você. Ele soma duas partes:</p>
                                         <ul style={{ margin: '0 0 12px 18px', padding: 0 }}>
-                                            <li><b>Skills — peso 80%.</b> Quantas das skills pedidas na vaga estão nas suas keywords. Ex.: a vaga pede 5 skills e você tem 4 → 80% nesta parte.</li>
-                                            <li><b>Senioridade — peso 20%.</b> 100% se o nível da vaga bate com um dos que você marcou em <i>Preferências de Trabalho</i>; cai ~25 pontos a cada nível de distância (ex.: pleno x sênior).</li>
+                                            <li><b>Skills, peso 80%.</b> Quantas das skills pedidas na vaga estão nas suas keywords. Ex.: a vaga pede 5 skills e você tem 4 → 80% nesta parte.</li>
+                                            <li><b>Senioridade, peso 20%.</b> 100% se o nível da vaga bate com um dos que você marcou em <i>Preferências de Trabalho</i>; cai ~25 pontos a cada nível de distância (ex.: pleno x sênior).</li>
                                         </ul>
                                         <div className="notice info" style={{ marginBottom: 12 }}>
                                             <i className="ti ti-bolt" /><span>O envio automático só dispara em vagas com match <b>≥ 50%</b>.</span>
@@ -268,7 +268,7 @@ export default function Profile() {
                                         <p style={{ margin: '0 0 6px' }}><b>Antes do score, os filtros descartam vagas que não servem:</b> área profissional, região, keywords obrigatórias, palavras e domínios bloqueados, senioridade estrita e data de postagem (aba <i>Filtros</i>).</p>
                                         <p style={{ margin: '0 0 6px' }}><b>Para melhorar seus resultados:</b></p>
                                         <ul style={{ margin: 0, padding: '0 0 0 18px' }}>
-                                            <li>Liste as keywords que você <b>realmente</b> domina — encher de skills que não usa infla um match falso.</li>
+                                            <li>Liste as keywords que você <b>realmente</b> domina. Encher de skills que não usa infla um match falso.</li>
                                             <li>Marque sua(s) senioridade(s) e área para não receber vagas de outro nível ou cargo.</li>
                                             <li>Use <i>keywords obrigatórias</i> para exigir algo essencial (ex.: sua linguagem principal).</li>
                                         </ul>
@@ -306,7 +306,7 @@ export default function Profile() {
                                 </div>
                                 <input ref={liRef} type="file" accept="application/pdf" hidden onChange={(e) => handleImport(e.target.files?.[0])} />
                                 <div className="notice info" style={{ marginTop: 12, marginBottom: 0 }}>
-                                    <i className="ti ti-info-circle" /><span>Este PDF é só para extrair dados — <b>não</b> é o currículo anexado nos emails.</span>
+                                    <i className="ti ti-info-circle" /><span>Este PDF é só para extrair dados. <b>Não</b> é o currículo anexado nos emails.</span>
                                 </div>
                             </div>
                         </div>
@@ -438,7 +438,7 @@ export default function Profile() {
                                         <i className="ti ti-brand-linkedin" /> Abrir
                                     </button>
                                 </div>
-                                <div className="hint">Abra o LinkedIn, copie a URL do seu perfil e cole aqui — ou digite só o usuário que completamos o link.</div>
+                                <div className="hint">Abra o LinkedIn, copie a URL do seu perfil e cole aqui. Ou digite só o usuário, que completamos o link.</div>
                             </div>
                             <div className="grid-2">
                                 <div className="field">
@@ -493,8 +493,8 @@ export default function Profile() {
                                             <li>Os envios que estão na fila são cancelados.</li>
                                             <li>Você deixa de receber vagas até preencher o perfil de novo.</li>
                                             <li>{/* Dito porque muda a decisão de quem está apagando por privacidade. */}
-                                                Guardamos uma cópia por segurança, visível só para o administrador —
-                                                é o que permite desfazer caso alguém entre na sua conta e apague por você.
+                                                Guardamos uma cópia por segurança, visível só para o administrador.
+                                                É o que permite desfazer caso alguém entre na sua conta e apague por você.
                                             </li>
                                         </ul>
                                     </div>

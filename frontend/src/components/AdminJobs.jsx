@@ -56,12 +56,12 @@ export default function AdminJobs() {
                         <tbody>
                             {jobs.map((j) => (
                                 <tr key={j.id} style={{ cursor: 'pointer' }} onClick={() => setOpen(j)}>
-                                    <td style={{ fontWeight: 600, maxWidth: 240 }}>{j.title || '—'}</td>
-                                    <td>{j.company || '—'}</td>
-                                    <td style={{ maxWidth: 180 }}>{(j.skills || []).slice(0, 3).join(', ') || '—'}</td>
-                                    <td>{j.aiScore != null ? <span className={`score ${scoreClass(j.aiScore)}`}>{j.aiScore}%</span> : <span className="muted">—</span>}</td>
-                                    <td>{j.seniority || '—'}</td>
-                                    <td style={{ maxWidth: 140 }}>{j.location || '—'}</td>
+                                    <td style={{ fontWeight: 600, maxWidth: 240 }}>{j.title || ''}</td>
+                                    <td>{j.company || ''}</td>
+                                    <td style={{ maxWidth: 180 }}>{(j.skills || []).slice(0, 3).join(', ') || ''}</td>
+                                    <td>{j.aiScore != null ? <span className={`score ${scoreClass(j.aiScore)}`}>{j.aiScore}%</span> : null}</td>
+                                    <td>{j.seniority || ''}</td>
+                                    <td style={{ maxWidth: 140 }}>{j.location || ''}</td>
                                     <td className="muted" style={{ whiteSpace: 'nowrap' }}>{fmtDate(j.createdAt)}</td>
                                 </tr>
                             ))}
@@ -92,11 +92,11 @@ export default function AdminJobs() {
                                 {open.modality && <span className="badge info">{open.modality}</span>}
                             </div>
                             <div style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 12 }}>
-                                <div><b>Empresa:</b> {open.company || '—'}</div>
-                                <div><b>Email:</b> {open.email || '—'}</div>
+                                <div><b>Empresa:</b> {open.company || ''}</div>
+                                <div><b>Email:</b> {open.email || ''}</div>
                                 {open.location && <div><b>Local:</b> {open.location}</div>}
                                 {open.salary && <div><b>Salário:</b> {open.salary}</div>}
-                                <div><b>Skills:</b> {(open.skills || []).join(', ') || '—'}</div>
+                                <div><b>Skills:</b> {(open.skills || []).join(', ') || ''}</div>
                                 <div className="muted"><b>Coletada:</b> {fmtDate(open.createdAt)}</div>
                             </div>
                             <div className="section-title" style={{ fontSize: 13 }}>Conteúdo do post (bruto)</div>

@@ -12,6 +12,10 @@ function shapeApp(a) {
         id: a.Id, jobId: a.JobId, company: a.Company, title: a.JobTitle,
         to: a.JobEmail, status: a.Status, matchScore: a.MatchScore,
         subject: a.Subject, body: a.Body, createdAt: a.CreatedAt, sentAt: a.SentAt,
+        // Descricao da vaga a que a pessoa JA se candidatou: e o registro dela.
+        // Nao e o mesmo caso do feed, onde o email de contato fica oculto porque a
+        // vaga ainda nao foi enviada. Aqui o email ja aparece em "to" desde sempre.
+        description: a.Description, lang: a.Lang,
     };
 }
 
@@ -21,7 +25,7 @@ router.get('/', requireAuth, async (req, res) => {
     const pageSize = Math.min(60, Math.max(6, Number(req.query.pageSize) || 24));
     const [{ total }] = await sql`select count(*)::int as total from "Applications" where "UserId" = ${req.user.Id}`;
     const rows = await sql`
-        select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail"
+        select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description"
         from "Applications" a join "Jobs" j on j."Id" = a."JobId"
         where a."UserId" = ${req.user.Id}
         order by a."CreatedAt" desc, a."Id" desc
@@ -66,7 +70,7 @@ router.post('/', requireAuth, async (req, res) => {
         const r = await applyToJob(req.user.Id, jobId);
         if (r.skipped) return res.status(409).json({ error: 'Você já se candidatou a esta vaga' });
         const [created] = await sql`
-            select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail"
+            select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description"
             from "Applications" a join "Jobs" j on j."Id" = a."JobId" where a."Id" = ${r.applicationId}`;
         res.status(201).json({ application: shapeApp(created) });
     } catch (e) {

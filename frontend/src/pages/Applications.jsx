@@ -5,18 +5,27 @@ import { useCachedResource } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
 import { scoreClass, fmtDate } from '../utils.js';
 
+const PAGE_SIZE = 12;
+
 const STATUS = {
-    sent: { badge: 'ok', icon: 'ti-circle-check', label: 'enviado' },
-    failed: { badge: 'danger', icon: 'ti-alert-triangle', label: 'falhou' },
-    skipped: { badge: 'neutral', icon: 'ti-player-skip-forward', label: 'pulado' },
+    sent: { label: 'Enviado', icon: 'ti-circle-check', tom: 'ok' },
+    failed: { label: 'Falhou', icon: 'ti-alert-triangle', tom: 'danger' },
+    skipped: { label: 'Pulado', icon: 'ti-player-skip-forward', tom: 'neutro' },
+    queued: { label: 'Na fila', icon: 'ti-clock', tom: 'neutro' },
 };
 
-const PAGE_SIZE = 24;
+// =========================
+// Candidaturas
+// =========================
+// Lista em LINHAS, não em cartões soltos. Cada candidatura tem os mesmos cinco
+// campos (vaga, empresa, quando, para quem, match), e cartao solto esconde essa
+// regularidade: o olho nao consegue comparar dois cartoes que nao se alinham.
+// Numa lista alinhada, "qual foi a de maior match" se responde percorrendo uma
+// coluna.
 
 export default function Applications() {
     const { t } = useT();
     const [page, setPage] = useState(1);
-    // stale-while-revalidate por página: ao voltar para a aba, mostra na hora e revalida.
     const { data, loading } = useCachedResource(`applications:${page}`, () => api.getApplications({ page, pageSize: PAGE_SIZE }));
     const apps = data?.applications || [];
     const total = data?.total ?? apps.length;
@@ -25,13 +34,19 @@ export default function Applications() {
 
     return (
         <div className="page">
-            <div className="page-head">
-                <h1>{t('Candidaturas')}</h1>
-                <p>{t('Histórico de currículos enviados automaticamente.')}</p>
+            <div className="page-head row" style={{ alignItems: 'flex-start' }}>
+                <div>
+                    <h1>{t('Candidaturas')}</h1>
+                    <p>{t('Histórico de currículos enviados automaticamente.')}</p>
+                </div>
+                <div className="spacer" />
+                {!loading && total > 0 && (
+                    <span className="pill-contagem">{total} {t('no total')}</span>
+                )}
             </div>
 
             {loading ? (
-                <div className="app-cards">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton sk-card" style={{ height: 150 }} />)}</div>
+                <div className="lista">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="skeleton" style={{ height: 68, borderRadius: 'var(--radius)' }} />)}</div>
             ) : apps.length === 0 ? (
                 <div className="card empty">
                     <i className="ti ti-send" />
@@ -39,35 +54,26 @@ export default function Applications() {
                     <div style={{ marginTop: 14 }}><Link to="/app" className="btn primary sm"><i className="ti ti-radar-2" /> {t('Procurar vagas')}</Link></div>
                 </div>
             ) : (
-                <div className="app-cards">
-                    {apps.map((a, i) => {
+                <div className="card lista-card">
+                    {apps.map((a) => {
                         const st = STATUS[a.status] || STATUS.sent;
-                        const sentOk = (a.status || 'sent') === 'sent';
                         return (
-                            <div key={a.id} className={`card app-card fade-in d${(i % 6) + 1}`}>
-                                <div className="app-card-top">
-                                    <div className="app-avatar"><i className="ti ti-building" /></div>
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                        <div className="app-card-title">{a.title || 'Vaga'}</div>
-                                        <div className="app-card-meta">{a.company ? `${a.company} · ` : ''}{fmtDate(a.sentAt || a.createdAt)}</div>
-                                    </div>
-                                    <span className={`score ${scoreClass(a.matchScore)}`} style={{ flexShrink: 0 }}>{a.matchScore}%</span>
-                                </div>
+                            <button key={a.id} type="button" className="linha" onClick={() => setOpen(a)}>
+                                <span className={`linha-ico ${st.tom}`}><i className={`ti ${st.icon}`} /></span>
 
-                                <div className="app-card-status">
-                                    <i className={`ti ${st.icon} lead`} style={{ color: `var(--color-${st.badge === 'ok' ? 'success' : st.badge === 'danger' ? 'danger' : 'text-tertiary'})` }} />
-                                    <span>{t('currículo')} {t(st.label)}</span>
-                                    {sentOk && <span className="via"><i className="ti ti-brand-gmail" /> {t('via seu Gmail')}</span>}
-                                </div>
-
-                                <div className="app-card-foot">
-                                    <span className="muted" style={{ fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        <i className="ti ti-mail" /> {a.to || 'sem destinatário'}
+                                <span className="linha-txt">
+                                    <span className="linha-titulo">{a.title || t('Vaga')}</span>
+                                    <span className="linha-sub">
+                                        {a.company ? `${a.company} · ` : ''}{fmtDate(a.sentAt || a.createdAt)}
                                     </span>
-                                    <div className="spacer" />
-                                    <button className="btn ghost sm" onClick={() => setOpen(a)}><i className="ti ti-eye" /> {t('ver email')}</button>
-                                </div>
-                            </div>
+                                </span>
+
+                                {/* Só no desktop: no celular a linha já está cheia. */}
+                                <span className="linha-para">{a.to || ''}</span>
+
+                                <span className={`score ${scoreClass(a.matchScore)}`}>{a.matchScore}%</span>
+                                <i className="ti ti-chevron-right linha-seta" />
+                            </button>
                         );
                     })}
                 </div>
@@ -75,38 +81,74 @@ export default function Applications() {
 
             {!loading && total > PAGE_SIZE && (
                 <div className="row" style={{ alignItems: 'center', marginTop: 16 }}>
-                    <span className="muted" style={{ fontSize: 12 }}>{total} {t('candidatura(s)')} · {t('página')} {page}/{totalPages}</span>
+                    <span className="muted" style={{ fontSize: 12 }}>{t('página')} {page}/{totalPages}</span>
                     <div className="spacer" />
                     <button className="btn ghost sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><i className="ti ti-chevron-left" /> {t('anterior')}</button>
                     <button className="btn ghost sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>{t('próxima')} <i className="ti ti-chevron-right" /></button>
                 </div>
             )}
 
-            {/* Modal: prévia do email enviado */}
-            {open && (
-                <div className="modal-overlay" onClick={() => setOpen(null)}>
-                    <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-head">
-                            <h3>{open.title || 'Vaga'}</h3>
-                            <button className="close" onClick={() => setOpen(null)}><i className="ti ti-x" /></button>
+            {open && <DetalheCandidatura a={open} onClose={() => setOpen(null)} t={t} />}
+        </div>
+    );
+}
+
+// Os mesmos campos, sempre na mesma ordem, com rótulo em cima. É o formato que
+// você apontou como bonito, e ele funciona porque o rótulo responde "o que é
+// isso" antes de a pessoa precisar deduzir pelo conteúdo.
+function DetalheCandidatura({ a, onClose, t }) {
+    const st = STATUS[a.status] || STATUS.sent;
+    const campos = [
+        { rotulo: t('Enviado em'), valor: fmtDate(a.sentAt || a.createdAt) },
+        { rotulo: t('Status'), valor: t(st.label), tom: st.tom },
+        { rotulo: t('Email destinatário'), valor: a.to || '' },
+        { rotulo: t('Idioma / template'), valor: a.lang ? `${a.lang.toUpperCase()} · ${a.template || 'job_inquiry'}` : 'PT · job_inquiry' },
+    ];
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal det" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+                <div className="det-topo">
+                    <div style={{ minWidth: 0 }}>
+                        <h3>{a.title || t('Vaga')}</h3>
+                        {a.company && <p className="muted">{a.company}</p>}
+                    </div>
+                    <button className="close" onClick={onClose} aria-label={t('Fechar')}><i className="ti ti-x" /></button>
+                </div>
+
+                <div className="det-campos">
+                    {campos.map((c) => (
+                        <div key={c.rotulo} className="det-campo">
+                            <span className="det-rotulo">{c.rotulo}</span>
+                            <span className={`det-valor ${c.tom || ''}`}>{c.valor}</span>
                         </div>
-                        <div className="modal-body" style={{ padding: 20 }}>
-                            <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
-                                {open.company ? `${open.company} · ` : ''}para <b>{open.to}</b> · {fmtDate(open.sentAt || open.createdAt)}
-                            </div>
-                            <div className="app-card-status" style={{ marginBottom: 14 }}>
-                                <i className="ti ti-mail-cog lead" style={{ color: 'var(--color-accent)' }} />
-                                <span style={{ fontWeight: 600 }}>{open.subject || 'sem assunto'}</span>
-                            </div>
-                            {open.body ? (
-                                <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--color-text-secondary)' }}>{open.body}</div>
-                            ) : (
-                                <div className="muted" style={{ fontSize: 12.5 }}>{t('Corpo do email não disponível para esta candidatura.')}</div>
-                            )}
-                        </div>
+                    ))}
+                    <div className="det-campo larga">
+                        <span className="det-rotulo">{t('Assunto do email')}</span>
+                        <span className="det-valor">{a.subject || t('sem assunto')}</span>
                     </div>
                 </div>
-            )}
+
+                {a.description && (
+                    <div className="det-secao">
+                        <span className="det-rotulo">{t('Descrição da vaga')}</span>
+                        <div className="det-descricao">{a.description}</div>
+                    </div>
+                )}
+
+                <div className="det-rodape">
+                    <div className="det-match">
+                        <span className="det-rotulo">{t('Match score')}</span>
+                        <span className={`det-score ${scoreClass(a.matchScore)}`}>{a.matchScore}%</span>
+                    </div>
+                </div>
+
+                <div className="det-acoes">
+                    <Link to="/app/feedback" className="btn ghost sm">{t('Reportar vaga')}</Link>
+                    <div className="spacer" />
+                    <button className="btn" onClick={onClose}>{t('Fechar')}</button>
+                </div>
+            </div>
         </div>
     );
 }

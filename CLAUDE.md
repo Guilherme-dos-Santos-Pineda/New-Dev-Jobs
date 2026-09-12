@@ -117,6 +117,12 @@ regra existente, não acrescente uma nova que a contradiga.
 - **`—` como "sem valor" também sai.** Em prosa, omita o trecho (`{empresa ? \`${empresa} · \` : ''}`); em célula de tabela, deixe vazio.
 - Comentário de código pode manter travessão: ninguém além de quem edita o arquivo lê.
 
+## Layout
+- **`.page` precisa de `width: 100%` junto do `max-width`.** `.app-main` é flex em coluna, e `margin: 0 auto` num flex item **desliga o stretch do cross axis**: sem a largura explícita a página fica do tamanho do CONTEÚDO, não do container. Medido: 642 px num monitor de 1250 px, com o resto vazio. Era a causa de "sobra nas laterais", e mexer só no `max-width` não muda nada.
+- **Lista de itens iguais vai em LINHAS dentro de um cartão só**, não em cartões soltos (ver Candidaturas). Cada item tem os mesmos campos; cartão solto quebra o alinhamento das colunas e o olho perde a capacidade de comparar.
+- **No detalhe, rótulo em cima do valor** (`.det-campo`): o rótulo responde "o que é isso" antes de a pessoa deduzir pelo conteúdo.
+- **A barra inferior do mobile é FLUTUANTE** (`bottom: 10px + safe-area`, laterais soltas, cantos arredondados). Colada embaixo ela encosta na área do gesto do iOS e no indicador do Android, e esconde o fim da página. O item ativo ganha **pílula**, não só cor: em fundo translúcido a cor sozinha não diz onde você está.
+
 ## Frontend — armadilhas
 - **`npm run lint` roda no CI e é a ÚNICA rede contra erro de render.** `npm test` cobre lógica pura do backend e `npm run prova` cobre a API: **nenhum dos dois monta um componente React**. Um erro de render passa por build, por teste e pela prova real, e só aparece na tela de quem abriu o app. Foi assim que `configurado`, usado quatro linhas antes de ser declarado no Dashboard, chegou em produção e quebrou o app **para todo mundo que estivesse logado** (deslogado funcionava: o Dashboard nem monta).
 - A config (`frontend/eslint.config.js`) liga **só regra que pega erro real** (`no-use-before-define`, `no-undef`, `no-dupe-keys`, `rules-of-hooks`). Formatação e `no-unused-vars` ficam **fora** de propósito: sem o plugin do React o unused-vars não enxerga uso em JSX e acusa todo componente importado — e lint que grita à toa ensina a ignorar o lint inteiro.

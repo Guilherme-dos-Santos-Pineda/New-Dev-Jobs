@@ -263,12 +263,19 @@ export default function EmailSettings() {
                             <div className="row" style={{ alignItems: 'center', marginBottom: 7 }}>
                                 <label style={{ margin: 0 }}>Corpo do email</label>
                                 <div className="spacer" />
-                                <button type="button" className="fmt-btn" title="Negrito (**texto**)" onClick={() => wrapFormat('**')}><i className="ti ti-bold" /></button>
-                                <button type="button" className="fmt-btn" title="Itálico (*texto*)" onClick={() => wrapFormat('*')}><i className="ti ti-italic" /></button>
+                                <button type="button" className="fmt-btn b" title="Negrito — envolve a seleção com **" onClick={() => wrapFormat('**')}>B</button>
+                                <button type="button" className="fmt-btn i" title="Itálico — envolve a seleção com *" onClick={() => wrapFormat('*')}>I</button>
                             </div>
                             <textarea ref={bodyRef} className="input mono" rows={14} value={body}
                                 onFocus={() => (activeField.current = 'body')}
                                 onChange={(e) => setBody(e.target.value)} style={{ resize: 'vertical', lineHeight: 1.6 }} />
+                            {/* Sem esta linha os dois botões B/I são a única pista de
+                                que o corpo aceita formatação — e um botão sem legenda
+                                não ensina ninguém. */}
+                            <div className="hint">
+                                Selecione um trecho e use <b>B</b> ou <i>I</i>. Também dá para escrever
+                                {' '}<code>**negrito**</code> e <code>*itálico*</code> na mão. Linha em branco separa parágrafos.
+                            </div>
                         </div>
 
                     </div>

@@ -92,6 +92,7 @@ const EN = {
         'Picked today from the {n} remote jobs in Brazil in our database. The list changes daily.',
     'remoto': 'remote',
     'detalhes': 'details',
+    '{n} já saíram daqui porque você se candidatou.': '{n} already left this list because you applied.',
     'Esta vaga não trouxe descrição.': 'This job came without a description.',
     'Email e telefone do recrutador ficam ocultos — quem envia sua candidatura é a plataforma.':
         'The recruiter’s email and phone stay hidden — the platform is what sends your application.',

@@ -230,6 +230,10 @@ try {
 
         // COTA: o teto e a cota diaria do plano, limitada a 7.
         checa(d.maxCandidaturas <= 7, 'o teto por lote e no maximo 7', `veio ${d.maxCandidaturas}`);
+        // Conta nova nao enviou nada, entao nada saiu da lista dela.
+        checa(d.jaEnviadas === 0, 'conta nova ve a lista inteira', `${d.jaEnviadas} sumiram`);
+        checa((d.vagas || []).every((v) => v.applied === undefined),
+            'a lista nao carrega mais flag de "enviado" (vaga enviada simplesmente sai)');
         checa(d.limiteDiario === 7, 'conta free tem cota diaria de 7', `veio ${d.limiteDiario}`);
         checa(d.maxCandidaturas === 7 && d.usadoHoje === 0, 'conta nova pode usar os 7 do dia',
             `max=${d.maxCandidaturas} usado=${d.usadoHoje}`);

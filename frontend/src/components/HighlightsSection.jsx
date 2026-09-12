@@ -18,6 +18,10 @@ import { useT } from '../lib/i18n.jsx';
 // A lista muda uma vez por dia (não a cada recarga): quem olhou de manhã e
 // voltou à tarde precisa ver a mesma coisa.
 //
+// Vaga enviada SAI da lista — inclusive enquanto ainda está na fila, porque o
+// envio leva 60–120s por item e deixá-la visível nesse intervalo faz a pessoa
+// marcar de novo o que acabou de mandar.
+//
 // O post pronto para o LinkedIn NÃO mora aqui: é material de divulgação, vive na
 // tela do admin (`AdminPromoPost`). Esta seção é do usuário.
 
@@ -42,7 +46,6 @@ export default function HighlightsSection({ onQueued }) {
     const vagas = data?.vagas || [];
     const maximo = data?.maxCandidaturas ?? 0;
     const limiteDiario = data?.limiteDiario ?? 7;
-    const disponiveis = vagas.filter((v) => !v.applied);
     const semCota = maximo === 0;
 
     function alternar(id) {
@@ -86,6 +89,7 @@ export default function HighlightsSection({ onQueued }) {
             <p className="muted" style={{ fontSize: 12, marginTop: 0, marginBottom: 14 }}>
                 {t('Selecionadas hoje entre as {n} vagas remotas do Brasil na base. A lista muda todo dia.',
                     { n: (data.totalRemotas || 0).toLocaleString('pt-BR') })}
+                {data.jaEnviadas > 0 && ` ${t('{n} já saíram daqui porque você se candidatou.', { n: data.jaEnviadas })}`}
             </p>
 
             {vagas.map((v) => (
@@ -94,7 +98,7 @@ export default function HighlightsSection({ onQueued }) {
                         <input
                             type="checkbox"
                             checked={marcadas.has(v.id)}
-                            disabled={v.applied || enviando || semCota}
+                            disabled={enviando || semCota}
                             onChange={() => alternar(v.id)}
                             aria-label={t('selecionar vaga')}
                         />
@@ -106,7 +110,6 @@ export default function HighlightsSection({ onQueued }) {
                                 {v.level ? ` · ${NIVEL_LABEL[v.level]}` : ''} · {t('remoto')}
                             </div>
                         </div>
-                        {v.applied && <span className="badge ok">{t('enviado')}</span>}
                         <button type="button" className="btn ghost sm"
                             onClick={() => setAberta(aberta === v.id ? null : v.id)}>
                             <i className={`ti ti-chevron-${aberta === v.id ? 'up' : 'down'}`} />
@@ -144,7 +147,7 @@ export default function HighlightsSection({ onQueued }) {
                 <div className="spacer" />
                 <button
                     className="btn primary sm"
-                    disabled={!marcadas.size || enviando || !disponiveis.length || semCota}
+                    disabled={!marcadas.size || enviando || semCota}
                     onClick={candidatar}
                 >
                     <i className={`ti ti-${enviando ? 'loader-2' : 'send'}`} /> {enviando ? t('enviando…') : t('candidatar-se')}

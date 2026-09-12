@@ -40,15 +40,22 @@ router.get('/', requireAuth, async (req, res) => {
     const { post, ...publico } = await doDia();
     const querPost = req.query.post === '1' && ehAdmin(req.user);
 
-    // Quais dessas o usuário já enviou: sem isso o botão "candidatar-se" some
-    // depois do envio só quando a página é recarregada, e a pessoa clica de novo
-    // achando que não funcionou.
+    // Vaga que o usuário já mandou SAI da lista dele. A lista do dia é a mesma
+    // para todos; o que muda por pessoa é o que ela já resolveu.
+    //
+    // Conta como resolvida também a que está NA FILA: o envio leva 60–120s por
+    // item, e deixá-la visível nesse intervalo faz a pessoa marcar de novo a vaga
+    // que acabou de mandar. O servidor recusaria, mas o certo é ela nem ver.
     const ids = publico.vagas.map((v) => v.id);
-    const enviadas = ids.length
-        ? (await sql`select "JobId" from "Applications" where "UserId" = ${req.user.Id} and "JobId" = any(${ids}::bigint[])`)
-            .map((r) => Number(r.JobId))
-        : [];
-    const jaEnviadas = new Set(enviadas);
+    const resolvidas = ids.length
+        ? new Set((await sql`
+            select "JobId" from "Applications"
+            where "UserId" = ${req.user.Id} and "JobId" = any(${ids}::bigint[])
+            union
+            select "JobId" from "SendQueue"
+            where "UserId" = ${req.user.Id} and "Status" = 'queued' and "JobId" = any(${ids}::bigint[])
+          `).map((r) => Number(r.JobId)))
+        : new Set();
 
     // Quanto ainda cabe hoje. A tela precisa disso ANTES de a pessoa escolher:
     // deixar marcar 7 para depois dizer "você já enviou 5 hoje" é fazer o usuário
@@ -56,9 +63,14 @@ router.get('/', requireAuth, async (req, res) => {
     const usage = await planUsage(req.user.Id, req.user.Plan);
     const podeEnviar = Math.max(0, Math.min(MAX_CANDIDATURAS, usage.remainingToday));
 
+    const vagas = publico.vagas.filter((v) => !resolvidas.has(v.id));
+
     res.json({
         ...publico,
-        vagas: publico.vagas.map((v) => ({ ...v, applied: jaEnviadas.has(v.id) })),
+        vagas,
+        // Quantas sumiram por já terem sido enviadas — a tela explica o encolhimento
+        // da lista em vez de a pessoa achar que vaga some sozinha.
+        jaEnviadas: publico.vagas.length - vagas.length,
         maxCandidaturas: podeEnviar,
         limiteDiario: usage.dailyLimit,
         usadoHoje: usage.usedToday,

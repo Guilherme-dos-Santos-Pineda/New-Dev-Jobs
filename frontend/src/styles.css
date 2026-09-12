@@ -802,6 +802,44 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .spark { margin-top: 10px; height: 34px; }
 .spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
+/* ============================================
+   Painel: hierarquia dos números
+   ============================================ */
+/* Oito cartões idênticos não formam um painel, formam uma lista. Quando tudo
+   tem o mesmo peso visual, nada foi priorizado: "Envios restantes hoje" (que
+   decide o que a pessoa faz agora) ficava do mesmo tamanho de "Tempo
+   economizado" (que ela só lê). Aqui os três acionáveis são cartões grandes e o
+   resto vira uma faixa de contexto, lida de relance. */
+.painel-numeros { margin-bottom: 20px; }
+.kpi-primarios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.kpi-primarios + .kpi-faixa { margin-top: 14px; }
+.kpi-forte { min-height: 152px; padding: 18px 20px; }
+.kpi-forte .kpi-label { font-size: 12.5px; color: var(--color-text); }
+.kpi-forte .kpi-num { font-size: 38px; margin-top: 14px; }
+.kpi-forte .kpi-foot { padding-top: 12px; }
+
+/* Cor do ícone como informação, não decoração: acento é o padrão, verde é
+   resultado acumulado, âmbar é "acabou a cota de hoje". */
+.kpi-ico.ok { background: var(--color-success-bg); color: var(--color-success); }
+.kpi-ico.warn { background: var(--color-warn-bg); color: var(--color-warn); }
+
+/* Barra da cota diária: "190" sozinho não diz nada sem a proporção do total. */
+.kpi-barra { height: 6px; border-radius: 999px; background: var(--color-bg-secondary); overflow: hidden; margin-top: 14px; }
+.kpi-barra span { display: block; height: 100%; border-radius: 999px; background: var(--grad-accent); }
+
+/* Faixa de contexto. O separador é o `gap` de 1px sobre o fundo do cartão:
+   assim a linha continua certa quando as células quebram para outra fila, o que
+   um `border-right` não consegue. */
+.kpi-faixa {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px; padding: 0; overflow: hidden; background: var(--color-border-light);
+}
+.kpi-cel { background: var(--color-surface); padding: 14px 15px; }
+.kpi-cel-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--color-text-secondary); font-weight: 500; }
+.kpi-cel-label i { font-size: 14px; color: var(--color-text-tertiary); }
+.kpi-cel-num { font-family: 'IBM Plex Mono', monospace; font-size: 21px; font-weight: 500; letter-spacing: -0.6px; margin-top: 7px; line-height: 1; }
+.kpi-cel-sub { font-size: 11.5px; color: var(--color-text-tertiary); margin-top: 5px; }
+
 /* Card de destaque (próxima melhor oportunidade) */
 .feature-card { background: var(--grad-accent); color: #fff; border: none; box-shadow: var(--glow-accent); }
 .feature-card .muted, .feature-card .kpi-label { color: rgba(255,255,255,0.85); }
@@ -914,6 +952,15 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     .row > .card { flex: 1 1 100% !important; min-width: 0 !important; }
     /* grids de stats/cards com colunas fixas inline → no máx. 2 colunas */
     .stats-grid, .cards-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    /* Três cartões grandes lado a lado não cabem: empilham. */
+    .kpi-primarios { grid-template-columns: 1fr; }
+    .kpi-forte { min-height: 0; }
+    .kpi-forte .kpi-num { font-size: 32px; }
+    /* Duas colunas fixas no celular. Com número ímpar de células a última
+       ficaria sozinha ao lado de um vazio, que lê como célula quebrada, então
+       ela ocupa a fila inteira. */
+    .kpi-faixa { grid-template-columns: repeat(2, 1fr); }
+    .kpi-cel:last-child:nth-child(odd) { grid-column: span 2; }
     /* cabeçalho de página empilha (título + ação) */
     .page-head.row { flex-direction: column; align-items: stretch; }
     .page-head.row .btn { width: 100%; justify-content: center; }

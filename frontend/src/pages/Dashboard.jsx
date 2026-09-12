@@ -76,21 +76,36 @@ export default function Dashboard() {
     const configurado = !!profile?.areas?.length && !!profile?.skills?.length
         && !!profile?.hasCv && !!user?.googleConnected;
 
-    // Antes de a configuração terminar, mostramos só os números da BASE — os
+    // Antes de a configuração terminar, mostramos só os números da BASE, os
     // pessoais são todos zero e uma parede de zeros lê como "não funciona", bem na
     // hora em que a pessoa está decidindo se vale continuar. Os da base fazem o
     // trabalho contrário: provam que existe vaga de verdade esperando.
-    const todosKpis = m ? [
-        { base: true, label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}`, spark: data.sparkJobs },
+    //
+    // Oito cartões iguais não são um painel, são uma lista: se tudo tem o mesmo
+    // peso, nada foi priorizado. Os três que mudam o que a pessoa FAZ agora ficam
+    // grandes; os de contexto viram uma faixa compacta, que se lê de relance.
+    const kpisFortes = m ? (configurado ? [
+        {
+            label: t('Envios restantes hoje'), icon: 'ti-gauge', tom: m.remainingToday === 0 ? 'warn' : '',
+            value: nf(m.remainingToday), sub: `${t('de')} ${nf(m.dailyLimit)} ${t('do plano')}`,
+            // Proporção, não só número: "190" não diz nada sem saber de quanto.
+            barra: m.dailyLimit ? (m.dailyLimit - m.remainingToday) / m.dailyLimit : 0,
+        },
         { label: t('Vagas compatíveis'), icon: 'ti-checklist', value: nf(m.compatible), sub: t('prontas para enviar') },
-        { base: true, label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
-        { base: true, label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
-        { label: t('Currículos enviados'), icon: 'ti-send', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} ${t('na semana')}`, spark: data.sparkSent, color: 'var(--color-success)' },
+        { label: t('Currículos enviados'), icon: 'ti-send', tom: 'ok', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} ${t('na semana')}`, spark: data.sparkSent, color: 'var(--color-success)' },
+    ] : [
+        { label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}`, spark: data.sparkJobs },
+        { label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
+        { label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
+    ]) : [];
+
+    const kpisContexto = (m && configurado) ? [
+        { label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}` },
+        { label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
+        { label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
         { label: t('Match acima de 90%'), icon: 'ti-target', value: nf(m.matchesAbove90), sub: `${t('match médio')} ${m.avgMatch}%` },
         { label: t('Tempo economizado'), icon: 'ti-clock-bolt', value: fmtSaved(m.timeSavedMin), sub: t('pela automação') },
-        { label: t('Envios restantes hoje'), icon: 'ti-gauge', value: nf(m.remainingToday), sub: `${t('de')} ${nf(m.dailyLimit)} ${t('do plano')}` },
     ] : [];
-    const kpis = configurado ? todosKpis : todosKpis.filter((k) => k.base);
 
     const q = queue;
     const qActive = q && (q.active || q.pending > 0);
@@ -137,17 +152,44 @@ export default function Dashboard() {
             <CommunityBanner style={{ marginBottom: 22 }} />
 
             {/* KPIs */}
-            <div className="cards-grid" style={{ marginBottom: 20 }}>
-                {loading
-                    ? [0, 1, 2, 3, 4, 5, 6, 7].map((i) => <div key={i} className="skeleton sk-card" />)
-                    : kpis.map((k, i) => (
-                        <div key={k.label} className={`card kpi fade-in d${(i % 6) + 1}`}>
-                            <div className="kpi-top"><span className="kpi-ico"><i className={`ti ${k.icon}`} /></span><span className="kpi-label">{k.label}</span></div>
-                            <div className="kpi-num">{k.value}</div>
-                            {k.spark ? <div className="spark"><Sparkline data={k.spark} color={k.color} /></div> : null}
-                            <div className="kpi-foot"><span className="muted">{k.sub}</span></div>
+            <div className="painel-numeros">
+                {loading ? (
+                    <>
+                        <div className="kpi-primarios">
+                            {[0, 1, 2].map((i) => <div key={i} className="skeleton sk-card" style={{ height: 152 }} />)}
                         </div>
-                    ))}
+                        <div className="skeleton sk-card" style={{ height: 88 }} />
+                    </>
+                ) : (
+                    <>
+                        <div className="kpi-primarios">
+                            {kpisFortes.map((k, i) => (
+                                <div key={k.label} className={`card kpi kpi-forte fade-in d${i + 1}`}>
+                                    <div className="kpi-top">
+                                        <span className={`kpi-ico ${k.tom || ''}`}><i className={`ti ${k.icon}`} /></span>
+                                        <span className="kpi-label">{k.label}</span>
+                                    </div>
+                                    <div className="kpi-num">{k.value}</div>
+                                    {k.barra != null ? <div className="kpi-barra"><span style={{ width: `${Math.round(k.barra * 100)}%` }} /></div> : null}
+                                    {k.spark ? <div className="spark"><Sparkline data={k.spark} color={k.color} /></div> : null}
+                                    <div className="kpi-foot"><span className="muted">{k.sub}</span></div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {kpisContexto.length > 0 && (
+                            <div className="card kpi-faixa fade-in d3">
+                                {kpisContexto.map((k) => (
+                                    <div key={k.label} className="kpi-cel">
+                                        <span className="kpi-cel-label"><i className={`ti ${k.icon}`} /> {k.label}</span>
+                                        <div className="kpi-cel-num">{k.value}</div>
+                                        <div className="kpi-cel-sub">{k.sub}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
 
             {/* Skeleton dos blocos abaixo dos KPIs (espelha o layout final) */}

@@ -1006,3 +1006,28 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     .tpl-acoes .btn { flex: 1; justify-content: center; }
     .tpl-acoes .spacer { display: none; }
 }
+
+/* ============================================
+   Vagas em destaque (dashboard)
+   ============================================ */
+.destaque { border-bottom: 1px solid var(--color-border-light); }
+.destaque:last-of-type { border-bottom: 0; }
+.destaque-linha { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.destaque-titulo { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.destaque-detalhe {
+    padding: 12px 14px 14px; margin: 0 0 12px 44px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light); border-radius: var(--radius);
+}
+/* A descrição vem do post do recrutador: quebras de linha e emoji fazem parte do
+   sentido, então preservamos. max-height evita que um anúncio de 4 mil caracteres
+   empurre as outras 9 vagas para fora da tela. */
+.destaque-texto {
+    margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--color-text-secondary);
+    white-space: pre-wrap; max-height: 260px; overflow-y: auto;
+}
+@media (max-width: 560px) {
+    .destaque-linha { flex-wrap: wrap; }
+    .destaque-linha > .btn { margin-left: auto; }
+    .destaque-detalhe { margin-left: 0; }
+}

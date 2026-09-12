@@ -95,6 +95,37 @@ export function nivelPeloTitulo(titulo = '') {
     return null;
 }
 
+// =========================
+// Descrição SEM os dados de contato
+// =========================
+// A descrição da vaga é o texto do post do recrutador, e é nele que mora o email
+// para onde a candidatura vai. Mostrá-la crua transformaria a plataforma numa
+// lista de contatos: a pessoa copiaria o email e mandaria por fora, e o
+// recrutador passaria a receber currículo sem nenhum dos filtros que existem
+// aqui. É o mesmo motivo pelo qual `/jobs/matches` nunca devolve o campo Email.
+//
+// O que sai: email, telefone, link (inclusive encurtado) e as formas
+// "nome (arroba) dominio" que as pessoas usam para driblar detector.
+// O que fica: o texto da vaga, que é o que interessa para decidir se serve.
+const PADROES_DE_CONTATO = [
+    [/[\w.+-]+\s*(?:@|\(\s*arroba\s*\)|\[\s*arroba\s*\]|\s+arroba\s+)\s*[\w-]+(?:\s*\.\s*[\w.]+)+/gi, '[contato oculto]'],
+    [/\bhttps?:\/\/\S+/gi, '[link oculto]'],
+    [/\b(?:www\.|linkedin\.com|bit\.ly|wa\.me|api\.whatsapp\.com)\S*/gi, '[link oculto]'],
+    // O 9 do celular aparece solto no meio: "(11) 9 4111-4322", "(11) 9.6402-5258".
+    // Sem tolerar o separador depois dele, esses dois formatos passavam batido —
+    // encontrados em descricoes reais da base, nao imaginados.
+    [/(?:\+?55\s*)?\(?\d{2}\)?[\s.-]*(?:9[\s.-]*)?\d{4}[\s.-]?\d{4}\b/g, '[telefone oculto]'],
+];
+
+export function semContato(texto) {
+    let t = String(texto || '').trim();
+    if (!t) return null;
+    for (const [re, troca] of PADROES_DE_CONTATO) t = t.replace(re, troca);
+    // Espaços e linhas em branco em excesso vêm do próprio post do LinkedIn.
+    t = t.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    return t || null;
+}
+
 /** Uma linha do post. Sem email, sem link: o destino é o site. */
 export function linhaDaVaga(v) {
     const partes = [v.title];
@@ -145,12 +176,16 @@ export function montarPost(vagas, { total } = {}) {
  */
 export async function destaquesDoDia({ quantas = QUANTAS, hoje = new Date() } = {}) {
     const urna = await sql`
-        select "Id", "JobTitle", "Company", "Area", "Level", "CreatedAt"
+        select "Id", "JobTitle", "Company", "Area", "Level", "CreatedAt",
+               "Location", "Salary", "Skills", "Mods", "Description"
         from "Jobs"
         where "IsBR" is true
           and "Area" is not null and "Area" not in ('nontech', 'other')
           and jsonb_exists("Mods", 'remoto')
-          and "Email" is not null and "Email" <> ''
+          -- "Email" as vezes vem com lixo da extracao (a palavra "Gmail", por
+          -- exemplo). Essa vaga passaria no "nao vazio" e o envio falharia depois,
+          -- ja com o lugar na lista do dia gasto.
+          and "Email" like '%@%.%'
           and "JobTitle" is not null and length(trim("JobTitle")) >= 8
         order by "CreatedAt" desc, "Id" desc
         limit ${TAMANHO_DA_URNA}`;
@@ -159,7 +194,10 @@ export async function destaquesDoDia({ quantas = QUANTAS, hoje = new Date() } = 
         select count(*)::int as n from "Jobs"
         where "IsBR" is true and "Area" is not null and "Area" <> 'nontech'
           and jsonb_exists("Mods", 'remoto')
-          and "Email" is not null and "Email" <> ''`;
+          -- "Email" as vezes vem com lixo da extracao (a palavra "Gmail", por
+          -- exemplo). Essa vaga passaria no "nao vazio" e o envio falharia depois,
+          -- ja com o lugar na lista do dia gasto.
+          and "Email" like '%@%.%'`;
 
     // Uma empresa não pode ocupar a lista inteira: um recrutador que postou 15
     // vagas no mesmo dia viraria o post todo, e aí não é uma lista do mercado, é
@@ -184,6 +222,12 @@ export async function destaquesDoDia({ quantas = QUANTAS, hoje = new Date() } = 
 
         limpas.push({
             id: Number(j.Id), title: titulo,
+            location: j.Location || null,
+            salary: j.Salary || null,
+            skills: Array.isArray(j.Skills) ? j.Skills.slice(0, 12) : [],
+            mods: j.Mods || null,
+            // A descrição vai SEM os dados de contato — ver semContato().
+            details: semContato(j.Description),
             // O nome de pessoa é descartado AQUI, não só na hora de montar o
             // texto: assim ele também não aparece na lista do dashboard.
             company: empresa && pareceNomeDeEmpresa(empresa) && !pareceNomeDePessoa(empresa) ? empresa : null,

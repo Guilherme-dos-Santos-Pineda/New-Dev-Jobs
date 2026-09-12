@@ -91,13 +91,21 @@ const EN = {
     'Selecionadas hoje entre as {n} vagas remotas do Brasil na base. A lista muda todo dia.':
         'Picked today from the {n} remote jobs in Brazil in our database. The list changes daily.',
     'remoto': 'remote',
+    'detalhes': 'details',
+    'Esta vaga não trouxe descrição.': 'This job came without a description.',
+    'Email e telefone do recrutador ficam ocultos — quem envia sua candidatura é a plataforma.':
+        'The recruiter’s email and phone stay hidden — the platform is what sends your application.',
+    'Você pode enviar para até {n} vagas hoje.': 'You can apply to up to {n} jobs today.',
+    '{n} vaga(s) na fila. Restam {r} envios grátis hoje.': '{n} job(s) queued. {r} free sends left today.',
+    'Você já usou seus {n} envios grátis de hoje. A cota volta amanhã.':
+        'You have used your {n} free sends for today. The quota resets tomorrow.',
+    '{n} de {max} selecionadas — usa seus envios grátis de hoje.':
+        '{n} of {max} selected — uses your free sends for today.',
+    'Marque até {max} vagas. O envio usa sua cota grátis diária ({d}/dia).':
+        'Pick up to {max} jobs. Sending uses your free daily quota ({d}/day).',
     'candidatar-se': 'apply',
     'enviando…': 'sending…',
     'selecionar vaga': 'select job',
-    'Máximo de {n} vagas por vez.': 'At most {n} jobs at a time.',
-    '{n} de {max} selecionadas': '{n} of {max} selected',
-    'Marque até {max} vagas para enviar seu currículo.': 'Pick up to {max} jobs to send your CV to.',
-    '{n} vaga(s) na fila de envio': '{n} job(s) queued for sending',
     'Nenhuma candidatura ainda.': 'No applications yet.',
     'Últimos feedbacks': 'Latest feedback',
     'ver todos / avaliar': 'see all / rate',

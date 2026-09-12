@@ -218,17 +218,47 @@ try {
         checa(forcado.data?.post === undefined, 'SEGURANCA: usuario comum pedindo ?post=1 tambem nao recebe',
             forcado.data?.post ? 'VAZOU' : '');
 
-        // Candidatura a partir dos destaques: teto de 10 e trava de plano.
+        // DETALHES: a descricao e o texto do post do recrutador, onde mora o email
+        // de contato. Conferido contra os dados reais, nao contra fixture.
+        const comDetalhe = (d.vagas || []).filter((v) => v.details);
+        checa(comDetalhe.length > 0, 'as vagas trazem detalhes para o usuario ler', `${comDetalhe.length} de ${d.vagas?.length}`);
+        const vazando = comDetalhe.filter((v) => /[\w.+-]+@[\w-]+\.[\w.]+/.test(v.details));
+        checa(vazando.length === 0, 'SEGURANCA: nenhum email de contato nos detalhes',
+            vazando.length ? String(vazando[0].details.match(/[\w.+-]+@[\w-]+\.[\w.]+/)) : '');
+        const comLink = comDetalhe.filter((v) => /https?:\/\//i.test(v.details));
+        checa(comLink.length === 0, 'SEGURANCA: nenhum link externo nos detalhes');
+
+        // COTA: o teto e a cota diaria do plano, limitada a 7.
+        checa(d.maxCandidaturas <= 7, 'o teto por lote e no maximo 7', `veio ${d.maxCandidaturas}`);
+        checa(d.limiteDiario === 7, 'conta free tem cota diaria de 7', `veio ${d.limiteDiario}`);
+        checa(d.maxCandidaturas === 7 && d.usadoHoje === 0, 'conta nova pode usar os 7 do dia',
+            `max=${d.maxCandidaturas} usado=${d.usadoHoje}`);
+
+        // As travas de envio continuam valendo — inclusive para o plano free, que
+        // AGORA tem acesso a esta tela (decisao do dono: sao os mesmos 7/dia).
         const idsParaEnviar = (d.vagas || []).slice(0, 3).map((v) => v.id);
         const app1 = await api(vivas[0].token, 'POST', '/highlights/apply', { jobIds: idsParaEnviar });
-        checa(app1.status === 402, 'plano free NAO se candidata a dedo pelos destaques', `HTTP ${app1.status}`);
-        checa(app1.data?.upgrade === true, 'a recusa avisa que e caso de upgrade');
+        checa(app1.status === 403, 'sem Google conectado o envio pelos destaques e barrado', `HTTP ${app1.status}`);
+        checa(/google/i.test(app1.data?.error || ''), 'a recusa diz o que falta', app1.data?.error);
 
-        const demais = await api(vivas[0].token, 'POST', '/highlights/apply', { jobIds: Array.from({ length: 11 }, (_, i) => i + 1) });
-        checa(demais.status === 400, 'pedir mais de 10 vagas e recusado antes de qualquer envio', `HTTP ${demais.status}`);
+        const demais = await api(vivas[0].token, 'POST', '/highlights/apply', { jobIds: Array.from({ length: 8 }, (_, i) => i + 1) });
+        checa(demais.status === 400, 'pedir mais de 7 vagas e recusado antes de qualquer envio', `HTTP ${demais.status}`);
 
         const vazio = await api(vivas[0].token, 'POST', '/highlights/apply', { jobIds: [] });
         checa(vazio.status === 400, 'lista vazia e recusada', `HTTP ${vazio.status}`);
+
+        // Envio duplicado e impossivel por CONSTRUCAO, nao por checagem de codigo:
+        // ha indice unico (UserId, JobId) em "Applications".
+        const [uq] = await sql`
+            select 1 as ok from pg_indexes
+            where tablename = 'Applications' and indexdef like '%UNIQUE%'
+              and indexdef like '%UserId%' and indexdef like '%JobId%'`;
+        checa(!!uq, 'indice UNIQUE (UserId, JobId) existe — candidatura repetida nao entra no banco');
+        const [dups] = await sql`
+            select count(*)::int n from (
+                select "UserId","JobId" from "Applications" group by 1,2 having count(*) > 1
+            ) x`;
+        checa(dups.n === 0, 'nenhuma candidatura duplicada na base', `${dups.n} pares repetidos`);
 
         // Agora pelo lado do admin: o post TEM de vir, e o conteudo dele e
         // conferido contra os dados reais. Testar isso com conta comum passaria
@@ -254,7 +284,7 @@ try {
         }
         await sql`update "Users" set "Role" = 'user' where "Id" = ${adminDeMentira.id}`; // Role e not null, default 'user'
 
-        console.log(`   ${d.vagas?.length} vagas · ${d.totalRemotas} remotas na base · post so para admin (${post?.length ?? 0} caracteres)`);
+        console.log(`   ${d.vagas?.length} vagas · ${d.totalRemotas} remotas na base · post so para admin (${post?.length ?? 0} chars) · teto ${d.maxCandidaturas}/dia`);
     }
 
     // ---------- 7. DASHBOARD ----------

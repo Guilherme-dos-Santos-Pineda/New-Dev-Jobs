@@ -8,15 +8,15 @@ import { assertCanSend } from '../services/sender.js';
 import { enqueue, getStatus } from '../services/sendQueue.js';
 import { planUsage } from '../services/usage.js';
 import { invalidateMatches } from '../services/jobsQuery.js';
-import { planOf } from '../config/plans.js';
 import sql from '../lib/sql.js';
 
 const router = Router();
 
-// Teto de vagas por candidatura em lote a partir dos destaques. A lista do dia
-// tem 10; este limite existe para o endpoint não virar uma porta de envio em
-// massa caso a lista cresça um dia.
-const MAX_CANDIDATURAS = 10;
+// Teto por lote. Vale o que sobrou da COTA DIÁRIA do plano, limitada a este
+// valor — 7 é a cota do plano free, então na prática o free manda no máximo os 7
+// de sempre. O teto fixo existe para o endpoint não virar porta de envio em massa
+// se um dia a lista crescer ou um plano tiver cota alta.
+const MAX_CANDIDATURAS = 7;
 
 const ehAdmin = (u) => config.isAdminEmail(u?.Email) || u?.Role === 'admin';
 
@@ -50,10 +50,18 @@ router.get('/', requireAuth, async (req, res) => {
         : [];
     const jaEnviadas = new Set(enviadas);
 
+    // Quanto ainda cabe hoje. A tela precisa disso ANTES de a pessoa escolher:
+    // deixar marcar 7 para depois dizer "você já enviou 5 hoje" é fazer o usuário
+    // descobrir a regra errando.
+    const usage = await planUsage(req.user.Id, req.user.Plan);
+    const podeEnviar = Math.max(0, Math.min(MAX_CANDIDATURAS, usage.remainingToday));
+
     res.json({
         ...publico,
         vagas: publico.vagas.map((v) => ({ ...v, applied: jaEnviadas.has(v.id) })),
-        maxCandidaturas: MAX_CANDIDATURAS,
+        maxCandidaturas: podeEnviar,
+        limiteDiario: usage.dailyLimit,
+        usadoHoje: usage.usedToday,
         // O post pronto é ferramenta de DIVULGAÇÃO, não de uso do produto: quem
         // publica em nome da plataforma é quem responde por ela. Mandar o texto
         // para todo usuário seria distribuir material de marketing assinado pela
@@ -70,13 +78,10 @@ const applySchema = z.object({
 
 // POST /api/highlights/apply { jobIds } — candidata-se a vagas da lista do dia
 router.post('/apply', requireAuth, validate(applySchema), async (req, res) => {
-    // Escolher vaga a vaga É seleção manual, o recurso que separa o plano free do
-    // pago. Liberar aqui daria de graça, por uma porta lateral, exatamente o que
-    // o /queue cobra — e quem paga pelo Starter perceberia.
-    if (!planOf(req.user.Plan).allowManual) {
-        return res.status(402).json({ error: 'Candidatar-se a vagas escolhidas a dedo é um recurso dos planos pagos.', upgrade: true });
-    }
-
+    // Os destaques ficam ABERTOS ao plano free de propósito (decisão do dono):
+    // são no máximo 7 por dia, a mesma cota grátis do envio automático, e saem do
+    // mesmo contador. A seleção manual ampla — escolher entre as centenas de vagas
+    // do feed, em /queue — continua sendo o recurso pago.
     try { await assertCanSend(req.user.Id); }
     catch (e) { return res.status(e.status || 403).json({ error: e.message }); }
 
@@ -113,7 +118,15 @@ router.post('/apply', requireAuth, validate(applySchema), async (req, res) => {
     const jobIds = novas.slice(0, Math.min(usage.remainingToday, MAX_CANDIDATURAS));
     const status = await enqueue(req.user.Id, jobIds);
     invalidateMatches(req.user.Id); // o feed do usuário muda: estas vagas saem dele
-    res.status(201).json({ queued: jobIds.length, ignoradas: pedidos.length - jobIds.length, status });
+    res.status(201).json({
+        queued: jobIds.length,
+        ignoradas: pedidos.length - jobIds.length,
+        // A tela avisa que isto consome a cota grátis do dia — e o numero tem de
+        // vir do servidor, senão a UI e o contador real divergem.
+        restanteHoje: Math.max(0, usage.remainingToday - jobIds.length),
+        limiteDiario: usage.dailyLimit,
+        status,
+    });
 });
 
 export default router;

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     pareceNomeDePessoa, pareceNomeDeEmpresa, nivelPeloTitulo, linhaDaVaga, montarPost, janelaDoDia,
+    semContato,
 } from '../services/highlights.js';
 
 // O texto gerado aqui vai para uma rede social PÚBLICA, com o nome do usuário
@@ -86,4 +87,46 @@ test('a janela nunca passa do fim da urna', () => {
         assert.ok(i >= 0 && i < 120, `janela fora da urna: ${i}`);
     }
     assert.equal(janelaDoDia(new Date(), 5, 10), 0, 'urna menor que a janela comeca do zero');
+});
+
+// A descricao da vaga e o texto do post do recrutador, e e nele que mora o email
+// para onde a candidatura vai. Mostrar cru transformaria a plataforma numa lista
+// de contatos: a pessoa copiaria o email e mandaria por fora, e o recrutador
+// receberia curriculo sem nenhum dos filtros que existem aqui.
+//
+// Os casos abaixo sao FORMAS REAIS encontradas nas descricoes de producao, nao
+// imaginadas — dois deles (o 9 do celular separado por espaco e por ponto)
+// passavam batido na primeira versao.
+test('semContato tira email, telefone e link', () => {
+    const casos = [
+        ['Envie para vagas@empresa.com.br hoje', /vagas@empresa/],
+        ['Contato: rh (arroba) empresa.com', /arroba/],
+        ['Chame no Whats: (11) 9 4111-4322', /4111/],
+        ['WhatsApp (11) 9.6402-5258', /6402/],
+        ['Celular (11) 94111-4322', /94111/],
+        ['Veja https://bit.ly/vaga123', /bit\.ly/],
+        ['Perfil em www.linkedin.com/in/fulano', /linkedin\.com/],
+    ];
+    for (const [entrada, naoPode] of casos) {
+        const saida = semContato(entrada);
+        assert.ok(!naoPode.test(saida), `vazou em "${entrada}" -> "${saida}"`);
+    }
+});
+
+test('semContato preserva o texto da vaga', () => {
+    const t = semContato('Buscamos dev Node.js senior. 100% remoto, CLT + beneficios.');
+    assert.ok(t.includes('Node.js') && t.includes('remoto') && t.includes('CLT'));
+});
+
+// "SQL Server 2012-2016" tem a mesma cara de um telefone para um regex ingenuo.
+// Apagar o requisito tecnico da vaga seria pior que mostrar demais.
+test('semContato nao confunde versao/intervalo de ano com telefone', () => {
+    const t = semContato('Plataforma .NET (C#) - SQL Server 2012-2016 - Intermediario');
+    assert.ok(t.includes('2012-2016'), `apagou o intervalo de ano: "${t}"`);
+});
+
+test('semContato aguenta vazio e nulo', () => {
+    assert.equal(semContato(''), null);
+    assert.equal(semContato(null), null);
+    assert.equal(semContato(undefined), null);
 });

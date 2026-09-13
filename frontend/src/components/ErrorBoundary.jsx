@@ -43,10 +43,10 @@ export default class ErrorBoundary extends Component {
         // bundle, a folha de estilo pode nem ter chegado.
         const caixa = {
             minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: '#0A0E14', color: '#F0F6FC', fontFamily: 'system-ui, sans-serif', padding: 24,
+            background: '#16171A', color: '#E9E9E4', fontFamily: 'system-ui, sans-serif', padding: 24,
         };
         const botao = {
-            background: '#185FA5', color: '#fff', border: 0, borderRadius: 10,
+            background: '#E9E9E4', color: '#16171A', border: 0, borderRadius: 3,
             padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
         };
         return (

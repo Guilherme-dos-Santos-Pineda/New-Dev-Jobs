@@ -11,7 +11,7 @@
     <meta name="keywords" content="candidaturas automáticas, vagas para desenvolvedor, vagas dev, emprego programador, vagas no LinkedIn, automação de candidatura, vagas de TI Brasil, enviar currículo automático">
     <meta name="author" content="newdevjobs">
     <meta name="robots" content="index, follow, max-image-preview:large">
-    <meta name="theme-color" content="#0A0E14">
+    <meta name="theme-color" content="#F2F3EE">
     <link rel="canonical" href="https://newdevjobs.xyz/">
     <link rel="alternate" hreflang="pt-BR" href="https://newdevjobs.xyz/">
     <link rel="alternate" hreflang="en" href="https://newdevjobs.xyz/en/">
@@ -66,10 +66,10 @@
          Versão do Tabler fixada (@2.47.0) para cache longo (era @latest). -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
     </noscript>
 
@@ -78,58 +78,58 @@
        VARIÁVEIS – LIGHT MODE (padrão)
        ============================================ */
     :root {
-        --color-bg: #FFFFFF;
-        --color-bg-secondary: #F6F8FB;
+        --color-bg: #F2F3EE;
+        --color-bg-secondary: #E9EAE3;
         --color-surface: #FFFFFF;
-        --color-text: #0D1117;
-        --color-text-secondary: #4A5568;
-        --color-text-tertiary: #8B9CB0;
-        --color-border: #D1D9E6;
-        --color-border-light: #ECF0F5;
-        --color-border-medium: #E2E8F0;
+        --color-text: #141719;
+        --color-text-secondary: #5B6169;
+        --color-text-tertiary: #8A9099;
+        --color-border: #C6CABE;
+        --color-border-light: #DBDED5;
+        --color-border-medium: #CFD3C8;
 
-        --color-accent: #185FA5;
-        --color-accent-dark: #0C447C;
-        --color-accent-darker: #042C53;
-        --color-accent-light: #E6F1FB;
-        --color-accent-muted: #85B7EB;
+        --color-accent: #123C55;
+        --color-accent-dark: #0C2B3D;
+        --color-accent-darker: #071C29;
+        --color-accent-light: #E4E9EC;
+        --color-accent-muted: #6E8DA0;
         --color-on-accent: #FFFFFF;
 
-        --color-featured-bg: #F0F7FF;
-        --color-featured-text: #0C447C;
-        --color-featured-price: #042C53;
-        --color-featured-muted: #185FA5;
+        --color-featured-bg: #FFFFFF;
+        --color-featured-text: #141719;
+        --color-featured-price: #141719;
+        --color-featured-muted: #5B6169;
 
-        --color-cta-bar-text: #FFFFFF;
-        --color-cta-bar-sub: #BBD4F0;
+        --color-cta-bar-text: #F2F3EE;
+        --color-cta-bar-sub: #8A9099;
 
-        --color-btn-white-bg: #FFFFFF;
-        --color-btn-white-text: #042C53;
+        --color-btn-white-bg: #F2F3EE;
+        --color-btn-white-text: #141719;
 
-        --color-logo-mark-icon: #FFFFFF;
-        --color-pop-badge-text: #FFFFFF;
+        --color-logo-mark-icon: #F2F3EE;
+        --color-pop-badge-text: #F2F3EE;
 
-        --color-hero-tag: #185FA5;
-        --color-feat-icon: #185FA5;
-        --color-step-number: #FFFFFF;
-        --color-check: #185FA5;
+        --color-hero-tag: #5B6169;
+        --color-feat-icon: #8A9099;
+        --color-step-number: #F2F3EE;
+        --color-check: #1F6B45;
 
         /* Gradientes / brand */
-        --grad-accent: linear-gradient(135deg, #1F6FEB 0%, #0C447C 100%);
-        --grad-cta: linear-gradient(135deg, #0C447C 0%, #042C53 60%, #021d38 100%);
-        --grad-text: linear-gradient(135deg, #2B8AF0 0%, #0C447C 100%);
-        --glow-accent: 0 18px 40px -16px rgba(31,111,235,0.55);
+        --grad-accent: var(--color-accent);
+        --grad-cta: #141719;
+        --grad-text: var(--color-text);
+        --glow-accent: none;
 
         /* Sombras / radius */
-        --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
-        --shadow-md: 0 4px 16px -4px rgba(15,23,42,0.10);
-        --shadow-lg: 0 24px 60px -24px rgba(15,23,42,0.22);
-        --radius-sm: 8px;
-        --radius: 14px;
-        --radius-lg: 20px;
-        --radius-xl: 28px;
+        --shadow-sm: none;
+        --shadow-md: 0 1px 3px rgba(20,23,25,0.10);
+        --shadow-lg: 0 10px 34px -14px rgba(20,23,25,0.30);
+        --radius-sm: 2px;
+        --radius: 3px;
+        --radius-lg: 3px;
+        --radius-xl: 4px;
 
-        --hero-glow: radial-gradient(60% 60% at 75% 25%, rgba(31,111,235,0.10) 0%, rgba(31,111,235,0) 70%);
+        --hero-glow: none;
         --transition-theme: 0.25s ease;
     }
 
@@ -137,52 +137,52 @@
        DARK MODE
        ============================================ */
     html.dark {
-        --color-bg: #0A0E14;
-        --color-bg-secondary: #11161F;
-        --color-surface: #11161F;
-        --color-text: #F0F6FC;
-        --color-text-secondary: #9DA7B3;
-        --color-text-tertiary: #6E7681;
-        --color-border: #2A3240;
-        --color-border-light: #20262F;
-        --color-border-medium: #30363D;
+        --color-bg: #16171A;
+        --color-bg-secondary: #1D1F22;
+        --color-surface: #1D1F22;
+        --color-text: #E9E9E4;
+        --color-text-secondary: #A0A29C;
+        --color-text-tertiary: #74766F;
+        --color-border: #3C3F44;
+        --color-border-light: #2A2C30;
+        --color-border-medium: #33363A;
 
-        --color-accent: #58A6FF;
-        --color-accent-dark: #1F6FEB;
-        --color-accent-darker: #0A1929;
-        --color-accent-light: #0D2137;
-        --color-accent-muted: #8BC4FF;
-        --color-on-accent: #FFFFFF;
+        --color-accent: #8FBDD6;
+        --color-accent-dark: #6A9BB5;
+        --color-accent-darker: #22303A;
+        --color-accent-light: #222D34;
+        --color-accent-muted: #5E7A89;
+        --color-on-accent: #14171A;
 
-        --color-featured-bg: #0E1B2E;
-        --color-featured-text: #C9D6E5;
-        --color-featured-price: #58A6FF;
-        --color-featured-muted: #8BC4FF;
+        --color-featured-bg: #1D1F22;
+        --color-featured-text: #E9E9E4;
+        --color-featured-price: #E9E9E4;
+        --color-featured-muted: #A0A29C;
 
-        --color-cta-bar-text: #F0F6FC;
-        --color-cta-bar-sub: #8BC4FF;
+        --color-cta-bar-text: #E9E9E4;
+        --color-cta-bar-sub: #8FA5B1;
 
-        --color-btn-white-bg: #F0F6FC;
-        --color-btn-white-text: #0A1929;
+        --color-btn-white-bg: #E9E9E4;
+        --color-btn-white-text: #16171A;
 
-        --color-logo-mark-icon: #FFFFFF;
-        --color-pop-badge-text: #FFFFFF;
+        --color-logo-mark-icon: #F2F3EE;
+        --color-pop-badge-text: #16171A;
 
-        --color-hero-tag: #58A6FF;
-        --color-feat-icon: #58A6FF;
-        --color-step-number: #FFFFFF;
-        --color-check: #58A6FF;
+        --color-hero-tag: #A0A29C;
+        --color-feat-icon: #74766F;
+        --color-step-number: #16171A;
+        --color-check: #6BAE86;
 
-        --grad-accent: linear-gradient(135deg, #2B8AF0 0%, #1F6FEB 100%);
-        --grad-cta: linear-gradient(135deg, #0E1B2E 0%, #0A1320 60%, #05080f 100%);
-        --grad-text: linear-gradient(135deg, #8BC4FF 0%, #2B8AF0 100%);
-        --glow-accent: 0 18px 40px -16px rgba(43,138,240,0.5);
+        --grad-accent: var(--color-accent);
+        --grad-cta: #101113;
+        --grad-text: var(--color-text);
+        --glow-accent: none;
 
-        --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-        --shadow-md: 0 4px 18px -4px rgba(0,0,0,0.5);
-        --shadow-lg: 0 24px 60px -24px rgba(0,0,0,0.7);
+        --shadow-sm: none;
+        --shadow-md: 0 1px 3px rgba(0,0,0,0.45);
+        --shadow-lg: 0 10px 34px -14px rgba(0,0,0,0.7);
 
-        --hero-glow: radial-gradient(60% 60% at 75% 25%, rgba(43,138,240,0.16) 0%, rgba(43,138,240,0) 70%);
+        --hero-glow: none;
     }
 
     /* Transição suave de tema */
@@ -200,7 +200,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         color: var(--color-text);
         background: var(--color-bg);
         background-image: var(--hero-glow);
@@ -212,6 +212,11 @@
     .mono { font-family: 'IBM Plex Mono', monospace; }
 
     .lp { max-width: 1200px; margin: 0 auto; }
+
+    /* Archivo tem largura e contraste proprios: o titulo deixa de parecer o de
+       qualquer outro site. Inter saiu justamente por ser a fonte padrao de
+       tudo que e gerado. */
+    h1, h2, h3, .sec-h, .plan-price, .tick-n { font-family: 'Archivo', 'Public Sans', sans-serif; }
 
     /* ============================================
        NAV
@@ -235,7 +240,7 @@
     .logo-mark {
         width: 30px; height: 30px;
         background: var(--grad-accent);
-        border-radius: 9px;
+        border-radius: 3px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -293,14 +298,14 @@
         color: var(--color-text);
         cursor: pointer;
         width: 38px; height: 38px;
-        border-radius: 10px;
+        border-radius: 3px;
         font-size: 16px;
         display: flex; align-items: center; justify-content: center;
         line-height: 1;
     }
     .theme-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
     .lang-switch {
-        display: inline-flex; height: 38px; border-radius: 10px; overflow: hidden;
+        display: inline-flex; height: 38px; border-radius: 3px; overflow: hidden;
         border: 1px solid var(--color-border); background: var(--color-bg-secondary);
     }
     .lang-switch .lang-opt {
@@ -325,8 +330,8 @@
         font-weight: 500;
         cursor: pointer;
         border: none;
-        border-radius: 10px;
-        font-family: 'Inter', sans-serif;
+        border-radius: 3px;
+        font-family: inherit;
         letter-spacing: 0.2px;
         white-space: nowrap;
         box-shadow: var(--glow-accent);
@@ -346,19 +351,9 @@
         margin: 0 auto;
     }
     .hero-copy { text-align: left; }
-    .hero-tag {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 11px;
-        color: var(--color-hero-tag);
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        margin-bottom: 22px;
-        display: flex; align-items: center; gap: 8px;
-    }
-    .hero-tag::before { content: ''; width: 26px; height: 1.5px; background: var(--color-hero-tag); }
     .hero h1 {
-        font-size: clamp(34px, 5vw, 56px);
-        font-weight: 300;
+        font-size: clamp(32px, 4.6vw, 52px);
+        font-weight: 700;
         line-height: 1.06;
         letter-spacing: -2.5px;
         color: var(--color-text);
@@ -389,13 +384,13 @@
         font-weight: 600;
         cursor: pointer;
         border: none;
-        border-radius: 12px;
-        font-family: 'Inter', sans-serif;
+        border-radius: 3px;
+        font-family: inherit;
         display: inline-flex; align-items: center; gap: 8px;
         white-space: nowrap;
         box-shadow: var(--glow-accent);
     }
-    .btn-p:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .btn-p:hover { filter: brightness(1.12); }
     .btn-s {
         background: var(--color-surface);
         color: var(--color-text);
@@ -404,11 +399,11 @@
         font-weight: 500;
         cursor: pointer;
         border: 1px solid var(--color-border);
-        border-radius: 12px;
-        font-family: 'Inter', sans-serif;
+        border-radius: 3px;
+        font-family: inherit;
         white-space: nowrap;
     }
-    .btn-s:hover { border-color: var(--color-accent); color: var(--color-accent); transform: translateY(-2px); }
+    .btn-s:hover { border-color: var(--color-text); }
     .hero-note {
         font-size: 12.5px;
         color: var(--color-text-tertiary);
@@ -418,66 +413,29 @@
     }
     .hero-note i { color: var(--color-check); font-size: 14px; }
 
-    /* Hero visual / mockup */
+    /* Hero visual: o email que o sistema envia */
     .hero-visual {
-        position: relative;
         background: var(--color-surface);
-        border: 1px solid var(--color-border-light);
-        border-radius: var(--radius-xl);
-        padding: 18px;
-        box-shadow: var(--shadow-lg);
-    }
-    .hv-bar { display: flex; align-items: center; gap: 6px; padding: 4px 4px 14px; }
-    .hv-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--color-border); }
-    .hv-dot:nth-child(1){ background:#ff5f57; } .hv-dot:nth-child(2){ background:#febc2e; } .hv-dot:nth-child(3){ background:#28c840; }
-    .hv-title { margin-left: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--color-text-tertiary); }
-    .hv-card {
-        border: 1px solid var(--color-border-light);
+        border: 1px solid var(--color-border);
         border-radius: var(--radius);
-        padding: 14px 16px;
-        margin-bottom: 12px;
-        background: var(--color-bg);
+        box-shadow: var(--shadow-md);
+        align-self: start;
     }
-    .hv-card:last-child { margin-bottom: 0; }
-    .hv-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .hv-company { display: flex; align-items: center; gap: 10px; }
-    .hv-avatar {
-        width: 34px; height: 34px; border-radius: 9px;
-        background: var(--grad-accent);
-        display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 16px;
+    .carta-cab { padding: 16px 18px; border-bottom: 1px solid var(--color-border-light); }
+    .carta-cab div {
+        font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+        color: var(--color-text-secondary); display: flex; gap: 10px; line-height: 1.7;
     }
-    .hv-role { font-size: 13px; font-weight: 600; color: var(--color-text); }
-    .hv-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
-    .hv-score {
-        font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
-        color: var(--color-check);
-        background: var(--color-accent-light);
-        padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+    .carta-cab b { color: var(--color-text-tertiary); font-weight: 400; width: 62px; flex-shrink: 0; }
+    .carta-cab .carta-assunto, .carta-cab .carta-assunto b { color: var(--color-text); }
+    .carta-corpo { padding: 16px 18px; font-size: 13.5px; color: var(--color-text-secondary); line-height: 1.7; }
+    .carta-pe {
+        padding: 11px 18px; border-top: 1px solid var(--color-border-light);
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--color-text-tertiary);
     }
-    .hv-status {
-        display: flex; align-items: center; gap: 7px;
-        font-size: 12px; color: var(--color-text-secondary); margin-top: 10px;
-    }
-    .hv-status i { color: var(--color-check); font-size: 15px; }
-    .hv-sent {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 11px; font-family: 'IBM Plex Mono', monospace;
-        color: #28c840;
-    }
-    .hv-float {
-        position: absolute;
-        right: -14px; bottom: -16px;
-        background: var(--grad-accent);
-        color: #fff;
-        border-radius: var(--radius);
-        padding: 12px 16px;
-        box-shadow: var(--glow-accent);
-        display: flex; align-items: center; gap: 10px;
-    }
-    .hv-float i { font-size: 20px; }
-    .hv-float-n { font-size: 17px; font-weight: 700; line-height: 1; }
-    .hv-float-l { font-size: 10px; opacity: 0.85; }
+    .carta-ok { color: var(--color-check); display: inline-flex; align-items: center; gap: 5px; }
+    .carta-ok i { font-size: 14px; }
 
     /* ============================================
        TICKER / STATS
@@ -509,17 +467,14 @@
        SECTIONS GENÉRICAS
        ============================================ */
     .section { padding: 64px 24px; max-width: 980px; margin: 0 auto; }
-    .sec-eyebrow {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-        color: var(--color-accent); margin-bottom: 14px;
-    }
     .sec-h {
-        font-size: clamp(26px, 4.5vw, 36px);
-        font-weight: 300; letter-spacing: -1.5px; line-height: 1.15;
+        font-size: clamp(25px, 4vw, 34px);
+        font-weight: 700; letter-spacing: -1.1px; line-height: 1.12;
         color: var(--color-text); margin-bottom: 10px;
     }
-    .sec-h strong { font-weight: 600; }
+    /* O <strong> nao muda mais nada: a enfase vem do tamanho, nao de um peso
+       diferente no meio da frase, que era o molde do titulo gerado. */
+    .sec-h strong { font-weight: inherit; }
     .sec-sub {
         font-size: 14.5px; color: var(--color-text-secondary);
         line-height: 1.7; font-weight: 400; max-width: 440px; margin-bottom: 40px;
@@ -542,7 +497,7 @@
         font-size: 13px; font-weight: 500;
         color: var(--color-step-number);
         background: var(--grad-accent);
-        width: 36px; height: 36px; border-radius: 10px;
+        width: 36px; height: 36px; border-radius: 3px;
         display: flex; align-items: center; justify-content: center;
         margin-bottom: 18px;
         box-shadow: var(--glow-accent);
@@ -553,32 +508,16 @@
     /* ============================================
        FEATURE GRID
        ============================================ */
-    .feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; border-top: 1px solid var(--color-border); }
     .feat {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border-light);
-        border-radius: var(--radius-lg);
-        padding: 26px 22px;
-        box-shadow: var(--shadow-sm);
-        position: relative;
-        overflow: hidden;
+        display: grid; grid-template-columns: 22px 1fr; gap: 14px;
+        padding: 20px 0; border-bottom: 1px solid var(--color-border-light);
+        align-items: start;
     }
-    .feat::before {
-        content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
-        background: var(--grad-accent); transform: scaleX(0); transform-origin: left;
-        transition: transform .25s ease;
-    }
-    .feat:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--color-border-medium); transition: transform .2s ease, box-shadow .2s ease; }
-    .feat:hover::before { transform: scaleX(1); }
-    .feat-ico {
-        width: 42px; height: 42px; border-radius: 12px;
-        background: var(--color-accent-light);
-        display: flex; align-items: center; justify-content: center;
-        margin-bottom: 16px;
-    }
-    .feat-ico i { font-size: 20px; color: var(--color-feat-icon); }
-    .feat h3 { font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 7px; }
-    .feat p { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.6; font-weight: 400; }
+    .feat-ico { grid-row: span 2; display: flex; justify-content: center; padding-top: 1px; }
+    .feat-ico i { font-size: 18px; color: var(--color-feat-icon); }
+    .feat h3 { font-size: 14.5px; font-weight: 600; color: var(--color-text); margin-bottom: 5px; letter-spacing: -0.2px; }
+    .feat p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.65; font-weight: 400; }
 
     /* ============================================
        PLANS
@@ -592,12 +531,12 @@
         display: flex; flex-direction: column;
         box-shadow: var(--shadow-sm);
     }
-    .plan:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); transition: transform .2s ease, box-shadow .2s ease; }
+    .plan:hover { border-color: var(--color-border); }
+    /* O plano do meio se destaca por CONTORNO de tinta, nao por um bloco azul
+       no meio da tabela: o bloco colorido tirava a comparacao lado a lado. */
     .plan.featured {
-        background: var(--color-featured-bg);
-        border: 1.5px solid var(--color-accent-dark);
-        box-shadow: var(--glow-accent), var(--shadow-lg);
-        transform: scale(1.03);
+        background: var(--color-surface);
+        border: 1px solid var(--color-text);
     }
     .plan.featured:hover { transform: scale(1.03) translateY(-3px); }
     .plan-label {
@@ -606,7 +545,7 @@
         color: var(--color-text-secondary); margin-bottom: 14px;
     }
     .plan.featured .plan-label { color: var(--color-featured-text); }
-    .plan-price { font-size: 34px; font-weight: 300; letter-spacing: -1.5px; color: var(--color-text); line-height: 1; }
+    .plan-price { font-size: 34px; font-weight: 600; letter-spacing: -1.5px; color: var(--color-text); line-height: 1; }
     .plan.featured .plan-price { color: var(--color-featured-price); }
     .plan-per { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 400; margin-top: 5px; margin-bottom: 22px; }
     .plan.featured .plan-per { color: var(--color-featured-muted); }
@@ -621,9 +560,9 @@
     .plan-btn {
         width: 100%; padding: 12px;
         font-size: 13.5px; font-weight: 600; cursor: pointer;
-        font-family: 'Inter', sans-serif;
+        font-family: inherit;
         border: 1px solid var(--color-border);
-        border-radius: 12px;
+        border-radius: 3px;
         background: var(--color-surface);
         color: var(--color-text);
         margin-top: auto;
@@ -633,7 +572,7 @@
         background: var(--grad-accent); color: var(--color-on-accent);
         border-color: transparent; box-shadow: var(--glow-accent);
     }
-    .plan.featured .plan-btn:hover { color: var(--color-on-accent); filter: brightness(1.06); transform: translateY(-1px); }
+    .plan.featured .plan-btn:hover { color: var(--color-on-accent); filter: brightness(1.12); }
     .pop-badge {
         display: inline-block;
         background: var(--grad-accent);
@@ -658,7 +597,7 @@
     .privacy > i {
         font-size: 22px; color: var(--color-check); flex-shrink: 0; margin-top: 2px;
         background: var(--color-accent-light); width: 44px; height: 44px;
-        border-radius: 12px; display: flex; align-items: center; justify-content: center;
+        border-radius: 3px; display: flex; align-items: center; justify-content: center;
     }
     .privacy h3 { font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 12px; }
     .privacy ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
@@ -676,23 +615,18 @@
         position: relative; overflow: hidden;
         box-shadow: var(--shadow-lg);
     }
-    .cta-bar::after {
-        content: ''; position: absolute; inset: 0;
-        background: radial-gradient(50% 80% at 50% 0%, rgba(88,166,255,0.22) 0%, rgba(88,166,255,0) 70%);
-        pointer-events: none;
-    }
     .cta-bar > * { position: relative; z-index: 1; }
-    .cta-bar h2 { font-size: clamp(24px, 4vw, 32px); font-weight: 300; letter-spacing: -1.2px; color: var(--color-cta-bar-text); margin-bottom: 10px; }
-    .cta-bar h2 strong { font-weight: 600; }
+    .cta-bar h2 { font-size: clamp(24px, 4vw, 32px); font-weight: 700; letter-spacing: -1.2px; color: var(--color-cta-bar-text); margin-bottom: 10px; }
+    .cta-bar h2 strong { font-weight: inherit; }
     .cta-bar p { font-size: 14.5px; color: var(--color-cta-bar-sub); font-weight: 400; margin-bottom: 26px; }
     .btn-white {
         background: var(--color-btn-white-bg);
         color: var(--color-btn-white-text);
         padding: 13px 30px; font-size: 14.5px; font-weight: 600;
-        cursor: pointer; border: none; border-radius: 12px;
-        font-family: 'Inter', sans-serif; box-shadow: var(--shadow-md);
+        cursor: pointer; border: none; border-radius: 3px;
+        font-family: inherit; box-shadow: var(--shadow-md);
     }
-    .btn-white:hover { transform: translateY(-2px); }
+    .btn-white:hover { filter: brightness(0.94); }
 
     /* ============================================
        FOOTER
@@ -713,7 +647,7 @@
     @media (max-width: 900px) {
         .hero { grid-template-columns: 1fr; gap: 40px; padding: 52px 20px 44px; max-width: 640px; }
         .hero-visual { max-width: 460px; }
-        .feat-grid { grid-template-columns: repeat(2, 1fr); }
+        .feat-grid { grid-template-columns: 1fr 1fr; }
         .steps { grid-template-columns: 1fr; }
     }
 
@@ -752,7 +686,6 @@
         .feat-grid { grid-template-columns: 1fr; }
         .ticker { grid-template-columns: 1fr 1fr; padding: 18px; }
         .privacy { flex-direction: column; padding: 22px; gap: 14px; }
-        .hv-float { right: 8px; }
         /* Nav compacta: botão "entrar" vira só ícone p/ caber sem overflow */
         nav { padding: 12px; gap: 8px; }
         .nav-actions { gap: 8px; }
@@ -799,8 +732,7 @@
         <!-- ==================== HERO ==================== -->
         <section class="hero">
             <div class="hero-copy">
-                <div class="hero-tag" data-i18n="hero.tag">automação de candidaturas</div>
-                <h1 data-i18n="hero.h1">Sua candidatura<br>chega <span class="accent">antes</span><br>de <strong>todo mundo.</strong></h1>
+                <h1 data-i18n="hero.h1">Sua candidatura chega<br>antes de todo mundo.</h1>
                 <p class="hero-sub" data-i18n="hero.sub">Monitoramos posts de recrutadores no LinkedIn e extraímos as vagas que trazem email de contato. Seu currículo é enviado automaticamente, da sua própria conta Gmail.</p>
                 <div class="hero-actions">
                     <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-rocket" aria-hidden="true"></i> começar grátis</button>
@@ -809,50 +741,22 @@
                 <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 candidaturas grátis por dia. Sem cartão de crédito.</p>
             </div>
 
-            <!-- Mockup do produto -->
-            <div class="hero-visual" aria-hidden="true">
-                <div class="hv-bar">
-                    <span class="hv-dot"></span><span class="hv-dot"></span><span class="hv-dot"></span>
-                    <span class="hv-title">newdevjobs · dashboard</span>
+            <!-- O produto manda um EMAIL. Entao o hero mostra o email, e nao um
+                 print de navegador falso com bolinhas de semaforo. -->
+            <div class="hero-visual">
+                <div class="carta-cab">
+                    <div><b data-i18n="carta.de">De</b> <span>voce@gmail.com</span></div>
+                    <div><b data-i18n="carta.para">Para</b> <span>ana.recrutadora@acmetech.com.br</span></div>
+                    <div class="carta-assunto"><b data-i18n="carta.assunto">Assunto</b> <span data-i18n="carta.assunto.v">Candidatura · Dev Backend Pleno .NET</span></div>
                 </div>
-                <div class="hv-card">
-                    <div class="hv-row">
-                        <div class="hv-company">
-                            <div class="hv-avatar"><i class="ti ti-building"></i></div>
-                            <div>
-                                <div class="hv-role">Dev Backend Pleno · .NET</div>
-                                <div class="hv-meta" data-i18n="hv.meta1">Acme Tech · remoto · há 3 min</div>
-                            </div>
-                        </div>
-                        <span class="hv-score" data-i18n="hv.score1">match 94%</span>
-                    </div>
-                    <div class="hv-status" data-i18n="hv.status">
-                        <i class="ti ti-circle-check"></i>
-                        <span>currículo enviado · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via seu Gmail</span></span>
-                    </div>
+                <div class="carta-corpo" data-i18n="carta.corpo">
+                    Oi Ana, vi seu post sobre a vaga de backend .NET. Trabalho com C# e SQL Server
+                    há 4 anos, com foco em API e performance de query. Anexei meu currículo em PDF.
                 </div>
-                <div class="hv-card">
-                    <div class="hv-row">
-                        <div class="hv-company">
-                            <div class="hv-avatar"><i class="ti ti-building"></i></div>
-                            <div>
-                                <div class="hv-role">Engenheiro Node.js</div>
-                                <div class="hv-meta" data-i18n="hv.meta2">Nimbus · híbrido · há 11 min</div>
-                            </div>
-                        </div>
-                        <span class="hv-score" data-i18n="hv.score2">match 88%</span>
-                    </div>
-                    <div class="hv-status" data-i18n="hv.status2">
-                        <i class="ti ti-circle-check"></i>
-                        <span>currículo enviado · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via seu Gmail</span></span>
-                    </div>
-                </div>
-                <div class="hv-float">
-                    <i class="ti ti-send"></i>
-                    <div>
-                        <div class="hv-float-n">+12</div>
-                        <div class="hv-float-l" data-i18n="hv.float">enviadas hoje</div>
-                    </div>
+                <div class="carta-pe">
+                    <span class="carta-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> <span data-i18n="carta.enviado">enviado 08:41</span></span>
+                    <span data-i18n="carta.anexo">anexo curriculo.pdf</span>
+                    <span data-i18n="carta.match">match 94%</span>
                 </div>
             </div>
         </section>
@@ -869,7 +773,6 @@
 
         <!-- ==================== COMO FUNCIONA ==================== -->
         <section class="section" id="como-funciona">
-            <div class="sec-eyebrow" data-i18n="how.eyebrow">como funciona</div>
             <h2 class="sec-h" data-i18n="how.h">Configure uma vez.<br><strong>Candidate-se sempre.</strong></h2>
             <p class="sec-sub" data-i18n="how.sub">Três passos e sua busca entra em piloto automático.</p>
             <div class="steps">
@@ -899,7 +802,6 @@
 
         <!-- ==================== FUNCIONALIDADES ==================== -->
         <section class="section">
-            <div class="sec-eyebrow" data-i18n="feat.eyebrow">funcionalidades</div>
             <h2 class="sec-h" data-i18n="feat.h"><strong>Tudo</strong> que você precisa<br>para se destacar.</h2>
             <div class="feat-grid">
                 <div class="feat">
@@ -927,7 +829,6 @@
 
         <!-- ==================== PREÇOS ==================== -->
         <section class="section" id="precos">
-            <div class="sec-eyebrow" data-i18n="price.eyebrow">preços</div>
             <h2 class="sec-h" data-i18n="price.h">Simples e<br><strong>transparente.</strong></h2>
             <p class="sec-sub" data-i18n="price.sub">Comece grátis. Faça upgrade quando precisar de mais.</p>
             <div class="plans">
@@ -1026,24 +927,23 @@
             'nav.pricing': 'pricing',
             'nav.docs': 'docs',
             'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">sign in</span>',
-            'hero.tag': 'job application automation',
-            'hero.h1': 'Your application<br>arrives <span class="accent">before</span><br><strong>everyone else.</strong>',
+            'hero.h1': 'Your application arrives<br>before everyone else.',
             'hero.sub': 'We monitor recruiter posts on LinkedIn and extract the jobs that include a contact email. Your resume is sent automatically, from your own Gmail account.',
             'hero.cta1': '<i class="ti ti-rocket" aria-hidden="true"></i> start free',
             'hero.cta2': 'see how it works',
             'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> 7 free applications per day. No credit card.',
-            'hv.meta1': 'Acme Tech · remote · 3 min ago',
-            'hv.score1': 'match 94%',
-            'hv.status': '<i class="ti ti-circle-check"></i> <span>resume sent · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via your Gmail</span></span>',
-            'hv.meta2': 'Nimbus · hybrid · 11 min ago',
-            'hv.score2': 'match 88%',
-            'hv.status2': '<i class="ti ti-circle-check"></i> <span>resume sent · <span class="hv-sent"><i class="ti ti-brand-gmail"></i> via your Gmail</span></span>',
-            'hv.float': 'sent today',
+            'carta.de': 'From',
+            'carta.para': 'To',
+            'carta.assunto': 'Subject',
+            'carta.assunto.v': 'Application · Backend Dev .NET',
+            'carta.corpo': 'Hi Ana, I saw your post about the backend .NET role. I have worked with C# and SQL Server for 4 years, focused on APIs and query performance. My resume is attached as a PDF.',
+            'carta.enviado': 'sent 08:41',
+            'carta.anexo': 'attachment resume.pdf',
+            'carta.match': 'match 94%',
             'tick.1': 'jobs/mo monitored',
             'tick.2': 'delivery rate',
             'tick.3': 'passwords stored',
             'tick.4': 'saved per month',
-            'how.eyebrow': 'how it works',
             'how.h': 'Set it up once.<br><strong>Apply forever.</strong>',
             'how.sub': 'Three steps and your search goes on autopilot.',
             'how.s1.h': 'Build your tech profile',
@@ -1052,7 +952,6 @@
             'how.s2.p': 'Authorize the send scope only. You appear as the sender to the recruiter. We never read your emails.',
             'how.s3.h': 'Get automatic applications',
             'how.s3.p': 'AI matches your profile to each job. Personalized emails are sent straight to the recruiter.',
-            'feat.eyebrow': 'features',
             'feat.h': '<strong>Everything</strong> you need<br>to stand out.',
             'feat.1.h': 'post scraping',
             'feat.1.p': 'Monitors recruiters on LinkedIn in real time. New posts with an email are captured within minutes.',
@@ -1062,7 +961,6 @@
             'feat.3.p': 'Sent from your account. The recruiter sees your name, not the name of a tool.',
             'feat.4.h': 'full dashboard',
             'feat.4.p': 'Track sends, matches and history. Pause, filter or adjust at any time.',
-            'price.eyebrow': 'pricing',
             'price.h': 'Simple and<br><strong>transparent.</strong>',
             'price.sub': 'Start free. Upgrade when you need more.',
             'price.free.per': 'free forever',

@@ -65,7 +65,7 @@ export default function Onboarding({ profile, user }) {
                 <div>
                     <h2>{t('Como o newdevjobs funciona')}</h2>
                     <p>
-                        {t('Todo dia a gente garimpa vagas que recrutadores publicam soltas. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.')}
+                        {t('A gente garimpa vagas que recrutadores publicam soltas no LinkedIn. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.')}
                     </p>
                 </div>
                 <div className="onb-prog">

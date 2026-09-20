@@ -52,7 +52,7 @@ const EN = {
 
     // --- Dashboard ---
     'Olá, {name}': 'Hi, {name}',
-    'Seu radar de oportunidades, em tempo real.': 'Your opportunity radar, in real time.',
+    'Seu radar de oportunidades.': 'Your opportunity radar.',
     'Procurar Vagas': 'Find jobs',
     'Vagas hoje': 'Jobs today',
     'Vagas compatíveis': 'Matching jobs',
@@ -95,8 +95,8 @@ const EN = {
 
     // Onboarding do primeiro acesso
     'Como o newdevjobs funciona': 'How newdevjobs works',
-    'Todo dia a gente garimpa vagas que recrutadores publicam soltas. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.':
-        'Every day we dig up jobs recruiters post loosely. many never reach any job board. You set it up once, and the system sends your resume to the matching ones, from your own Gmail.',
+    'A gente garimpa vagas que recrutadores publicam soltas no LinkedIn. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.':
+        'We dig up jobs that recruiters post loosely on LinkedIn. Many never reach any job board. You set it up once, and the system sends your resume to the matching ones, from your own Gmail.',
     '{n} passo(s) · ~{m} min': '{n} step(s) · ~{m} min',
     'Diga o que você faz': 'Tell us what you do',
     'Sua área e suas skills decidem quais vagas chegam até você, e quais nem aparecem.':

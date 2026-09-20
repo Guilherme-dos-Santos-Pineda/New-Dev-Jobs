@@ -115,7 +115,7 @@ export default function Dashboard() {
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
                     <h1>{t('Olá, {name}', { name: user?.name?.split(' ')[0] || 'dev' })}</h1>
-                    <p>{t('Seu radar de oportunidades, em tempo real.')}</p>
+                    <p>{t('Seu radar de oportunidades.')}</p>
                 </div>
                 <div className="spacer" />
                 <button className="btn primary" onClick={() => setSearchOpen(true)}>

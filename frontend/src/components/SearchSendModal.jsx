@@ -83,7 +83,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
                         <div className="search-pulse"><i className="ti ti-radar-2" /></div>
                         <h3 style={{ fontSize: 18, fontWeight: 600, marginTop: 18 }}>{t('Buscando vagas disponíveis')}</h3>
                         <p className="muted" style={{ marginTop: 8 }}>{t('Analisando oportunidades no banco de dados…')}</p>
-                        <p className="muted" style={{ marginTop: 4, fontSize: 12.5 }}>Analisamos milhares de vagas em tempo real no nosso banco de dados!</p>
+                        <p className="muted" style={{ marginTop: 4, fontSize: 12.5 }}>Comparamos seu perfil com as milhares de vagas que já estão na base.</p>
                     </div>
                 )}
 

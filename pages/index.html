@@ -604,6 +604,49 @@
     .privacy ul li { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 400; display: flex; align-items: center; gap: 9px; }
     .privacy ul li::before { content: ''; width: 5px; height: 5px; background: var(--color-check); border-radius: 50%; flex-shrink: 0; }
 
+    /* Bloco de confiança do hero. Vive ao lado do botão de propósito: a dúvida
+       sobre o Gmail aparece no momento do clique, e resposta que só existe na
+       documentação chega tarde. */
+    .hero-trust {
+        display: flex; gap: 12px; align-items: flex-start;
+        margin-top: 22px; padding: 14px 16px;
+        border: 1px solid var(--color-border); border-radius: var(--radius);
+        background: var(--color-surface); max-width: 460px;
+    }
+    .hero-trust > i { font-size: 19px; color: var(--color-check); flex-shrink: 0; margin-top: 1px; }
+    .hero-trust b { display: block; font-size: 13px; color: var(--color-text); margin-bottom: 3px; }
+    .hero-trust span { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.55; }
+
+    /* Contraste manual x automático */
+    .vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .vs-col {
+        border: 1px solid var(--color-border-light); border-radius: var(--radius);
+        padding: 22px 24px; background: var(--color-surface);
+        display: flex; flex-direction: column;
+    }
+    .vs-col-forte { border-color: var(--color-text); }
+    .vs-tag {
+        font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+        color: var(--color-text-tertiary); margin-bottom: 16px;
+    }
+    .vs-col-forte .vs-tag { color: var(--color-accent); }
+    .vs-lista { list-style: none; counter-reset: passo; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .vs-lista li {
+        counter-increment: passo; position: relative; padding-left: 26px;
+        font-size: 13px; color: var(--color-text-secondary); line-height: 1.5;
+    }
+    .vs-lista li::before {
+        content: counter(passo); position: absolute; left: 0; top: 0;
+        font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+        color: var(--color-text-tertiary);
+    }
+    .vs-col-forte .vs-lista li::before { color: var(--color-accent); }
+    .vs-fim {
+        margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--color-border-light);
+        font-size: 12.5px; color: var(--color-text-tertiary);
+    }
+    .vs-col-forte .vs-fim { color: var(--color-text); font-weight: 600; }
+
     /* ============================================
        CTA BAR
        ============================================ */
@@ -648,6 +691,7 @@
         .hero { grid-template-columns: 1fr; gap: 40px; padding: 52px 20px 44px; max-width: 640px; }
         .hero-visual { max-width: 460px; }
         .feat-grid { grid-template-columns: 1fr 1fr; }
+        .vs-grid { grid-template-columns: 1fr; }
         .steps { grid-template-columns: 1fr; }
     }
 
@@ -732,13 +776,23 @@
         <!-- ==================== HERO ==================== -->
         <section class="hero">
             <div class="hero-copy">
-                <h1 data-i18n="hero.h1">Sua candidatura chega<br>antes de todo mundo.</h1>
-                <p class="hero-sub" data-i18n="hero.sub">Monitoramos posts de recrutadores no LinkedIn e extraímos as vagas que trazem email de contato. Seu currículo é enviado automaticamente, da sua própria conta Gmail.</p>
+                <h1 data-i18n="hero.h1">Enquanto você trabalha,<br>suas candidaturas<br>continuam saindo.</h1>
+                <p class="hero-sub" data-i18n="hero.sub">Recrutadores publicam vagas soltas no LinkedIn, com email de contato no post. A gente encontra essas vagas, compara com o seu perfil e manda seu currículo pela sua própria conta Gmail.</p>
                 <div class="hero-actions">
-                    <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-rocket" aria-hidden="true"></i> começar grátis</button>
+                    <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-rocket" aria-hidden="true"></i> começar com 7 candidaturas grátis</button>
                     <button class="btn-s" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})" data-i18n="hero.cta2">ver como funciona</button>
                 </div>
-                <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 candidaturas grátis por dia. Sem cartão de crédito.</p>
+                <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 por dia, todo dia. Sem cartão de crédito.</p>
+
+                <!-- A objecao real nao e preco, e "isso vai ler meu email?". Ela
+                     precisa ser respondida ANTES do clique, nao na documentacao. -->
+                <div class="hero-trust">
+                    <i class="ti ti-lock" aria-hidden="true"></i>
+                    <div>
+                        <b data-i18n="trust.h">Seu Gmail continua seu.</b>
+                        <span data-i18n="trust.p">A conexão é pelo Google OAuth e pedimos uma permissão só, a de ENVIAR. Não conseguimos ler sua caixa de entrada, e sua senha nunca passa por aqui.</span>
+                    </div>
+                </div>
             </div>
 
             <!-- O produto manda um EMAIL. Entao o hero mostra o email, e nao um
@@ -764,10 +818,10 @@
         <!-- ==================== TICKER ==================== -->
         <div class="section" style="padding-top:0;">
             <div class="ticker">
-                <div class="tick-item"><span class="tick-n mono">45k+</span><span class="tick-l" data-i18n="tick.1">vagas/mês monitoradas</span></div>
-                <div class="tick-item"><span class="tick-n mono">92%</span><span class="tick-l" data-i18n="tick.2">taxa de entrega</span></div>
-                <div class="tick-item"><span class="tick-n mono">0</span><span class="tick-l" data-i18n="tick.3">senhas armazenadas</span></div>
-                <div class="tick-item"><span class="tick-n mono">−150h</span><span class="tick-l" data-i18n="tick.4">economizadas por mês</span></div>
+                <div class="tick-item"><span class="tick-n mono">5.546</span><span class="tick-l" data-i18n="tick.1">recrutadores monitorados</span></div>
+                <div class="tick-item"><span class="tick-n mono">7.826</span><span class="tick-l" data-i18n="tick.2">vagas com email de contato</span></div>
+                <div class="tick-item"><span class="tick-n mono">320</span><span class="tick-l" data-i18n="tick.3">candidaturas já enviadas</span></div>
+                <div class="tick-item"><span class="tick-n mono">0</span><span class="tick-l" data-i18n="tick.4">senhas armazenadas</span></div>
             </div>
         </div>
 
@@ -794,8 +848,42 @@
                     <span class="step-n mono">03</span>
                     <div class="step-body">
                         <h3 data-i18n="how.s3.h">Receba candidaturas automáticas</h3>
-                        <p data-i18n="how.s3.p">IA faz o matching entre seu perfil e a vaga. Emails personalizados são enviados direto para o recrutador.</p>
+                        <p data-i18n="how.s3.p">Cada vaga recebe uma nota de 0 a 100 comparando sua stack, senioridade, modalidade e palavras-chave com o anúncio. Só as compatíveis viram email, e o email sai da sua conta.</p>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== O QUE MUDA ==================== -->
+        <section class="section">
+            <h2 class="sec-h" data-i18n="vs.h">A maioria procura vagas.<br>Aqui a gente procura recrutador.</h2>
+            <p class="sec-sub" data-i18n="vs.sub">Boa parte das vagas de dev no Brasil nasce num post solto de recrutador, com o email no meio do texto. Elas não chegam a job board nenhum, e somem do feed em algumas horas.</p>
+
+            <div class="vs-grid">
+                <div class="vs-col">
+                    <div class="vs-tag" data-i18n="vs.antes">do jeito manual</div>
+                    <ol class="vs-lista">
+                        <li data-i18n="vs.a1">abrir o LinkedIn e rolar o feed</li>
+                        <li data-i18n="vs.a2">achar um post que ainda está aberto</li>
+                        <li data-i18n="vs.a3">ler tudo para ver se bate com você</li>
+                        <li data-i18n="vs.a4">garimpar o email no meio do texto</li>
+                        <li data-i18n="vs.a5">escrever o email e anexar o currículo</li>
+                        <li data-i18n="vs.a6">anotar em algum lugar que você mandou</li>
+                    </ol>
+                    <p class="vs-fim" data-i18n="vs.a.fim">Todo dia, para cada vaga.</p>
+                </div>
+
+                <div class="vs-col vs-col-forte">
+                    <div class="vs-tag" data-i18n="vs.depois">com o newdevjobs</div>
+                    <ol class="vs-lista">
+                        <li data-i18n="vs.d1">você configura o perfil uma vez</li>
+                        <li data-i18n="vs.d2">a gente varre os posts novos o dia todo</li>
+                        <li data-i18n="vs.d3">extrai a vaga e o email de contato</li>
+                        <li data-i18n="vs.d4">calcula a compatibilidade com o seu perfil</li>
+                        <li data-i18n="vs.d5">manda o currículo pelo seu Gmail</li>
+                        <li data-i18n="vs.d6">registra tudo no seu painel</li>
+                    </ol>
+                    <p class="vs-fim" data-i18n="vs.d.fim">Uma vez. Depois roda sozinho.</p>
                 </div>
             </div>
         </section>
@@ -811,8 +899,8 @@
                 </div>
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-cpu" aria-hidden="true"></i></div>
-                    <h3 data-i18n="feat.2.h">matching por IA</h3>
-                    <p data-i18n="feat.2.p">Score de compatibilidade entre seu perfil e a vaga. Só envia quando faz sentido.</p>
+                    <h3 data-i18n="feat.2.h">score de compatibilidade</h3>
+                    <p data-i18n="feat.2.p">Stack, senioridade, modalidade e palavras-chave viram uma nota de 0 a 100. Abaixo do seu corte, a vaga não vira email.</p>
                 </div>
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-mail-forward" aria-hidden="true"></i></div>
@@ -837,7 +925,7 @@
                     <div class="plan-price">R$0</div>
                     <div class="plan-per" data-i18n="price.free.per">para sempre grátis</div>
                     <ul class="plan-feats">
-                        <li data-i18n="price.free.1"><i class="ti ti-check" aria-hidden="true"></i>7 candidaturas por dia</li>
+                        <li data-i18n="price.free.1"><i class="ti ti-check" aria-hidden="true"></i>7 candidaturas por dia, cerca de 210 por mês</li>
                         <li data-i18n="price.free.2"><i class="ti ti-check" aria-hidden="true"></i>1 perfil de busca</li>
                         <li data-i18n="price.free.3"><i class="ti ti-check" aria-hidden="true"></i>matching básico</li>
                         <li data-i18n="price.free.4"><i class="ti ti-check" aria-hidden="true"></i>sem cartão de crédito</li>
@@ -927,11 +1015,11 @@
             'nav.pricing': 'pricing',
             'nav.docs': 'docs',
             'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">sign in</span>',
-            'hero.h1': 'Your application arrives<br>before everyone else.',
-            'hero.sub': 'We monitor recruiter posts on LinkedIn and extract the jobs that include a contact email. Your resume is sent automatically, from your own Gmail account.',
-            'hero.cta1': '<i class="ti ti-rocket" aria-hidden="true"></i> start free',
+'hero.h1': 'While you work,<br>your applications<br>keep going out.',
+            'hero.sub': 'Recruiters post one-off job openings on LinkedIn, with the contact email inside the post. We find those openings, compare them to your profile and send your resume from your own Gmail account.',
+            'hero.cta1': '<i class="ti ti-rocket" aria-hidden="true"></i> start with 7 free applications',
             'hero.cta2': 'see how it works',
-            'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> 7 free applications per day. No credit card.',
+            'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> 7 a day, every day. No credit card.',
             'carta.de': 'From',
             'carta.para': 'To',
             'carta.assunto': 'Subject',
@@ -940,10 +1028,30 @@
             'carta.enviado': 'sent 08:41',
             'carta.anexo': 'attachment resume.pdf',
             'carta.match': 'match 94%',
-            'tick.1': 'jobs/mo monitored',
-            'tick.2': 'delivery rate',
-            'tick.3': 'passwords stored',
-            'tick.4': 'saved per month',
+            'trust.h': 'Your Gmail stays yours.',
+            'trust.p': 'The connection goes through Google OAuth and we ask for a single permission, the one to SEND. We cannot read your inbox, and your password never passes through here.',
+            'vs.h': 'Most people look for jobs.<br>We look for recruiters.',
+            'vs.sub': 'A good share of dev jobs in Brazil start as a one-off recruiter post, with the email buried in the text. They never reach a job board, and they drop off the feed within hours.',
+            'vs.antes': 'the manual way',
+            'vs.a1': 'open LinkedIn and scroll the feed',
+            'vs.a2': 'find a post that is still open',
+            'vs.a3': 'read it all to see if it fits you',
+            'vs.a4': 'dig the email out of the text',
+            'vs.a5': 'write the email and attach your resume',
+            'vs.a6': 'note somewhere that you applied',
+            'vs.a.fim': 'Every day, for every job.',
+            'vs.depois': 'with newdevjobs',
+            'vs.d1': 'you set up your profile once',
+            'vs.d2': 'we sweep new posts all day',
+            'vs.d3': 'we extract the job and the contact email',
+            'vs.d4': 'we score it against your profile',
+            'vs.d5': 'we send your resume from your Gmail',
+            'vs.d6': 'everything lands on your dashboard',
+            'vs.d.fim': 'Once. Then it runs on its own.',
+            'tick.1': 'recruiters monitored',
+            'tick.2': 'jobs with a contact email',
+            'tick.3': 'applications already sent',
+            'tick.4': 'passwords stored',
             'how.h': 'Set it up once.<br><strong>Apply forever.</strong>',
             'how.sub': 'Three steps and your search goes on autopilot.',
             'how.s1.h': 'Build your tech profile',
@@ -951,12 +1059,12 @@
             'how.s2.h': 'Connect your Gmail',
             'how.s2.p': 'Authorize the send scope only. You appear as the sender to the recruiter. We never read your emails.',
             'how.s3.h': 'Get automatic applications',
-            'how.s3.p': 'AI matches your profile to each job. Personalized emails are sent straight to the recruiter.',
+            'how.s3.p': 'Every job gets a 0 to 100 score comparing your stack, seniority, work model and keywords against the posting. Only the compatible ones become an email, and the email comes from your account.',
             'feat.h': '<strong>Everything</strong> you need<br>to stand out.',
             'feat.1.h': 'post scraping',
             'feat.1.p': 'Monitors recruiters on LinkedIn in real time. New posts with an email are captured within minutes.',
-            'feat.2.h': 'AI matching',
-            'feat.2.p': 'A compatibility score between your profile and the job. It only sends when it makes sense.',
+            'feat.2.h': 'compatibility score',
+            'feat.2.p': 'Stack, seniority, work model and keywords turn into a 0 to 100 score. Below your cutoff, the job never becomes an email.',
             'feat.3.h': 'email from your Gmail',
             'feat.3.p': 'Sent from your account. The recruiter sees your name, not the name of a tool.',
             'feat.4.h': 'full dashboard',
@@ -964,7 +1072,7 @@
             'price.h': 'Simple and<br><strong>transparent.</strong>',
             'price.sub': 'Start free. Upgrade when you need more.',
             'price.free.per': 'free forever',
-            'price.free.1': '<i class="ti ti-check" aria-hidden="true"></i>7 applications per day',
+            'price.free.1': '7 applications per day, about 210 a month',
             'price.free.2': '<i class="ti ti-check" aria-hidden="true"></i>1 search profile',
             'price.free.3': '<i class="ti ti-check" aria-hidden="true"></i>basic matching',
             'price.free.4': '<i class="ti ti-check" aria-hidden="true"></i>no credit card',

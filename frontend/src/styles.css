@@ -2,105 +2,101 @@
    DESIGN TOKENS (alinhados com a landing)
    ============================================ */
 :root {
-    /* Papel e tinta. O produto manda um EMAIL do Gmail da pessoa para um
-       recrutador, e a identidade sai daí: superfície de papel, texto em tinta,
-       uma régua de 1px separando as coisas. Sem gradiente, sem brilho, sem
-       canto arredondado grande, que era a assinatura de site gerado. */
-    --color-bg: #F2F3EE;
-    --color-bg-secondary: #E9EAE3;
+    /* ============================================
+       Minimalista, com quatro regras
+       ============================================
+       1. UMA família tipográfica. Tamanho e peso fazem a hierarquia inteira.
+          Antes eram três (Archivo, Public Sans, IBM Plex Mono).
+       2. ZERO ícone decorativo. Estado vira palavra: "Enviada" diz mais que um
+          check verde e dispensa legenda.
+       3. ZERO sombra, canto reto, borda de 1px só onde a estrutura exige.
+          Cartão com sombra é a muleta de quando o espaçamento não foi resolvido.
+       4. UMA cor além da tinta. O verde significa "saiu" e nada mais; se
+          aparecesse em tudo, não significaria coisa nenhuma.
+
+       Número alinha por `font-variant-numeric: tabular-nums`, não por fonte
+       monoespaçada: é o que permite ter uma família só sem perder a coluna. */
+    --color-bg: #FDFDFC;
+    --color-bg-secondary: #F4F4F2;
     --color-surface: #FFFFFF;
-    --color-text: #141719;
-    --color-text-secondary: #5B6169;
-    --color-text-tertiary: #8A9099;
-    --color-border: #C6CABE;
-    --color-border-light: #DBDED5;
-    --color-border-medium: #CFD3C8;
+    --color-text: #101112;
+    --color-text-secondary: #6E7175;
+    --color-text-tertiary: #A6A9AC;
+    --color-border: #E2E2E0;
+    --color-border-light: #EDEDEB;
+    --color-border-medium: #E2E2E0;
 
-    /* Um acento só, azul-petróleo escuro, quase tinta. O azul elétrico saiu. */
-    --color-accent: #123C55;
-    --color-accent-dark: #0C2B3D;
-    --color-accent-darker: #071C29;
-    --color-accent-muted: #6E8DA0;
-    --color-accent-light: #E4E9EC;
-    --color-on-accent: #FFFFFF;
-    --color-featured-bg: #EDF0F1;
-    --color-featured-text: #0C2B3D;
-    /* Painel invertido: e o unico lugar onde a interface levanta a voz. */
-    --panel-bg: #141719;
-    --panel-on: #F2F3EE;
-    --panel-soft: #8A9099;
-    --panel-edge: #141719;
+    /* A "cor de acento" é a própria tinta: ação primária é preta. Verde não é
+       decoração, é significado. */
+    --color-accent: #101112;
+    --color-accent-dark: #000000;
+    --color-accent-darker: #000000;
+    --color-accent-muted: #A6A9AC;
+    --color-accent-light: #F1F1EF;
+    --color-on-accent: #FDFDFC;
+    --color-featured-bg: #F4F4F2;
+    --color-featured-text: #101112;
 
-    /* Verde e laranja não decoram: significam enviado e cota acabando. */
-    --color-success: #1F6B45;
-    --color-success-bg: #E3EDE6;
-    --color-warn: #A8481C;
-    --color-warn-bg: #F6E9E2;
-    --color-danger: #9B2C1E;
-    --color-danger-bg: #F5E5E2;
+    --color-success: #14704A;
+    --color-success-bg: #EDF3F0;
+    --color-warn: #8A5A1B;
+    --color-warn-bg: #F5F1EA;
+    --color-danger: #9A2B22;
+    --color-danger-bg: #F5EDEC;
 
-    /* Os três `--grad-*` continuam existindo como TOKEN e valem cor sólida: a
-       regra `background-clip: text` que usa o --grad-text segue funcionando e
-       pinta o número de tinta, em vez de degradê. Trocar aqui desliga o efeito
-       em todo lugar de uma vez, sem caçar cada uso. */
     --grad-accent: var(--color-accent);
-    --grad-cta: #141719;
+    --grad-cta: #101112;
     --grad-text: var(--color-text);
     --glow-accent: none;
 
     --shadow-sm: none;
-    --shadow-md: 0 1px 3px rgba(20,23,25,0.10);
-    --shadow-lg: 0 10px 34px -14px rgba(20,23,25,0.30);
-    --radius-sm: 2px;
-    --radius: 3px;
-    --radius-lg: 3px;
-    --radius-xl: 4px;
-    --font-disp: 'Archivo', 'Public Sans', -apple-system, sans-serif;
+    --shadow-md: none;
+    --shadow-lg: 0 12px 40px -18px rgba(16,17,18,0.28);
+    --radius-sm: 0px;
+    --radius: 0px;
+    --radius-lg: 0px;
+    --radius-xl: 0px;
     --transition: 0.15s ease;
     --app-glow: none;
+
+    --font-disp: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* O escuro é NEUTRO, sem azul no fundo. Metade dos usuários vive aqui, então
-   ele é desenhado, não invertido: o papel vira grafite e a tinta vira giz. */
 html.dark {
-    --color-bg: #16171A;
-    --color-bg-secondary: #1D1F22;
-    --color-surface: #1D1F22;
-    --color-text: #E9E9E4;
-    --color-text-secondary: #A0A29C;
-    --color-text-tertiary: #74766F;
-    --color-border: #3C3F44;
-    --color-border-light: #2A2C30;
-    --color-border-medium: #33363A;
+    --color-bg: #0E0F10;
+    --color-bg-secondary: #17181A;
+    --color-surface: #141517;
+    --color-text: #F2F2F0;
+    --color-text-secondary: #9A9D9F;
+    --color-text-tertiary: #63666A;
+    --color-border: #26282A;
+    --color-border-light: #1E2022;
+    --color-border-medium: #26282A;
 
-    --color-accent: #8FBDD6;
-    --color-accent-dark: #6A9BB5;
-    --color-accent-darker: #22303A;
-    --color-accent-muted: #5E7A89;
-    --color-accent-light: #222D34;
-    --color-on-accent: #14171A;
-    --color-featured-bg: #22262A;
-    --color-featured-text: #E9E9E4;
-    --panel-bg: #22303A;
-    --panel-on: #E9E9E4;
-    --panel-soft: #8FA5B1;
-    --panel-edge: #33363A;
+    --color-accent: #F2F2F0;
+    --color-accent-dark: #FFFFFF;
+    --color-accent-darker: #FFFFFF;
+    --color-accent-muted: #63666A;
+    --color-accent-light: #1E2022;
+    --color-on-accent: #0E0F10;
+    --color-featured-bg: #17181A;
+    --color-featured-text: #F2F2F0;
 
-    --color-success: #6BAE86;
-    --color-success-bg: #1C2A21;
-    --color-warn: #D08A55;
-    --color-warn-bg: #2C2119;
-    --color-danger: #DE7A68;
-    --color-danger-bg: #2E1E1B;
+    --color-success: #5FBF92;
+    --color-success-bg: #142019;
+    --color-warn: #C79A5A;
+    --color-warn-bg: #1F1B14;
+    --color-danger: #D4796E;
+    --color-danger-bg: #211615;
 
     --grad-accent: var(--color-accent);
-    --grad-cta: #101113;
+    --grad-cta: #0E0F10;
     --grad-text: var(--color-text);
     --glow-accent: none;
 
     --shadow-sm: none;
-    --shadow-md: 0 1px 3px rgba(0,0,0,0.45);
-    --shadow-lg: 0 10px 34px -14px rgba(0,0,0,0.7);
+    --shadow-md: none;
+    --shadow-lg: 0 12px 40px -18px rgba(0,0,0,0.7);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -111,7 +107,7 @@ body {
     -webkit-font-smoothing: antialiased;
     font-size: 14px;
 }
-.mono { font-family: 'IBM Plex Mono', monospace; }
+.mono { font-family: var(--font-disp); font-variant-numeric: tabular-nums; }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
 
@@ -151,13 +147,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--color-accent);
     display: flex; align-items: center; justify-content: center;
     color: var(--color-on-accent);
 }
-.brand-name { font-family: 'IBM Plex Mono', monospace; font-weight: 500; letter-spacing: -0.3px; }
+.brand-name { font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: -0.3px; }
 
 /* Logo autoral */
 .brand-logo { display: inline-flex; align-items: center; gap: 9px; }
 .brand-logo svg { border-radius: 3px; box-shadow: var(--glow-accent); flex-shrink: 0; }
 .brand-word {
-    font-family: 'IBM Plex Mono', monospace; font-weight: 400; font-size: 15.5px;
+    font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-weight: 400; font-size: 15.5px;
     letter-spacing: -0.4px; color: var(--color-text);
 }
 .brand-word b { font-weight: 600; color: var(--color-accent); }
@@ -337,7 +333,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
 .stat .stat-l { font-size: 12px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
 .stat .stat-n {
-    font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 500; margin-top: 8px;
+    font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 500; margin-top: 8px;
     letter-spacing: -1px;
     background: var(--grad-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
@@ -364,12 +360,12 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .rank-pos {
     width: 26px; height: 26px; border-radius: 3px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
+    font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 500;
     background: var(--color-bg-secondary); color: var(--color-text-secondary);
 }
 .rank-pos.top { background: var(--color-accent); color: var(--color-on-accent); }
 .rank-name { font-size: 13.5px; font-weight: 500; }
-.rank-sent { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--color-accent); font-weight: 500; }
+.rank-sent { margin-left: auto; font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--color-accent); font-weight: 500; }
 
 /* Estrelas */
 .stars { display: inline-flex; gap: 2px; }
@@ -559,7 +555,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .job-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
 
 .score {
-    font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 13px;
+    font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-weight: 500; font-size: 13px;
     padding: 5px 10px; border-radius: 999px; white-space: nowrap;
 }
 .score.high { background: var(--color-success-bg); color: var(--color-success); }
@@ -720,7 +716,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     background: none; color: var(--color-text-tertiary); font-size: 18px;
 }
 .inv-main { flex: 1; min-width: 0; }
-.inv-amount { font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 16px; letter-spacing: -0.3px; }
+.inv-amount { font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-weight: 500; font-size: 16px; letter-spacing: -0.3px; }
 
 /* ============================================
    LOGIN
@@ -815,7 +811,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 }
 .kpi-label { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; }
 .kpi-num {
-    font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500; letter-spacing: -1px;
+    font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 28px; font-weight: 500; letter-spacing: -1px;
     margin-top: 8px; line-height: 1;
 }
 .kpi-foot { display: flex; align-items: center; gap: 6px; margin-top: auto; font-size: 12px; }
@@ -859,7 +855,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .kpi-cel { background: var(--color-surface); padding: 14px 15px; }
 .kpi-cel-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--color-text-secondary); font-weight: 500; }
 .kpi-cel-label i { font-size: 14px; color: var(--color-text-tertiary); }
-.kpi-cel-num { font-family: 'IBM Plex Mono', monospace; font-size: 21px; font-weight: 500; letter-spacing: -0.6px; margin-top: 7px; line-height: 1; }
+.kpi-cel-num { font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 21px; font-weight: 500; letter-spacing: -0.6px; margin-top: 7px; line-height: 1; }
 .kpi-cel-sub { font-size: 11.5px; color: var(--color-text-tertiary); margin-top: 5px; }
 
 /* Card de destaque (próxima melhor oportunidade) */
@@ -897,7 +893,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 
 /* Planos (página de Assinatura) — estilo alinhado à landing */
 .plan-card { display: flex; flex-direction: column; }
-.plan-tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--color-text-secondary); }
+.plan-tag { font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--color-text-secondary); }
 .plan-price-row { margin: 14px 0 16px; }
 .plan-price-v { font-size: 32px; font-weight: 300; letter-spacing: -1.5px; }
 .plan-price-p { display: block; font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
@@ -915,7 +911,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .pay-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
 .pay-stat { border: 1px solid var(--color-border-light); border-radius: var(--radius); padding: 12px 14px; background: var(--color-bg); }
 .pay-stat .ps-l { font-size: 11.5px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 6px; }
-.pay-stat .ps-v { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-top: 5px; }
+.pay-stat .ps-v { font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-top: 5px; }
 .pay-stat.ok .ps-v { color: var(--color-success); }
 .pay-stat.warn .ps-v { color: var(--color-warn); }
 
@@ -968,7 +964,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .app-card-meta { font-size: 12px; color: var(--color-text-tertiary); margin-top: 3px; }
 .app-card-status { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--color-text-secondary); padding: 9px 11px; background: var(--color-bg-secondary); border-radius: 3px; }
 .app-card-status i.lead { font-size: 15px; }
-.app-card-status .via { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--color-success); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+.app-card-status .via { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--color-success); font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 11px; }
 .app-card-foot { display: flex; align-items: center; gap: 8px; }
 
 /* ============================================
@@ -1022,7 +1018,7 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .bug-ctx {
     margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-sm);
     background: var(--color-bg-secondary); border: 1px solid var(--color-border-light);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px;
+    font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-size: 11.5px;
     line-height: 1.6; color: var(--color-text-secondary);
     white-space: pre-wrap; word-break: break-all; max-height: 150px; overflow-y: auto;
 }
@@ -1346,3 +1342,58 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     /* A barra do topo acompanha: mesma linguagem de vidro nas duas pontas. */
     .mobile-bar { background: color-mix(in srgb, var(--color-bg) 82%, transparent); }
 }
+
+
+/* ============================================
+   Camada minimalista
+   ============================================
+   Fica no fim do arquivo de propósito: é a última palavra sobre decoração, e
+   ler este bloco sozinho já diz o que o estilo proíbe. Mexer nos tokens lá em
+   cima muda a paleta; mexer aqui muda a quantidade de enfeite.
+
+   Ícone de navegação e de botão FICAM. Eles carregam função: ajudam a varrer o
+   menu e o botão continua legível no celular. O que sai é o ícone que só
+   acompanha um título e não diz nada que o título já não diga. */
+.section-title i,
+.sec-card-head > i,
+.kpi-ico,
+.kpi-cel-label i,
+.empty > i:first-child { display: none; }
+/* Sem o ícone, o rótulo encosta na borda esquerda do cartão e a coluna de
+   números fica alinhada de verdade. */
+.kpi-top { gap: 0; }
+
+/* O ponto da linha do tempo perde o círculo: vira um traço, que é o mínimo
+   necessário para ancorar a linha vertical. */
+.tl-dot {
+    width: 9px; height: 9px; border-radius: 0; border: 0;
+    background: var(--color-border); margin-top: 7px; font-size: 0;
+}
+.tl-dot i { display: none; }
+.tl-dot.ok { background: var(--color-success); }
+.tl-dot.warn { background: var(--color-warn); }
+.tl-dot.danger { background: var(--color-danger); }
+.tl-item:not(:last-child)::before { left: 4px; top: 20px; }
+
+/* Posição no ranking é número, não medalha. */
+.rank-pos {
+    width: auto; min-width: 18px; height: auto; background: none;
+    color: var(--color-text-tertiary); font-size: 13px; justify-content: flex-start;
+}
+.rank-pos.top { background: none; color: var(--color-text); font-weight: 600; }
+
+/* Escolha marcada se resolve com peso e cor de texto. */
+.choice-ico { width: 26px; height: 26px; background: none; color: var(--color-text-tertiary); font-size: 19px; }
+.choice-ico.ok { background: none; color: var(--color-success); }
+
+/* Número sempre em coluna alinhada, sem precisar de fonte monoespaçada. */
+.kpi-num, .kpi-cel-num, .stat .stat-n, .score, .det-score, .fb-avg .num,
+.pay-stat .ps-v, .rank-sent, .tick-n { font-variant-numeric: tabular-nums; }
+
+/* Nada de cartão levitando: superfície, uma régua, e o espaço faz o resto. */
+.card, .inv-card, .app-card { box-shadow: none; }
+.card.hoverable:hover, .inv-card:hover, .app-card:hover { box-shadow: none; border-color: var(--color-border); transform: none; }
+.btn.primary:hover { transform: none; }
+
+/* A barra flutuante do celular mantém o canto arredondado: é convenção pedida
+   pelo dono, e ela é um objeto que flutua, não uma superfície da página. */

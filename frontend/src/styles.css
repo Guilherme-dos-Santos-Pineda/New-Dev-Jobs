@@ -16,15 +16,15 @@
 
        Número alinha por `font-variant-numeric: tabular-nums`, não por fonte
        monoespaçada: é o que permite ter uma família só sem perder a coluna. */
-    --color-bg: #FDFDFC;
-    --color-bg-secondary: #F4F4F2;
-    --color-surface: #FFFFFF;
+    --color-bg: #F1F0EB;
+    --color-bg-secondary: #E9E8E2;
+    --color-surface: #FAF9F6;
     --color-text: #101112;
     --color-text-secondary: #6E7175;
     --color-text-tertiary: #A6A9AC;
-    --color-border: #E2E2E0;
-    --color-border-light: #EDEDEB;
-    --color-border-medium: #E2E2E0;
+    --color-border: #DCDBD4;
+    --color-border-light: #E6E5DE;
+    --color-border-medium: #DCDBD4;
 
     /* A "cor de acento" é a própria tinta: ação primária é preta. Verde não é
        decoração, é significado. */
@@ -32,9 +32,9 @@
     --color-accent-dark: #000000;
     --color-accent-darker: #000000;
     --color-accent-muted: #A6A9AC;
-    --color-accent-light: #F1F1EF;
-    --color-on-accent: #FDFDFC;
-    --color-featured-bg: #F4F4F2;
+    --color-accent-light: #E6E5DE;
+    --color-on-accent: #FAF9F6;
+    --color-featured-bg: #E9E8E2;
     --color-featured-text: #101112;
 
     --color-success: #14704A;
@@ -58,6 +58,12 @@
     --radius-xl: 0px;
     --transition: 0.15s ease;
     --app-glow: none;
+
+    /* Painel invertido: o unico lugar da interface que levanta a voz. */
+    --panel-bg: #14151A;
+    --panel-on: #F1F0EB;
+    --panel-soft: #8E9095;
+    --panel-edge: #14151A;
 
     --font-disp: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -97,6 +103,11 @@ html.dark {
     --shadow-sm: none;
     --shadow-md: none;
     --shadow-lg: 0 12px 40px -18px rgba(0,0,0,0.7);
+
+    --panel-bg: #22242A;
+    --panel-on: #F2F2F0;
+    --panel-soft: #8E9095;
+    --panel-edge: #2E3036;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -156,8 +167,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--color-accent);
     font-family: var(--font-disp); font-variant-numeric: tabular-nums; font-weight: 400; font-size: 15.5px;
     letter-spacing: -0.4px; color: var(--color-text);
 }
-.brand-word b { font-weight: 600; color: var(--color-accent); }
-.brand-word-jobs { color: var(--color-text-secondary); }
+.brand-word b { font-weight: 700; }
 @media (max-width: 560px) { .brand-word { display: none; } }
 .nav-tabs { display: flex; gap: 4px; margin-left: 8px; }
 .nav-tabs a {
@@ -239,10 +249,20 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 .app-shell.collapsed .sidebar-nav a.active::before { left: -10px; }
 .app-shell.collapsed .sidebar-foot .user-chip { justify-content: center; }
 .app-shell.collapsed .sidebar-foot .user-chip span { display: none; }
-.app-shell.collapsed .sidebar-foot-actions { flex-direction: column; align-items: center; }
+.app-shell.collapsed .sidebar-foot-actions { flex-direction: column; align-items: stretch; gap: 0; }
 .app-shell.collapsed .sidebar-head { align-items: center; }
 .app-shell.collapsed .sidebar-brand { justify-content: center; }
-.app-shell.collapsed .sidebar-foot-actions .icon-btn { flex: 0 0 auto; width: 38px; }
+/* Recolhida, a barra lateral virava uma pilha de quadradinhos com borda, um
+   embaixo do outro, que e exatamente o tipo de moldura que este estilo evita.
+   Vira uma coluna de icones sem caixa, separada por regua, igual ao menu logo
+   acima dela. */
+.app-shell.collapsed .sidebar-foot-actions .icon-btn {
+    flex: 0 0 auto; width: 100%; height: 34px;
+    border: 0; background: none; border-radius: 0;
+    color: var(--color-text-tertiary);
+}
+.app-shell.collapsed .sidebar-foot-actions .icon-btn + .icon-btn { border-top: 1px solid var(--color-border-light); }
+.app-shell.collapsed .sidebar-foot-actions .icon-btn:hover { background: var(--color-bg-secondary); color: var(--color-text); }
 .app-shell.collapsed .sidebar-foot .user-chip { padding: 4px 0; }
 
 .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background-image: var(--app-glow); background-repeat: no-repeat; }
@@ -615,7 +635,18 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 @keyframes pop { from { transform: translateY(10px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
 .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--color-border-light); display: flex; align-items: center; gap: 10px; }
 .modal-head h3 { font-family: var(--font-disp); font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
-.modal-head .close { margin-left: auto; cursor: pointer; color: var(--color-text-tertiary); background: none; border: none; font-size: 20px; display: flex; }
+/* `.close` vale SOZINHA, não só dentro de .modal-head. Aninhada, qualquer
+   diálogo novo (o detalhe de Candidaturas, o tour) cai no estilo NATIVO do
+   botão: fundo cinza e borda `2px outset`. Não dá erro, só fica feio, e foi o
+   que aconteceu nos dois. */
+.close {
+    cursor: pointer; color: var(--color-text-tertiary);
+    background: none; border: none; font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2px; line-height: 1;
+}
+.close:hover { color: var(--color-text); }
+.modal-head .close { margin-left: auto; }
 .modal-body { padding: 0; overflow-y: auto; }
 .modal-foot { padding: 16px 22px; border-top: 1px solid var(--color-border-light); display: flex; gap: 10px; justify-content: flex-end; }
 .mail-head { padding: 16px 22px; border-bottom: 1px solid var(--color-border-light); font-size: 13px; }
@@ -1397,3 +1428,45 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 
 /* A barra flutuante do celular mantém o canto arredondado: é convenção pedida
    pelo dono, e ela é um objeto que flutua, não uma superfície da página. */
+
+
+/* ============================================
+   Tour de primeiro acesso
+   ============================================ */
+.modal.tour { max-width: 520px; }
+.tour-topo { display: flex; align-items: center; padding: 16px 18px 0; }
+.tour-contagem { font-size: 12px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.tour-topo .close { margin-left: auto; }
+
+.tour-corpo { padding: 10px 22px 20px; }
+.tour-corpo h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.7px; line-height: 1.2; }
+.tour-corpo p { font-size: 14.5px; line-height: 1.65; color: var(--color-text-secondary); margin-top: 12px; }
+.tour-nota { font-size: 13px; color: var(--color-text-tertiary); border-top: 1px solid var(--color-border-light); padding-top: 12px; margin-top: 16px; }
+
+/* O passo do perfil é o que decide se a pessoa recebe vaga, então ele é o
+   único com marca visual própria. */
+.tour-corpo.destaque { border-left: 2px solid var(--color-text); padding-left: 20px; margin-left: 2px; }
+
+.tour-lista { list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 9px; }
+.tour-lista li {
+    font-size: 13.5px; line-height: 1.5; color: var(--color-text-secondary);
+    padding-left: 16px; position: relative;
+}
+.tour-lista li::before {
+    content: ''; position: absolute; left: 0; top: 9px;
+    width: 6px; height: 1px; background: var(--color-text-tertiary);
+}
+
+.tour-pe {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 18px; border-top: 1px solid var(--color-border-light);
+}
+.tour-pontos { display: flex; gap: 5px; margin: 0 auto; }
+.tour-pontos i { width: 5px; height: 5px; border-radius: 50%; background: var(--color-border); display: block; }
+.tour-pontos i.agora { background: var(--color-text); }
+
+@media (max-width: 560px) {
+    .tour-corpo { padding: 10px 18px 18px; }
+    .tour-pe { flex-wrap: wrap; }
+    .tour-pontos { order: -1; width: 100%; justify-content: center; margin: 0 0 6px; }
+}

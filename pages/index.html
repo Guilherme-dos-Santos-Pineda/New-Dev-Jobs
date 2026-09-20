@@ -11,7 +11,7 @@
     <meta name="keywords" content="candidaturas automáticas, vagas para desenvolvedor, vagas dev, emprego programador, vagas no LinkedIn, automação de candidatura, vagas de TI Brasil, enviar currículo automático">
     <meta name="author" content="newdevjobs">
     <meta name="robots" content="index, follow, max-image-preview:large">
-    <meta name="theme-color" content="#FDFDFC">
+    <meta name="theme-color" content="#F1F0EB">
     <link rel="canonical" href="https://newdevjobs.xyz/">
     <link rel="alternate" hreflang="pt-BR" href="https://newdevjobs.xyz/">
     <link rel="alternate" hreflang="en" href="https://newdevjobs.xyz/en/">
@@ -78,35 +78,35 @@
        VARIÁVEIS – LIGHT MODE (padrão)
        ============================================ */
     :root {
-        --color-bg: #FDFDFC;
-        --color-bg-secondary: #F4F4F2;
-        --color-surface: #FFFFFF;
+        --color-bg: #F1F0EB;
+        --color-bg-secondary: #E9E8E2;
+        --color-surface: #FAF9F6;
         --color-text: #101112;
         --color-text-secondary: #6E7175;
         --color-text-tertiary: #A6A9AC;
-        --color-border: #E2E2E0;
-        --color-border-light: #EDEDEB;
-        --color-border-medium: #E2E2E0;
+        --color-border: #DCDBD4;
+        --color-border-light: #E6E5DE;
+        --color-border-medium: #DCDBD4;
 
         --color-accent: #101112;
         --color-accent-dark: #000000;
         --color-accent-darker: #000000;
-        --color-accent-light: #F1F1EF;
+        --color-accent-light: #E6E5DE;
         --color-accent-muted: #A6A9AC;
-        --color-on-accent: #FDFDFC;
+        --color-on-accent: #FAF9F6;
 
-        --color-featured-bg: #FFFFFF;
+        --color-featured-bg: #FAF9F6;
         --color-featured-text: #101112;
         --color-featured-price: #101112;
         --color-featured-muted: #6E7175;
 
-        --color-cta-bar-text: #FDFDFC;
+        --color-cta-bar-text: #F1F0EB;
         --color-cta-bar-sub: #A6A9AC;
 
-        --color-btn-white-bg: #FDFDFC;
+        --color-btn-white-bg: #F1F0EB;
         --color-btn-white-text: #101112;
 
-        --color-logo-mark-icon: #FDFDFC;
+        --color-logo-mark-icon: #F1F0EB;
         --color-pop-badge-text: #FDFDFC;
 
         --color-hero-tag: #6E7175;
@@ -741,8 +741,13 @@
         <!-- ==================== NAV ==================== -->
         <nav>
             <div class="logo">
-                <div class="logo-mark"><i class="ti ti-mail-forward" aria-hidden="true"></i></div>
-                <span class="logo-name">newdevjobs</span>
+                <div class="logo-mark"><svg viewBox="0 0 40 40" width="20" height="20" fill="none" aria-hidden="true">
+                    <path d="M9 21.5 L31 9.5 L24 31 L19.5 23.2 Z" fill="currentColor"/>
+                    <path d="M19.5 23.2 L31 9.5 L24 31 Z" fill="currentColor" fill-opacity="0.6"/>
+                    <path d="M6.5 25.5 h5" stroke="currentColor" stroke-opacity="0.7" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M8 29.5 h3.5" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.8" stroke-linecap="round"/>
+                </svg></div>
+                <span class="logo-name">New <b>Dev</b> Jobs</span>
             </div>
 
             <!-- Hamburger mobile -->
@@ -773,8 +778,8 @@
         <!-- ==================== HERO ==================== -->
         <section class="hero">
             <div class="hero-copy">
-                <h1 data-i18n="hero.h1">Tem vaga de dev que<br>nunca vira anúncio.</h1>
-                <p class="hero-sub" data-i18n="hero.sub">Uma parte das vagas de dev nunca vira anúncio: o recrutador resolve tudo direto, e quem não estava olhando na hora certa perde. Já temos <b>7.826</b> dessas mapeadas. O newdevjobs compara cada uma com o seu perfil e manda seu currículo pela sua própria conta Gmail.</p>
+                <h1 data-i18n="hero.h1">Seu currículo chega no recrutador<br>enquanto você faz outra coisa.</h1>
+                <p class="hero-sub" data-i18n="hero.sub">Configure seu perfil uma vez. A partir daí o New Dev Jobs encontra as vagas compatíveis com a sua stack e envia sua candidatura pela sua própria conta Gmail, com o seu nome no remetente.</p>
                 <div class="hero-actions">
                     <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-rocket" aria-hidden="true"></i> começar com 7 candidaturas grátis</button>
                     <button class="btn-s" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})" data-i18n="hero.cta2">ver como funciona</button>
@@ -861,7 +866,7 @@
                 </div>
 
                 <div class="vs-col vs-col-forte">
-                    <div class="vs-tag" data-i18n="vs.depois">com o newdevjobs</div>
+                    <div class="vs-tag" data-i18n="vs.depois">com o New Dev Jobs</div>
                     <ol class="vs-lista">
                         <li data-i18n="vs.d1">você configura o perfil uma vez</li>
                         <li data-i18n="vs.d2">a gente encontra as vagas que não viram anúncio</li>
@@ -975,7 +980,7 @@
 
         <!-- ==================== FOOTER ==================== -->
         <footer>
-            <span class="footer-logo">newdevjobs</span>
+            <span class="footer-logo">New Dev Jobs</span>
             <span style="display:flex;gap:18px;flex-wrap:wrap;">
                 <a href="docs.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;" data-i18n="footer.docs">documentação</a>
                 <a href="termos.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;" data-i18n="footer.terms">termos de uso</a>
@@ -1003,8 +1008,8 @@
             'nav.pricing': 'pricing',
             'nav.docs': 'docs',
             'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">sign in</span>',
-            'hero.h1': 'Some dev jobs never<br>become a listing.',
-            'hero.sub': 'A share of dev jobs never becomes a listing: the recruiter settles it directly, and whoever was not looking at the right moment misses out. We already have <b>7,826</b> of them mapped. newdevjobs scores each one against your profile and sends your resume from your own Gmail account.',
+            'hero.h1': 'Your resume reaches the recruiter<br>while you do something else.',
+            'hero.sub': 'Set up your profile once. From then on New Dev Jobs finds the openings that match your stack and sends your application from your own Gmail account, with your name as the sender.',
             'hero.cta1': '<i class="ti ti-rocket" aria-hidden="true"></i> start with 7 free applications',
             'hero.cta2': 'see how it works',
             'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> 7 a day, every day. No credit card.',
@@ -1028,7 +1033,7 @@
             'vs.a5': 'write the email and attach your resume',
             'vs.a6': 'note somewhere that you applied',
             'vs.a.fim': 'Every day, for every job.',
-            'vs.depois': 'with newdevjobs',
+            'vs.depois': 'with New Dev Jobs',
             'vs.d1': 'you set up your profile once',
             'vs.d2': 'we find the openings that never become listings',
             'vs.d3': 'the recruiter contact comes with it',

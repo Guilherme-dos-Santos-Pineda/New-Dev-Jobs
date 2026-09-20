@@ -77,7 +77,7 @@ export default function Onboarding({ profile, user }) {
         <div className="card onb fade-in">
             <div className="onb-topo">
                 <div>
-                    <h2>{t('Como o newdevjobs funciona')}</h2>
+                    <h2>{t('Como o New Dev Jobs funciona')}</h2>
                     <p>
                         {t('A gente garimpa vagas que recrutadores publicam soltas no LinkedIn. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.')}
                     </p>

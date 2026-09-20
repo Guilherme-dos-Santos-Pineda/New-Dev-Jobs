@@ -94,7 +94,7 @@ const EN = {
     'detalhes': 'details',
 
     // Onboarding do primeiro acesso
-    'Como o newdevjobs funciona': 'How newdevjobs works',
+    'Como o New Dev Jobs funciona': 'How New Dev Jobs works',
     'Criar sua conta': 'Create your account',
     '{n} compatíveis ficaram sem envio hoje': '{n} matching jobs went unsent today',
     'A gente garimpa vagas que recrutadores publicam soltas no LinkedIn. Muitas nunca chegam a job board nenhum. Você configura uma vez, e o sistema envia seu currículo para as compatíveis, do seu próprio Gmail.':

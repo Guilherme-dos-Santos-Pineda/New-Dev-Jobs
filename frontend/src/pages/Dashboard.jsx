@@ -10,7 +10,23 @@ import SearchSendModal from '../components/SearchSendModal.jsx';
 import Sparkline from '../components/Sparkline.jsx';
 import CommunityBanner from '../components/CommunityBanner.jsx';
 import Onboarding from '../components/Onboarding.jsx';
+import TourInicial from '../components/TourInicial.jsx';
 import HighlightsSection from '../components/HighlightsSection.jsx';
+
+// O X do banner de envio precisa valer depois do recarregamento. Guardar só
+// "dispensei" no estado do React some no F5, e o banner de um lote JÁ CONCLUÍDO
+// voltava para sempre, porque a API continua devolvendo o último lote.
+//
+// A chave guarda a ASSINATURA do lote, não um booleano: quando um lote novo
+// roda os números mudam, a assinatura deixa de bater e o banner volta a
+// aparecer, que é o comportamento certo. Um booleano esconderia o próximo
+// envio também.
+const CHAVE_FILA_DISPENSADA = 'fila-dispensada';
+const assinaturaDaFila = (q) => (q ? `${q.total}:${q.sent}:${q.failed}:${q.skipped}` : '');
+function filaFoiDispensada(q) {
+    try { return !!q && localStorage.getItem(CHAVE_FILA_DISPENSADA) === assinaturaDaFila(q); }
+    catch { return false; }
+}
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 const fmtSaved = (min) => {
@@ -132,7 +148,7 @@ export default function Dashboard() {
             </div>
 
             {/* Banner da fila de envio */}
-            {q && q.total > 0 && (
+            {q && q.total > 0 && !filaFoiDispensada(q) && (
                 <div className="card queue-banner fade-in" style={{ marginBottom: 20 }}>
                     <div className="qb-ico"><i className={`ti ${qActive ? 'ti-send' : 'ti-circle-check'}`} /></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -149,11 +165,19 @@ export default function Dashboard() {
                     </div>
                     {qActive
                         ? <button className="btn sm" onClick={async () => { await api.queueStop(); refreshQueue(); }}><i className="ti ti-player-stop" /> Parar</button>
-                        : <button className="btn ghost sm" onClick={() => setQueue(null)}><i className="ti ti-x" /></button>}
+                        : (
+                            <button className="btn ghost sm" aria-label={t('Dispensar')} onClick={() => {
+                                try { localStorage.setItem(CHAVE_FILA_DISPENSADA, assinaturaDaFila(q)); } catch { /* modo privado */ }
+                                setQueue(null);
+                            }}><i className="ti ti-x" /></button>
+                        )}
                 </div>
             )}
 
-            {/* Primeiro acesso: o que é isto e o que fazer agora */}
+            {/* Primeiro acesso, dois papéis diferentes e complementares:
+                o tour explica O QUE CADA PARTE É (uma vez só, dispensável) e o
+                checklist mostra O QUE FALTA FAZER (fica até terminar). */}
+            {!loading && <TourInicial profile={profile} user={user} />}
             {!loading && <Onboarding profile={profile} user={user} />}
 
             {/* Comunidade no WhatsApp (dispensável) */}

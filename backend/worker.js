@@ -90,6 +90,35 @@ function makeScraperHandler(fn, label) {
 // O `for update skip locked` mantém a reivindicação atômica entre workers.
 const SCHEDULER_MAX_PER_TICK = Number(process.env.SCHEDULER_MAX_PER_TICK) || 3;
 
+// =========================
+// Teto DIÁRIO de execuções
+// =========================
+// O teto por tick evita a manada instantânea, mas não espalha o crédito ao
+// longo do mês, e essa era a falha real: 305 robôs diários pedem ~9.150
+// execuções por mês, e as 4 contas Apify entregam ~490. Medido em produção: em
+// 11/09 rodaram 309 execuções, todas ok; em 12/09 rodaram 311, das quais 181
+// passaram e 129 falharam por falta de crédito; de 13/09 em diante, tudo falha.
+//
+// Resultado para o usuário: 1.786 vagas entram em dois dias e depois 28 dias
+// sem nada. Quem se cadastra no dia 20 configura tudo e não recebe vaga
+// nenhuma, que é a pior hora possível para não haver estoque.
+//
+// Com teto diário o total do mês é o MESMO, só que distribuído: ~16 execuções
+// por dia, ~58 vagas por dia, todo dia. O agendador já pega os robôs mais
+// antigos primeiro (`order by "NextRunAt" asc`), então os 305 rodam em rodízio
+// em vez de competir.
+const SCHEDULER_MAX_PER_DAY = Number(process.env.SCHEDULER_MAX_PER_DAY) || 16;
+
+// Quantos robôs ainda cabem neste tick. Pura de propósito, para ter teste.
+export function vagasNesteTick({ usadosHoje, tetoDiario, tetoPorTick }) {
+    const restaHoje = Math.max(0, tetoDiario - usadosHoje);
+    return Math.min(tetoPorTick, restaHoje);
+}
+
+// Último dia em que avisamos que o orçamento do dia acabou (evita repetir a
+// cada 60s, que foi como as falhas de crédito enterraram o log).
+let ultimoAvisoOrcamento = '';
+
 // Última vez que avisamos sobre a falta de crédito. Sem isto, o aviso repetiria
 // a cada tick (60s) e afogaria o log — que foi como o problema real ficou
 // escondido: milhares de linhas de falha por dia enterrando tudo o mais.
@@ -113,6 +142,26 @@ async function runDueSchedules(boss) {
         return 0;
     }
 
+    // Conta o que já rodou hoje ANTES de reivindicar: o update avança o
+    // "NextRunAt", então reivindicar além do orçamento consumiria o agendamento
+    // sem executar nada de útil.
+    const [{ usados }] = await sql`
+        select count(*)::int usados from "ScraperRuns"
+        where "CreatedAt" >= date_trunc('day', now())`;
+    const cabem = vagasNesteTick({
+        usadosHoje: usados,
+        tetoDiario: SCHEDULER_MAX_PER_DAY,
+        tetoPorTick: SCHEDULER_MAX_PER_TICK,
+    });
+    if (cabem <= 0) {
+        const hoje = new Date().toISOString().slice(0, 10);
+        if (ultimoAvisoOrcamento !== hoje) {
+            ultimoAvisoOrcamento = hoje;
+            console.log(`⏸️  agendador pausado: orçamento do dia gasto (${usados}/${SCHEDULER_MAX_PER_DAY})`);
+        }
+        return 0;
+    }
+
     const due = await sql`
         update "ScraperSchedules"
         set "LastRunAt" = now(),
@@ -122,7 +171,7 @@ async function runDueSchedules(boss) {
             select "Id" from "ScraperSchedules"
             where "Active" = true and ("NextRunAt" is null or "NextRunAt" <= now())
             order by "NextRunAt" asc nulls first
-            limit ${SCHEDULER_MAX_PER_TICK}
+            limit ${cabem}
             for update skip locked
         )
         returning *`;

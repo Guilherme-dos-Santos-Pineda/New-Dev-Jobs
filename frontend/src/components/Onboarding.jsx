@@ -25,6 +25,20 @@ export default function Onboarding({ profile, user }) {
 
     const passos = [
         {
+            // Este passo JÁ ESTÁ FEITO por definição: quem vê esta tela criou a
+            // conta. Ele existe porque a barra abrir em "1 de 4" converte melhor
+            // que abrir em "0 de 3", mesmo exigindo o mesmo trabalho: num
+            // experimento de cartão fidelidade, 12 espaços com 2 carimbados
+            // teve quase o dobro de conclusão de 10 espaços vazios (Nunes e
+            // Drèze, 2006). Um caminho já começado se abandona menos.
+            feito: true,
+            titulo: 'Criar sua conta',
+            porque: '',
+            para: '/app',
+            acao: '',
+            minutos: 0,
+        },
+        {
             feito: !!profile?.areas?.length && !!profile?.skills?.length,
             titulo: 'Diga o que você faz',
             porque: 'Sua área e suas skills decidem quais vagas chegam até você, e quais nem aparecem.',
@@ -82,9 +96,9 @@ export default function Onboarding({ profile, user }) {
                         </span>
                         <div className="onb-txt">
                             <strong>{t(p.titulo)}</strong>
-                            {!p.feito && <span>{t(p.porque)}</span>}
+                            {!p.feito && p.porque && <span>{t(p.porque)}</span>}
                         </div>
-                        {!p.feito && (
+                        {!p.feito && p.acao && (
                             <Link to={p.para} className={`btn sm ${i === proximo ? 'primary' : 'ghost'}`}>
                                 {t(p.acao)}
                             </Link>

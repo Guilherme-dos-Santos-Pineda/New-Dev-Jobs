@@ -87,8 +87,16 @@ export default function Dashboard() {
     const kpisFortes = m ? (configurado ? [
         {
             label: t('Envios restantes hoje'), icon: 'ti-gauge', tom: m.remainingToday === 0 ? 'warn' : '',
-            value: nf(m.remainingToday), sub: `${t('de')} ${nf(m.dailyLimit)} ${t('do plano')}`,
-            // Proporção, não só número: "190" não diz nada sem saber de quanto.
+            value: nf(m.remainingToday),
+            // Com a cota zerada, o rodapé para de repetir o limite e passa a
+            // dizer O QUE FICOU DE FORA. Perda pesa cerca de duas vezes um ganho
+            // equivalente (Kahneman e Tversky, 1979), e este é o único momento
+            // do produto em que a pessoa sente o teto: "de 7 do plano" não dói,
+            // "23 compatíveis ficaram sem envio" dói. O número já existe, é o
+            // mesmo `compatible` do cartão ao lado.
+            sub: (m.remainingToday === 0 && m.compatible > 0)
+                ? t('{n} compatíveis ficaram sem envio hoje', { n: nf(m.compatible) })
+                : `${t('de')} ${nf(m.dailyLimit)} ${t('do plano')}`,
             barra: m.dailyLimit ? (m.dailyLimit - m.remainingToday) / m.dailyLimit : 0,
         },
         { label: t('Vagas compatíveis'), icon: 'ti-checklist', value: nf(m.compatible), sub: t('prontas para enviar') },

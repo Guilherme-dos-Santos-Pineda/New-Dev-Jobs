@@ -1,26 +1,39 @@
-// Marca do New Dev Jobs: um avião de papel, que é o envio.
+// Marca do New Dev Jobs.
 //
-// A silhueta é a MESMA do favicon.svg e a mesma que o Google mostra na tela de
-// consentimento do Gmail. Isso não é detalhe: a pessoa vê esse desenho no
-// momento mais desconfiado do fluxo, quando decide dar acesso à conta dela, e
-// reconhecer o símbolo ali é parte de confiar. Se mudar aqui, mude no
-// favicon.svg (raiz de pages/ e de frontend/public/) e no Branding do Google
-// Cloud, senão os três param de bater.
-export function LogoMark({ size = 32 }) {
+// O símbolo é a figura encapuzada verde, a mesma do favicon e a mesma que o
+// Google mostra na tela de consentimento do Gmail. Isso não é detalhe: a
+// pessoa vê esse desenho no momento mais desconfiado do fluxo, quando decide
+// dar acesso à conta dela, e reconhecer o símbolo ali é parte de confiar.
+// Trocar aqui exige trocar em três lugares: public/favicon.png, pages/ e o
+// Branding do Google Cloud. Se os três divergirem, a tela de consentimento
+// passa a mostrar uma marca que a pessoa nunca viu.
+//
+// Usamos SÓ O SÍMBOLO ao lado do texto, nunca o logo completo: o arquivo
+// original já traz "new_dev" escrito, e repetir isso ao lado de "New Dev Jobs"
+// fica redundante e diz dois nomes diferentes. O lockup inteiro fica para onde
+// a marca aparece sozinha (favicon, imagem de compartilhamento, Google).
+// Importado como módulo, não referenciado por caminho absoluto: em produção o
+// app é servido sob /app/, então "/marca.png" apontaria para a raiz do domínio
+// e daria 404. O Vite reescreve o caminho e ainda põe hash no nome, o que
+// resolve cache entre deploys.
+
+import marca from '../assets/marca.png';
+
+export function LogoMark({ size = 30 }) {
     return (
-        <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="2" y="2" width="36" height="36" rx="3" fill="currentColor" />
-            {/* avião de papel */}
-            <path d="M9 21.5 L31 9.5 L24 31 L19.5 23.2 Z" fill="var(--color-bg)" />
-            <path d="M19.5 23.2 L31 9.5 L24 31 Z" fill="var(--color-bg)" fillOpacity="0.62" />
-            {/* rastro de velocidade */}
-            <path d="M6.5 25.5 h5" stroke="var(--color-bg)" strokeOpacity="0.7" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M8 29.5 h3.5" stroke="var(--color-bg)" strokeOpacity="0.45" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
+        <img
+            src={marca}
+            alt=""
+            aria-hidden="true"
+            width={Math.round(size * 1.41)}
+            height={size}
+            className="brand-mark-img"
+            style={{ height: size }}
+        />
     );
 }
 
-export default function Logo({ size = 30, className = '' }) {
+export default function Logo({ size = 26, className = '' }) {
     return (
         <span className={`brand-logo ${className}`}>
             <LogoMark size={size} />

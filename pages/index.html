@@ -415,9 +415,10 @@
         background: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: var(--radius);
-        box-shadow: var(--shadow-md);
-        align-self: start;
     }
+    .hero-lado { display: flex; flex-direction: column; }
+    .hero-lado .hero-trust { margin-top: 16px; max-width: none; }
+    .hero-visual-rot { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 10px; }
     .carta-cab { padding: 16px 18px; border-bottom: 1px solid var(--color-border-light); }
     .carta-cab div {
         font-family: var(--fonte); font-variant-numeric: tabular-nums; font-size: 12.5px;
@@ -775,19 +776,12 @@
                 </div>
                 <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 por dia, todo dia. Sem cartão de crédito.</p>
 
-                <!-- A objecao real nao e preco, e "isso vai ler meu email?". Ela
-                     precisa ser respondida ANTES do clique, nao na documentacao. -->
-                <div class="hero-trust">
-                    <i class="ti ti-lock" aria-hidden="true"></i>
-                    <div>
-                        <b data-i18n="trust.h">Seu Gmail continua seu.</b>
-                        <span data-i18n="trust.p">A conexão é pelo Google OAuth e pedimos uma permissão só, a de ENVIAR. Não conseguimos ler sua caixa de entrada, e nenhuma senha sua fica armazenada aqui.</span>
-                    </div>
-                </div>
             </div>
 
             <!-- O produto manda um EMAIL. Entao o hero mostra o email, e nao um
                  print de navegador falso com bolinhas de semaforo. -->
+            <div class="hero-lado">
+            <p class="hero-visual-rot" data-i18n="carta.rot">O email que sai da sua conta</p>
             <div class="hero-visual">
                 <div class="carta-cab">
                     <div><b data-i18n="carta.de">De</b> <span>voce@gmail.com</span></div>
@@ -802,6 +796,19 @@
                     <span class="carta-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> <span data-i18n="carta.enviado">enviado 08:41</span></span>
                     <span data-i18n="carta.anexo">anexo curriculo.pdf</span>
                     <span data-i18n="carta.match">match 94%</span>
+                </div>
+            </div>
+
+                <!-- Colado no email de proposito: o bloco fala do Gmail e o cartao
+                     acima E o email do Gmail, entao um explica o outro. De quebra,
+                     as duas colunas passam a ter altura parecida, que era o buraco
+                     apontado no hero. -->
+                <div class="hero-trust">
+                    <i class="ti ti-lock" aria-hidden="true"></i>
+                    <div>
+                        <b data-i18n="trust.h">Seu Gmail continua seu.</b>
+                        <span data-i18n="trust.p">A conexão é pelo Google OAuth e pedimos uma permissão só, a de ENVIAR. Não conseguimos ler sua caixa de entrada, e nenhuma senha sua fica armazenada aqui.</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -832,6 +839,7 @@
                         <p data-i18n="how.s3.p">Cada vaga recebe uma nota de 0 a 100 comparando sua stack, senioridade, modalidade e palavras-chave com o anúncio. Só as compatíveis viram email, e o email sai da sua conta.</p>
                     </div>
                 </div>
+            </div>
             </div>
         </section>
 
@@ -867,6 +875,7 @@
                     <p class="vs-fim" data-i18n="vs.d.fim">Uma vez. Depois roda sozinho.</p>
                 </div>
             </div>
+            </div>
         </section>
 
         <!-- ==================== FUNCIONALIDADES ==================== -->
@@ -893,6 +902,7 @@
                     <h3 data-i18n="feat.4.h">dashboard completo</h3>
                     <p data-i18n="feat.4.p">Acompanhe envios, matches e histórico. Pause, filtre ou ajuste a qualquer momento.</p>
                 </div>
+            </div>
             </div>
         </section>
 
@@ -955,6 +965,7 @@
                     </ul>
                 </div>
             </div>
+            </div>
         </section>
 
         <!-- ==================== CTA ==================== -->
@@ -1002,6 +1013,7 @@
             'hero.cta1': '<i class="ti ti-rocket" aria-hidden="true"></i> start with 7 free applications',
             'hero.cta2': 'see how it works',
             'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> 7 a day, every day. No credit card.',
+            'carta.rot': 'The email that goes out from your account',
             'carta.de': 'From',
             'carta.para': 'To',
             'carta.assunto': 'Subject',

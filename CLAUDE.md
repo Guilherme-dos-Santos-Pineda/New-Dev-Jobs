@@ -84,7 +84,11 @@ regra existente, não acrescente uma nova que a contradiga.
 - Filtros de qualidade que só valem aqui (no feed essas vagas continuam passando): título vago (`Vaga`, `Oportunidade`), título que lista vários cargos, empresa que na verdade é **nome de pessoa** (a extração cai no autor do post) ou uma descrição solta, e **nível lido da descrição** (`detectLevel` erra quando o anúncio cita outra senioridade — no post o nível vem só do título).
 
 ## Onboarding (primeiro acesso)
-- **O funil real diz onde perder gente**, não o palpite: em 13 contas, 8 salvaram perfil, 5 preencheram skills, 3 enviaram — e **7 pararam no mesmo buraco** (sem skills, sem currículo, sem Gmail). Ou seja: a landing converte, o app é que perde. Meça antes de redesenhar.
+- **O funil real diz onde perder gente**, não o palpite: a landing converte, o app é que perde. Meça antes de redesenhar.
+- **`npm run funil` imprime o funil** (etapas ACUMULADAS, sem o dono e sem contas de teste). Rode antes e depois de mexer em onboarding, perfil ou preço. Etapa solta dava taxa de 117% porque no app a ordem é livre: dá para anexar o PDF sem escolher skill nenhuma.
+  - **O dono fica fora da conta.** Ele configurou tudo e envia todo dia; dentro do funil, inflava cada etapa.
+  - **Plano pago sem `StripeCustomerId` é concessão, não venda.** Misturar faz cortesia parecer faturamento.
+  - Marco em 26/09/2026: 17 contas, 9 perfil, 6 skills, 6 currículo, 3 Gmail, 3 enviaram, **0 vendas**. Maior degrau: criar conta → salvar perfil (perde 8).
 - `Onboarding.jsx` **diz o que o produto faz antes de pedir qualquer coisa**. O checklist antigo abria com "Conclua sua configuração", que só faz sentido para quem já entendeu que o sistema manda email por você.
 - **Três passos, não quatro**: área e skills são a mesma tela; pedir duas vezes faz a lista parecer maior do que é. E **só o próximo passo tem botão em destaque** — lista toda clicável divide a atenção de quem já não sabe por onde começar.
 - **Antes da configuração terminar, o painel só mostra os KPIs da BASE** (vagas coletadas, recrutadores, empresas). Os pessoais são zero, e uma parede de zeros lê como "não funciona" bem na hora de decidir se vale continuar. Cuidado ao classificar: "Vagas compatíveis" PARECE métrica da base mas depende do perfil — dá zero justamente para quem não configurou.

@@ -187,7 +187,7 @@ export default function Profile() {
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
                     <h1>{t('Meu Perfil')}</h1>
-                    <p>{t('Configure suas preferências para receber as melhores vagas.')}</p>
+                    <p className="perfil-sub">{t('Configure suas preferências para receber as melhores vagas.')}</p>
                 </div>
                 <div className="spacer" />
                 {/* O progresso mora aqui, não num cartão só dele: era um .card de
@@ -199,7 +199,7 @@ export default function Profile() {
                     </div>
                     <div className="progress"><span style={{ width: `${pct}%` }} /></div>
                 </div>
-                <button className="btn ghost sm" onClick={resetConfig}><i className="ti ti-rotate" /> {t('Resetar configuração')}</button>
+                <button className="btn ghost sm btn-resetar" onClick={resetConfig}><i className="ti ti-rotate" /> {t('Resetar configuração')}</button>
             </div>
 
             <div className="settings-grid">
@@ -482,6 +482,20 @@ export default function Profile() {
                             <div className="why"><i className="ti ti-info-circle" />
                                 Isto apaga suas skills, filtros, contatos e a referência do currículo. Sua conta e
                                 seu histórico de candidaturas continuam.
+                            </div>
+
+                            {/* O "Resetar configuração" fica escondido no cabeçalho do
+                                celular, onde roubava uma linha inteira. Aqui ele não
+                                some: é a mesma família de ação (desfazer o que foi
+                                configurado), só que sem o destrutivo. */}
+                            <div className="resetar-aqui">
+                                <div>
+                                    <b>Resetar configuração</b>
+                                    <span>Volta os filtros e preferências ao padrão. Não apaga skills nem currículo.</span>
+                                </div>
+                                <button className="btn ghost sm" onClick={resetConfig}>
+                                    <i className="ti ti-rotate" /> {t('Resetar configuração')}
+                                </button>
                             </div>
 
                             <div className="perigo-box">

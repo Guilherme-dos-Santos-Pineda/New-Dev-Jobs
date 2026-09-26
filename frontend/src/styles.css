@@ -1561,3 +1561,72 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
         scroll-behavior: auto !important;
     }
 }
+
+
+/* Concessão de plano no Admin */
+.conceder { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.conceder .select { width: auto; min-width: 120px; }
+.conceder-dias { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--color-text-secondary); }
+.conceder-dias .input { width: 84px; }
+.conceder-aviso { font-size: 12px; margin-top: 8px; margin-bottom: 14px; }
+
+
+/* ============================================
+   Perfil no celular: uma coisa de cada vez
+   ============================================
+   Medido antes: 344px de cabeçalho antes do primeiro campo, numa tela de
+   800px. Quase metade do visível gasto em decoração de página, e a tira de
+   seções ainda saía cortada porque o rótulo "CONFIGURAÇÃO 0/4" ficava na mesma
+   linha e empurrava as abas para fora.
+
+   O que sai no celular:
+   - o rótulo da navegação (a contagem já está na barra de progresso acima)
+   - o botão "Resetar configuração" do cabeçalho: é ação rara e meio perigosa,
+     e no celular ocupava uma linha inteira ao lado do que importa. Ele
+     continua existindo, dentro da seção de perigo.
+   - o subtítulo da página, que explica o óbvio para quem já clicou em Perfil
+
+   O que fica: título, progresso, e a tira de seções rolando na horizontal. */
+@media (max-width: 760px) {
+    .perfil-sub,
+    .section-nav .nav-topo,
+    .page-head .btn-resetar { display: none; }
+
+    .profile-progress { min-width: 0; width: 100%; }
+
+    /* A tira de seções vira rolagem horizontal de verdade: sangra até a borda
+       para a pessoa perceber que tem mais coisa para o lado. */
+    .section-nav {
+        flex-direction: row; position: static; gap: 4px;
+        overflow-x: auto; scrollbar-width: none;
+        margin: 0 -14px 4px; padding: 0 14px 2px;
+        scroll-snap-type: x proximity;
+    }
+    .section-nav::-webkit-scrollbar { display: none; }
+    .section-nav button {
+        flex: 0 0 auto; scroll-snap-align: start;
+        padding: 8px 13px; border-radius: 0;
+        border-bottom: 2px solid transparent; background: none;
+    }
+    .section-nav button.active {
+        background: none; border-bottom-color: var(--color-text);
+        color: var(--color-text); font-weight: 600;
+    }
+    /* Ícone de estado sai: numa tira horizontal ele não forma coluna, que era
+       a razão de existir dele, e só rouba largura do rótulo. */
+    .section-nav button > i.ti { display: none; }
+    .section-nav .st-opt { display: none; }
+    .section-nav .perigo { margin: 0; padding-top: 8px; border-top: 0; }
+
+    /* Campo ocupa a largura toda: no celular não existe "meia coluna". */
+    .settings-grid .card { padding: 16px 14px; }
+}
+
+.resetar-aqui {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 14px 0; margin: 14px 0; border-top: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-border-light);
+}
+.resetar-aqui > div { flex: 1; min-width: 200px; }
+.resetar-aqui b { display: block; font-size: 13.5px; }
+.resetar-aqui span { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.5; }

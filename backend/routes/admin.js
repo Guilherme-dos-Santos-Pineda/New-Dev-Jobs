@@ -10,6 +10,8 @@ import { resetApifyPool, apifyUsage } from '../services/apifyPool.js';
 import { createCampaign, listCampaigns, setCampaignStatus, deleteCampaign } from '../services/campaigns.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 import { removeCv } from '../lib/cvStorage.js';
+import { decideConcessaoDePlano, DIAS_MAX_CONCESSAO } from '../services/billingLogic.js';
+import { PLANS } from '../config/plans.js';
 
 const router = Router();
 
@@ -123,6 +125,47 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
         applications: apps.map((a) => ({ id: a.Id, status: a.Status, matchScore: a.MatchScore, createdAt: a.CreatedAt, title: a.JobTitle, company: a.Company })),
         counts, auth,
     });
+});
+
+// PATCH /api/admin/users/:id/plan — dá plano de cortesia, sem cobrança
+//
+// Existe porque não havia jeito nenhum de liberar plano para alguém a não ser
+// mexendo no banco na mão.
+//
+// A linha que NÃO pode ser cruzada: isto escreve "Plan" e "PlanExpiresAt", e
+// só. Nunca "Role". Admin é allowlist de email OU Role='admin', então dar o
+// plano mais caro a alguém continua sem dar acesso nenhum ao painel. Se um dia
+// alguém acrescentar "Role" a este update, a pessoa que recebeu cortesia passa
+// a enxergar todos os usuários, todas as vagas e o post de divulgação.
+const concessaoSchema = z.object({
+    plan: z.string(),
+    dias: z.coerce.number().int().min(1).max(DIAS_MAX_CONCESSAO).optional(),
+});
+
+router.patch('/users/:id/plan', requireAdmin, validate(concessaoSchema), async (req, res) => {
+    const id = req.params.id;
+    const [alvo] = await sql`select "Id", "Email", "Plan", "PlanExpiresAt" from "Users" where "Id" = ${id}`;
+    if (!alvo) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+    const decisao = decideConcessaoDePlano({
+        plano: req.body.plan,
+        dias: req.body.dias ?? 30,
+        planosValidos: Object.keys(PLANS),
+        atualMs: alvo.PlanExpiresAt ? new Date(alvo.PlanExpiresAt).getTime() : null,
+    });
+    if (!decisao.ok) return res.status(400).json({ error: decisao.erro });
+
+    const expira = decisao.expiraEm ? new Date(decisao.expiraEm) : null;
+    await sql`
+        update "Users"
+        set "Plan" = ${decisao.plano}, "PlanExpiresAt" = ${expira}
+        where "Id" = ${id}`;
+
+    // Fica no log porque é uma concessão sem rastro financeiro: sem isto, não
+    // há como saber depois quem liberou o quê, nem quando.
+    console.log(`🎁 plano concedido: ${alvo.Email} → ${decisao.plano}${expira ? ` até ${expira.toISOString().slice(0, 10)}` : ''} (por ${req.user.Email})`);
+
+    res.json({ ok: true, plan: decisao.plano, planExpiresAt: expira });
 });
 
 // DELETE /api/admin/users/:id — apaga o usuário (auth + dados em cascata)

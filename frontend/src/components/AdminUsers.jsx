@@ -17,6 +17,9 @@ export default function AdminUsers() {
     const [open, setOpen] = useState(null);     // usuário selecionado (linha)
     const [detail, setDetail] = useState(null); // detalhe carregado
     const [deleting, setDeleting] = useState(false);
+    const [concedendo, setConcedendo] = useState(false);
+    const [plano, setPlano] = useState('pro');
+    const [dias, setDias] = useState(365);
 
     async function load(query = q, page = 1) {
         setLoading(true);
@@ -37,6 +40,25 @@ export default function AdminUsers() {
         try { await api.adminDeleteUser(u.id); toast.show('Usuário apagado'); setOpen(null); load(q, data.page); }
         catch (e) { toast.show(e.message, 'error'); }
         finally { setDeleting(false); }
+    }
+
+    // Concessão de plano sem cobrança: sócio, amigo, cortesia, teste.
+    // O backend garante que isto não encosta em Role; o aviso na tela existe
+    // para quem usa não achar que está promovendo alguém a admin.
+    async function conceder() {
+        if (concedendo) return;
+        const oque = plano === 'free' ? 'voltar para o Free' : `dar o plano ${plano} por ${dias} dia(s)`;
+        if (!window.confirm(`Confirma ${oque} para ${open.email}?
+
+Isto NÃO dá acesso de admin.`)) return;
+        setConcedendo(true);
+        try {
+            const r = await api.adminConcederPlano(open.id, plano, plano === 'free' ? undefined : Number(dias));
+            toast.show(`Plano de ${open.email} agora é ${r.plan}`);
+            setDetail((d) => (d ? { ...d, user: { ...d.user, plan: r.plan } } : d));
+            load(q, data.page);
+        } catch (e) { toast.show(e.message, 'error'); }
+        finally { setConcedendo(false); }
     }
 
     const totalPages = Math.max(1, Math.ceil((data.total || 0) / PAGE));
@@ -115,6 +137,31 @@ export default function AdminUsers() {
                                         <div><b>Último login:</b> {fmtFull(detail.auth?.lastSignIn)}{detail.auth?.provider ? ` · via ${detail.auth.provider}` : ''}</div>
                                         <div><b>Candidaturas:</b> {nf(detail.counts.total)} ({nf(detail.counts.sent)} enviadas, {nf(detail.counts.failed)} falharam)</div>
                                     </div>
+
+                                    {/* Fica dentro do detalhe, não na linha da tabela: é
+                                        ação que mexe em cobrança e precisa da pessoa na frente. */}
+                                    <div className="section-title" style={{ fontSize: 13 }}>Plano</div>
+                                    <div className="conceder">
+                                        <select className="select" value={plano} onChange={(e) => setPlano(e.target.value)} disabled={concedendo} aria-label="Plano">
+                                            <option value="free">Free</option>
+                                            <option value="starter">Starter</option>
+                                            <option value="pro">Pro</option>
+                                        </select>
+                                        {plano !== 'free' && (
+                                            <label className="conceder-dias">
+                                                por
+                                                <input className="input" type="number" min="1" max="3650" value={dias}
+                                                    onChange={(e) => setDias(e.target.value)} disabled={concedendo} aria-label="Dias" />
+                                                dias
+                                            </label>
+                                        )}
+                                        <button className="btn primary sm" onClick={conceder} disabled={concedendo}>
+                                            {concedendo ? 'Aplicando…' : 'Aplicar'}
+                                        </button>
+                                    </div>
+                                    <p className="muted conceder-aviso">
+                                        Concessão sem cobrança. Não dá acesso de admin: plano e permissão são coisas separadas.
+                                    </p>
 
                                     <div className="section-title" style={{ fontSize: 13 }}>Perfil</div>
                                     {detail.profile ? (

@@ -71,3 +71,42 @@ export function decideCheckoutSession(session = {}) {
     }
     return { action: 'subscribe', userId, plan };
 }
+
+
+// =========================
+// Concessão manual de plano (admin)
+// =========================
+// Serve para dar plano a alguém sem cobrança: sócio, amigo, teste, cortesia.
+//
+// DUAS INVARIANTES, e as duas existem por motivo de segurança:
+//
+// 1. O plano sai de uma LISTA FECHADA. Sem isso, um valor qualquer vindo do
+//    corpo da requisição viraria o Plan da pessoa, e `planOf()` cairia no
+//    padrão silenciosamente. O limite diário passaria a ser o do Free sem
+//    ninguém entender por quê.
+// 2. Isto NUNCA devolve Role. Plano e permissão são colunas diferentes de
+//    propósito: dar o plano mais caro para alguém não pode, em hipótese
+//    nenhuma, dar acesso ao painel de admin junto. Quem for mexer aqui depois:
+//    se precisar promover alguém a admin, é outro caminho, não este.
+export const DIAS_MAX_CONCESSAO = 3650; // dez anos, que na prática é "sem prazo"
+
+export function decideConcessaoDePlano({ plano, dias, planosValidos = [], atualMs = null, nowMs = Date.now() }) {
+    if (!planosValidos.includes(plano)) {
+        return { ok: false, erro: 'Plano desconhecido.' };
+    }
+
+    // Voltar para o Free tira a validade junto: deixar uma data velha para trás
+    // faria o worker rebaixar de novo um plano que já é o mais baixo.
+    if (plano === 'free') {
+        return { ok: true, plano: 'free', expiraEm: null };
+    }
+
+    const n = Number(dias);
+    if (!Number.isInteger(n) || n < 1 || n > DIAS_MAX_CONCESSAO) {
+        return { ok: false, erro: `Dias deve ser um inteiro entre 1 e ${DIAS_MAX_CONCESSAO}.` };
+    }
+
+    // Reaproveita a mesma regra do pagamento: empilha sobre o que ainda resta,
+    // em vez de encurtar quem já tinha tempo.
+    return { ok: true, plano, expiraEm: computeExpiry(atualMs, n, nowMs) };
+}

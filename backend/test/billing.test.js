@@ -2,8 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
     checkoutModeForPrice, normalizeChargeStatus, computeExpiry, isPlanExpired,
-    planForPriceId, mapCharge, decideCheckoutSession, PLAN_DAYS,
-} from '../services/billingLogic.js';
+    planForPriceId, mapCharge, decideCheckoutSession, PLAN_DAYS, decideConcessaoDePlano } from '../services/billingLogic.js';
 import { planOf, PLANS } from '../config/plans.js';
 
 const DAY = 86400000;
@@ -132,4 +131,53 @@ test('planOf: apenas planos pagos permitem envio manual', () => {
     assert.equal(planOf('free').allowManual, false);
     assert.equal(planOf('starter').allowManual, true);
     assert.equal(planOf('pro').allowManual, true);
+});
+
+// =========================
+// Concessão manual de plano (admin)
+// =========================
+// Dar plano de cortesia a alguém. O risco aqui não é cobrar errado, é dar
+// permissão junto sem querer: plano e Role são colunas diferentes e precisam
+// continuar assim.
+
+test('concessão aceita plano da lista e devolve validade futura', () => {
+    const agora = Date.UTC(2026, 0, 1);
+    const r = decideConcessaoDePlano({ plano: 'pro', dias: 30, planosValidos: ['free', 'starter', 'pro'], nowMs: agora });
+    assert.equal(r.ok, true);
+    assert.equal(r.plano, 'pro');
+    assert.equal(r.expiraEm, agora + 30 * 24 * 60 * 60 * 1000);
+});
+
+test('concessão NUNCA devolve Role, para plano nao virar permissao', () => {
+    const r = decideConcessaoDePlano({ plano: 'pro', dias: 365, planosValidos: ['free', 'starter', 'pro'] });
+    assert.equal(r.ok, true);
+    assert.equal('Role' in r, false);
+    assert.equal('role' in r, false);
+    assert.equal('isAdmin' in r, false);
+});
+
+test('concessão recusa plano fora da lista', () => {
+    const r = decideConcessaoDePlano({ plano: 'admin', dias: 30, planosValidos: ['free', 'starter', 'pro'] });
+    assert.equal(r.ok, false);
+    assert.match(r.erro, /desconhecido/i);
+});
+
+test('voltar para free zera a validade', () => {
+    const r = decideConcessaoDePlano({ plano: 'free', dias: 30, planosValidos: ['free', 'starter', 'pro'] });
+    assert.equal(r.ok, true);
+    assert.equal(r.expiraEm, null);
+});
+
+test('concessão empilha sobre o tempo que ainda resta', () => {
+    const agora = Date.UTC(2026, 0, 1);
+    const restam10 = agora + 10 * 24 * 60 * 60 * 1000;
+    const r = decideConcessaoDePlano({ plano: 'pro', dias: 30, planosValidos: ['free', 'starter', 'pro'], atualMs: restam10, nowMs: agora });
+    assert.equal(r.expiraEm, restam10 + 30 * 24 * 60 * 60 * 1000);
+});
+
+test('concessão recusa dias invalidos', () => {
+    const validos = ['free', 'starter', 'pro'];
+    for (const dias of [0, -5, 1.5, NaN, 99999, '30x']) {
+        assert.equal(decideConcessaoDePlano({ plano: 'pro', dias, planosValidos: validos }).ok, false, `deveria recusar ${dias}`);
+    }
 });

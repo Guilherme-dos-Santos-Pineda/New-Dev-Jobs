@@ -151,6 +151,7 @@ export const api = {
         return request('GET', `/admin/users${qs ? `?${qs}` : ''}`);
     },
     adminUser: (id) => request('GET', `/admin/users/${id}`),
+    adminConcederPlano: (id, plan, dias) => request('PATCH', `/admin/users/${id}/plan`, { plan, dias }),
     adminDeleteUser: (id) => request('DELETE', `/admin/users/${id}`),
     adminGetSources: () => request('GET', '/admin/sources'),
     adminAddSource: (url, label) => request('POST', '/admin/sources', { url, label }),

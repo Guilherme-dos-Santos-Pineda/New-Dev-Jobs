@@ -14,6 +14,7 @@ export const VARIABLES = [
     { key: 'linkedin_link', label: '{linkedin_link}', desc: "Palavra 'LinkedIn' clicável que abre seu perfil" },
     { key: 'github_link', label: '{github_link}', desc: "Palavra 'GitHub' clicável que abre seu perfil" },
     { key: 'portfolio', label: '{portfolio}', desc: "Palavra 'Portfólio' clicável que abre seu site" },
+    { key: 'direct_contact', label: '{direct_contact}', desc: 'Frase convidando a falar no WhatsApp/LinkedIn (some se você não preencheu nenhum dos dois)' },
 ];
 
 export const DEFAULTS = {
@@ -24,7 +25,7 @@ export const DEFAULTS = {
 
 Me chamo {sender_name} e gostaria de me candidatar à vaga de {job_title}. Acredito que minhas habilidades e experiências podem contribuir positivamente para a equipe.
 
-Caso queira falar comigo diretamente, estou disponível no {whatsapp_link} ou no {linkedin_link}.
+{direct_contact}
 
 Segue abaixo minhas informações de contato:
 {contact_info}
@@ -115,7 +116,26 @@ export function buildVars({ user, profile, job }) {
     if (gh.text) push(gh.html, gh.text);
     if (pf.text) push(pf.html, pf.text);
 
+    // Frase de contato direto, montada só com o que a pessoa preencheu.
+    //
+    // O template padrão trazia a frase inteira escrita à mão, com
+    // {whatsapp_link} e {linkedin_link} no meio. Quem não preenchia nenhum dos
+    // dois mandava para o recrutador: "estou disponível no  ou no ." Não é
+    // hipótese, estava acontecendo em produção.
+    //
+    // Passou a ser uma variável só, que some por inteiro quando não há link
+    // nenhum, e que se adapta quando só um dos dois existe.
+    const canais = [waLink, li].filter((c) => c.text);
+    const juntar = (campo) => canais.map((c) => c[campo]).join(' ou no ');
+    const direct = canais.length
+        ? {
+            html: `Caso queira falar comigo diretamente, estou disponível no ${juntar('html')}.`,
+            text: `Caso queira falar comigo diretamente, estou disponível no ${juntar('text')}.`,
+        }
+        : { html: '', text: '' };
+
     return {
+        direct_contact: direct,
         job_title: value(niceTitle(job, p)),
         company: value(job.Company || 'a empresa'),
         sender_name: value(user.Name),
@@ -153,8 +173,14 @@ export function render(template, vars, { paragraphs = false } = {}) {
 
     if (paragraphs) {
         // \n\n+ vira parágrafo (espaçamento sutil); \n simples vira quebra de linha
+        //
+        // Parágrafo que ficou VAZIO é descartado: uma variável opcional sozinha
+        // na linha (como {direct_contact}) vira string vazia quando a pessoa não
+        // preencheu o campo, e sem este filtro sobraria um <p></p> no meio do
+        // email, ou seja, um buraco branco que ninguém pediu.
         html = html
             .split(/\n{2,}/)
+            .filter((p) => p.trim())
             .map((p) => `<p style="margin:0 0 14px;">${p.replace(/\n/g, '<br>')}</p>`)
             .join('');
     } else {
@@ -162,6 +188,9 @@ export function render(template, vars, { paragraphs = false } = {}) {
     }
     // texto puro: remove marcadores de markdown
     text = text.replace(/\*\*([^*\n]+)\*\*/g, '$1').replace(/\*([^*\n]+)\*/g, '$1');
+    // Mesma limpeza do HTML, na versão em texto: a variável vazia deixa a linha
+    // em branco e, com as quebras em volta, vira um vão de três linhas.
+    text = text.replace(/\n[ \t]*\n[ \t]*\n+/g, '\n\n').trim();
     return { html, text };
 }
 

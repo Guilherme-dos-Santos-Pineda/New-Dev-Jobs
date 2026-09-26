@@ -2,6 +2,7 @@ import { Router } from 'express';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getMatches, shapeJob, countCandidatable } from '../services/jobsQuery.js';
+import { composeForJob, ComposeError } from '../services/compose.js';
 
 const router = Router();
 
@@ -39,6 +40,30 @@ router.get('/matches', requireAuth, async (req, res) => {
         isFree ? m : { ...m, description: description ? description.slice(0, PREVIEW_CHARS) : description }
     ));
     res.json({ matches: safe, total: matches.length, candidatable, filtered: Math.max(0, candidatable - matches.length) });
+});
+
+// POST /api/jobs/:id/compose  — email pronto para o usuário mandar do Gmail dele
+//
+// Esta é a ÚNICA rota que devolve o email de contato, e a exceção é estreita de
+// propósito: uma vaga por vez, só se ela estiver no feed do próprio usuário, e
+// gastando uma unidade do mesmo teto diário do envio automático. A regra de que
+// /matches e /:id nunca devolvem contato continua valendo, e é o que impede que
+// a base vire uma lista de emails para raspar.
+//
+// Não exige conta Google conectada: o objetivo é justamente provar valor antes
+// de pedir a permissão do Gmail.
+//
+// A URL do Gmail é montada no NAVEGADOR, não aqui: assim o endereço do
+// recrutador e o corpo do email não passam a viver em log de servidor nem em
+// histórico de proxy só para abrir uma aba.
+router.post('/:id/compose', requireAuth, async (req, res) => {
+    try {
+        const email = await composeForJob(req.user.Id, req.params.id, req.user.Plan);
+        res.json(email);
+    } catch (e) {
+        if (e instanceof ComposeError) return res.status(e.status).json({ error: e.message });
+        throw e;
+    }
 });
 
 // GET /api/jobs/:id

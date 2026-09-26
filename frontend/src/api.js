@@ -134,6 +134,10 @@ export const api = {
     applyHighlights: (jobIds) => request('POST', '/highlights/apply', { jobIds }),
     // A listagem manda a descrição truncada; esta busca o texto completo de UMA vaga.
     getJob: (id) => request('GET', `/jobs/${id}`),
+    // Email pronto (destinatario, assunto, corpo) para a pessoa mandar do Gmail
+    // DELA, sem conectar conta nenhuma. Gasta uma unidade da cota do dia e tira
+    // a vaga do feed, igual a um envio de verdade.
+    composeJob: (id) => request('POST', `/jobs/${id}/compose`),
     queueStart: (mode, jobIds) => request('POST', '/queue', { mode, jobIds }),
     queueStatus: () => request('GET', '/queue'),
     queueStop: () => request('POST', '/queue/stop'),

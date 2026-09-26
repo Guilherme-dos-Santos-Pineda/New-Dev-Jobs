@@ -334,7 +334,16 @@ export default function Dashboard() {
             </div>
             <FeedbackSection limit={5} compact title={false} />
 
-            {searchOpen && <SearchSendModal onClose={() => setSearchOpen(false)} onStarted={startPolling} />}
+            {/* onManualSent: o envio "por conta própria" não passa pela fila, então
+                não há o que pollar. O que muda é a cota do dia e o total de
+                candidaturas, e esses vêm do dashboard. */}
+            {searchOpen && (
+                <SearchSendModal
+                    onClose={() => setSearchOpen(false)}
+                    onStarted={startPolling}
+                    onManualSent={() => { refreshDash(); refreshRank(); }}
+                />
+            )}
         </div>
     );
 }

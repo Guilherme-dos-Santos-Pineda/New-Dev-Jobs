@@ -4,13 +4,32 @@ import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from './Toast.jsx';
 import { useT } from '../lib/i18n.jsx';
-import { scoreClass } from '../utils.js';
+import { scoreClass, gmailComposeUrl, mailtoUrl, LIMITE_URL } from '../utils.js';
 
-export default function SearchSendModal({ onClose, onStarted }) {
+// =========================
+// Buscar vagas e escolher como candidatar-se
+// =========================
+// Três caminhos, e o terceiro é novo:
+//
+//   auto     envia sozinho pela conta Google conectada
+//   revisar  escolhe da lista e envia (planos pagos)
+//   próprio  devolve o email pronto para a pessoa mandar do Gmail DELA
+//
+// O terceiro existe porque, medido no banco, de 9 pessoas que salvaram um
+// perfil só 4 conectaram o Gmail. A tela de permissão do Google era o maior
+// buraco do funil e não tinha desvio: sem token, nada saía, e a pessoa ia
+// embora sem nunca ver o produto funcionando.
+//
+// Por isso ele NÃO exige conta conectada e aparece mesmo para quem não
+// configurou nada além do perfil. A permissão do Gmail passa a ser pedida
+// depois que a pessoa mandou algumas na mão e sentiu o trabalho que dá, que é
+// o momento em que ela tem motivo para querer a automação.
+
+export default function SearchSendModal({ onClose, onStarted, onManualSent }) {
     const { user, refreshUser } = useAuth();
     const toast = useToast();
     const { t } = useT();
-    const [phase, setPhase] = useState('searching'); // searching | choose | manual
+    const [phase, setPhase] = useState('searching'); // searching | choose | manual | proprio
     const [matches, setMatches] = useState([]);
     const [filtered, setFiltered] = useState(0); // vagas escondidas pelos filtros do perfil
     const [selected, setSelected] = useState(new Set());
@@ -20,9 +39,37 @@ export default function SearchSendModal({ onClose, onStarted }) {
     const [fullDesc, setFullDesc] = useState({}); // id -> descrição completa
     const [starting, setStarting] = useState(false);
     const startingRef = useRef(false); // guarda síncrona contra duplo-clique
+    // Caminho "por conta própria": o que já foi liberado nesta sessão.
+    const [composto, setComposto] = useState({}); // id -> { to, subject, body }
+    const [compondo, setCompondo] = useState(null); // id em andamento
+    const compondoRef = useRef(false); // guarda síncrona contra duplo-clique
+
+    // Lista do caminho "por conta própria", CONGELADA ao entrar na tela.
+    //
+    // Duas razões para não usar `matches` direto aqui:
+    //
+    // 1. São até 1500 vagas. Renderizar 1500 linhas travou a tela a ponto de a
+    //    captura de tela estourar o tempo. O caminho pago pode listar tudo (é
+    //    por essa escolha ampla que se paga); este é o caminho de todo mundo.
+    // 2. Mostrar mais do que a pessoa pode mandar hoje só a obriga a descartar
+    //    sem critério. Mesmo raciocínio dos destaques, que trazem exatamente o
+    //    teto diário.
+    //
+    // Congelada porque a cota cai a cada envio: recalcular encolheria a lista
+    // debaixo do dedo da pessoa e sumiria com as linhas que ela acabou de abrir
+    // (e que guardam o botão de copiar).
+    const [doDia, setDoDia] = useState([]);
 
     const ready = user.googleConnected && user.hasProfile && user.hasCv;
     const isFree = (user.plan || 'free') === 'free';
+    const temPerfil = !!user.hasProfile;
+    const quantosMandou = Object.keys(composto).length;
+    const restamHoje = Math.max(0, user.usage?.remainingToday ?? 0);
+
+    function entrarProprio() {
+        setDoDia(matches.slice(0, restamHoje));
+        setPhase('proprio');
+    }
 
     useEffect(() => {
         let alive = true;
@@ -56,6 +103,45 @@ export default function SearchSendModal({ onClose, onStarted }) {
         }
     }
 
+    // Libera o email de UMA vaga e abre o Gmail do usuário já preenchido.
+    //
+    // A aba é aberta ANTES do await, de propósito: `window.open` chamado depois
+    // de uma resposta da rede perde o vínculo com o clique e o navegador bloqueia
+    // como popup. Abrimos em branco durante o gesto e só então trocamos a URL.
+    async function abrirNoGmail(id) {
+        if (compondoRef.current) return;
+        compondoRef.current = true;
+        setCompondo(id);
+        const aba = window.open('', '_blank');
+        try {
+            const email = await api.composeJob(id);
+            const url = gmailComposeUrl(email);
+            if (aba && url.length <= LIMITE_URL) aba.location = url;
+            else aba?.close(); // popup bloqueado ou email longo demais: fica o copiar
+            setComposto((c) => ({ ...c, [id]: email }));
+            try { await refreshUser(); } catch { /* ignore */ }
+            onManualSent?.();
+        } catch (e) {
+            aba?.close();
+            toast.show(e.message, 'error');
+        } finally {
+            compondoRef.current = false;
+            setCompondo(null);
+        }
+    }
+
+    async function copiar(id) {
+        const email = composto[id];
+        if (!email) return;
+        const texto = `Para: ${email.to}\nAssunto: ${email.subject}\n\n${email.body}`;
+        try {
+            await navigator.clipboard.writeText(texto);
+            toast.show(t('Email copiado. Cole no seu cliente de email.'));
+        } catch {
+            toast.show(t('Não consegui copiar. Selecione o texto na tela.'), 'error');
+        }
+    }
+
     async function expandir(id) {
         if (expanded === id) { setExpanded(null); return; }
         setExpanded(id);
@@ -76,7 +162,7 @@ export default function SearchSendModal({ onClose, onStarted }) {
 
     return (
         <div className="modal-overlay" onClick={() => !starting && onClose()}>
-            <div className="modal" style={{ maxWidth: phase === 'manual' ? 680 : 560 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal" style={{ maxWidth: phase === 'choose' ? 560 : 680 }} onClick={(e) => e.stopPropagation()}>
 
                 {phase === 'searching' && (
                     <div style={{ padding: '48px 32px', textAlign: 'center' }}>
@@ -104,37 +190,65 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                 ) : (
                                     <div className="empty"><i className="ti ti-briefcase-off" />Nenhuma vaga disponível agora. Rode o scraper ou volte mais tarde.</div>
                                 )
-                            ) : !ready ? (
-                                <div className="notice warn">
-                                    <i className="ti ti-alert-triangle" />
-                                    <span>Para enviar, conclua sua configuração (conta Google + currículo) no <Link to="/app/perfil">seu perfil</Link>.</span>
-                                </div>
                             ) : (
                                 <>
                                     <p style={{ marginBottom: 16 }}>
                                         Sistema encontrou <b style={{ color: 'var(--color-accent)' }}>{matches.length} matches</b> perfeitos!
-                                        Executo o envio em lote ou prefere modo seleção manual?
+                                        Escolha como quer se candidatar.
                                     </p>
-                                    <div className="choice" style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined} onClick={() => start('auto')}>
-                                        <div className="choice-ico ok"><i className="ti ti-bolt" /></div>
+
+                                    <div className={`choice ${ready ? '' : 'locked'}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+                                        onClick={() => { if (ready) start('auto'); }}>
+                                        <div className={`choice-ico ${ready ? 'ok' : ''}`}><i className={`ti ${ready ? 'ti-bolt' : 'ti-lock'}`} /></div>
                                         <div>
                                             <div className="choice-t">{starting ? t('Iniciando envio…') : t('Enviar automaticamente')}</div>
-                                            <div className="choice-d">Enviar todas as {matches.length} vagas filtradas (uma a cada 60–120s).</div>
+                                            <div className="choice-d">
+                                                {ready
+                                                    ? `Enviar todas as ${matches.length} vagas filtradas (uma a cada 60–120s).`
+                                                    : t('Precisa da conta Google conectada e do currículo no perfil.')}
+                                            </div>
                                         </div>
                                         {starting
                                             ? <div className="spinner" style={{ marginLeft: 'auto', width: 18, height: 18, borderWidth: 2 }} />
                                             : <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />}
                                     </div>
-                                    <div className={`choice ${isFree ? 'locked' : ''}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
-                                        onClick={() => { if (isFree) toast.show('Seleção manual disponível nos planos pagos.', 'error'); else setPhase('manual'); }}>
-                                        <div className="choice-ico"><i className={`ti ${isFree ? 'ti-lock' : 'ti-list-check'}`} /></div>
+
+                                    <div className={`choice ${(isFree || !ready) ? 'locked' : ''}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+                                        onClick={() => {
+                                            if (isFree) toast.show('Seleção manual disponível nos planos pagos.', 'error');
+                                            else if (!ready) toast.show('Conecte a conta Google e envie seu currículo primeiro.', 'error');
+                                            else setPhase('manual');
+                                        }}>
+                                        <div className="choice-ico"><i className={`ti ${(isFree || !ready) ? 'ti-lock' : 'ti-list-check'}`} /></div>
                                         <div>
                                             <div className="choice-t">{t('Revise antes de enviar')} {isFree && <span className="badge warn">Pro</span>}</div>
                                             <div className="choice-d">{t('Revisar e selecionar vagas específicas para envio.')}</div>
                                         </div>
                                         <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
                                     </div>
-                                    {isFree && <p className="muted" style={{ fontSize: 12, marginTop: 12, textAlign: 'center' }}>No plano free o envio é automático. Faça upgrade para revisar manualmente.</p>}
+
+                                    {/* Sem OAuth: é o caminho que prova o produto antes de pedir permissão. */}
+                                    <div className={`choice ${temPerfil ? '' : 'locked'}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+                                        onClick={() => {
+                                            if (temPerfil) entrarProprio();
+                                            else toast.show(t('Salve seu perfil primeiro para montarmos o email.'), 'error');
+                                        }}>
+                                        <div className="choice-ico"><i className={`ti ${temPerfil ? 'ti-mail-forward' : 'ti-lock'}`} /></div>
+                                        <div>
+                                            <div className="choice-t">
+                                                {t('Enviar você mesmo')}
+                                                {!user.googleConnected && <span className="badge ok" style={{ marginLeft: 6 }}>{t('sem conectar nada')}</span>}
+                                            </div>
+                                            <div className="choice-d">{t('Abrimos o seu Gmail com o email já escrito. Você confere e manda.')}</div>
+                                        </div>
+                                        <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                                    </div>
+
+                                    {!ready && (
+                                        <p className="muted" style={{ fontSize: 12, marginTop: 12, textAlign: 'center' }}>
+                                            {t('Quer que o sistema envie sozinho?')} <Link to="/app/perfil?section=email">{t('conecte sua conta Google')}</Link>.
+                                        </p>
+                                    )}
                                 </>
                             )}
                         </div>
@@ -175,6 +289,79 @@ export default function SearchSendModal({ onClose, onStarted }) {
                                 onClick={() => start('manual', [...selected])}>
                                 {starting ? 'Enviando…' : (<><i className="ti ti-send" /> Adicionar {selected.size} à fila</>)}
                             </button>
+                        </div>
+                    </>
+                )}
+
+                {phase === 'proprio' && (
+                    <>
+                        <div className="modal-head">
+                            <button className="btn ghost sm" onClick={() => setPhase('choose')}><i className="ti ti-arrow-left" /></button>
+                            <h3>{t('Enviar você mesmo')} {doDia.length > 0 && <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>({quantosMandou}/{doDia.length})</span>}</h3>
+                            <button className="close" onClick={onClose}><i className="ti ti-x" /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '8px 16px' }}>
+                            <div className="notice" style={{ marginBottom: 10 }}>
+                                <i className="ti ti-info-circle" />
+                                <span>{t('Abrimos o seu Gmail com destinatário, assunto e texto prontos. Anexe seu currículo e mande. Cada vaga aberta gasta 1 do seu limite de hoje e sai desta lista.')}</span>
+                            </div>
+
+                            {doDia.length === 0 && (
+                                <div className="empty">
+                                    <i className="ti ti-clock-pause" />
+                                    {t('Você já usou os envios de hoje. Volte amanhã ou faça upgrade para mandar mais.')}
+                                </div>
+                            )}
+
+                            {doDia.map((m) => {
+                                const feito = composto[m.id];
+                                return (
+                                    <div key={m.id} className="sel-item">
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: 600, fontSize: 13.5 }}>{m.title || 'Vaga'}</div>
+                                            <div className="muted" style={{ fontSize: 12 }}>{m.company ? `${m.company} · ` : ''}{m.matchScore}% match</div>
+                                            {feito && (
+                                                <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                                                    <span className="muted" style={{ fontSize: 12 }}>
+                                                        <i className="ti ti-check" style={{ color: 'var(--color-success)' }} /> {t('para')} {feito.to}
+                                                    </span>
+                                                    <button className="btn ghost sm" style={{ padding: '2px 0' }} onClick={() => copiar(m.id)}>
+                                                        <i className="ti ti-copy" /> {t('copiar texto')}
+                                                    </button>
+                                                    <a className="btn ghost sm" style={{ padding: '2px 0' }} href={mailtoUrl(feito)}>
+                                                        <i className="ti ti-mail" /> {t('outro app de email')}
+                                                    </a>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {feito ? (
+                                            <span className="badge ok">{t('aberto')}</span>
+                                        ) : (
+                                            <button className="btn sm" disabled={!!compondo} onClick={() => abrirNoGmail(m.id)}>
+                                                {compondo === m.id
+                                                    ? <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                                                    : <><i className="ti ti-brand-google" /> {t('Abrir no Gmail')}</>}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* O pedido de permissão vem DEPOIS do trabalho manual, não antes:
+                            é quando a pessoa já viu que funciona e já sentiu o custo. */}
+                        {quantosMandou >= 2 && !user.googleConnected && (
+                            <div className="notice" style={{ margin: '0 16px 12px' }}>
+                                <i className="ti ti-bolt" />
+                                <span>
+                                    {t('Já foram {n} na mão.', { n: quantosMandou })}{' '}
+                                    <Link to="/app/perfil?section=email">{t('Conecte o Gmail')}</Link> {t('e o sistema passa a fazer isso sozinho.')}
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="modal-foot">
+                            <button className="btn ghost" onClick={onClose}>{t('Fechar')}</button>
                         </div>
                     </>
                 )}

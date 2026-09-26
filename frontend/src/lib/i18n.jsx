@@ -298,6 +298,27 @@ const EN = {
     'Revisar e selecionar vagas específicas para envio.': 'Review and select specific jobs to send.',
     'Selecionar todas': 'Select all',
     'ver detalhes': 'see details', 'ocultar': 'hide',
+    'Precisa da conta Google conectada e do currículo no perfil.': 'Needs your Google account connected and a CV in your profile.',
+
+    // --- Enviar por conta própria (sem OAuth) ---
+    'Enviar você mesmo': 'Send it yourself',
+    'sem conectar nada': 'nothing to connect',
+    'Abrimos o seu Gmail com o email já escrito. Você confere e manda.': 'We open your Gmail with the email already written. You check it and send.',
+    'Salve seu perfil primeiro para montarmos o email.': 'Save your profile first so we can build the email.',
+    'Quer que o sistema envie sozinho?': 'Want the system to send on its own?',
+    'conecte sua conta Google': 'connect your Google account',
+    'Abrimos o seu Gmail com destinatário, assunto e texto prontos. Anexe seu currículo e mande. Cada vaga aberta gasta 1 do seu limite de hoje e sai desta lista.': 'We open your Gmail with the recipient, subject and text ready. Attach your CV and send. Each job you open uses 1 of today’s limit and leaves this list.',
+    'Abrir no Gmail': 'Open in Gmail',
+    'copiar texto': 'copy text',
+    'outro app de email': 'another email app',
+    'para': 'to',
+    'aberto': 'opened',
+    'Email copiado. Cole no seu cliente de email.': 'Email copied. Paste it into your email client.',
+    'Não consegui copiar. Selecione o texto na tela.': 'Could not copy. Select the text on screen.',
+    'Você já usou os envios de hoje. Volte amanhã ou faça upgrade para mandar mais.': 'You have used today’s sends. Come back tomorrow, or upgrade to send more.',
+    'Já foram {n} na mão.': '{n} sent by hand already.',
+    'Conecte o Gmail': 'Connect Gmail',
+    'e o sistema passa a fazer isso sozinho.': 'and the system starts doing this on its own.',
 };
 
 const DICT = { pt: {}, en: EN };

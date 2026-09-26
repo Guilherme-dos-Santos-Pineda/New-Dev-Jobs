@@ -106,3 +106,28 @@ export function normalizeKeyword(raw) {
     if (!s) return '';
     return TECH_CANON[s.toLowerCase()] || s;
 }
+
+// =========================
+// Abrir o Gmail do proprio usuario ja preenchido
+// =========================
+// Usado pelo caminho "enviar por conta propria", que existe para a pessoa
+// mandar a candidatura sem precisar conectar o Gmail na plataforma.
+//
+// A URL e montada AQUI, no navegador, e nao no servidor: assim o endereco do
+// recrutador e o corpo do email nao passam a viver em log de servidor so para
+// abrir uma aba.
+//
+// Limite pratico: o Gmail corta URL muito longa e o navegador tambem tem teto.
+// Acima de LIMITE_URL a tela cai para "copiar o texto", que sempre funciona.
+export const LIMITE_URL = 6000;
+
+export function gmailComposeUrl({ to, subject, body }) {
+    const q = new URLSearchParams({ view: 'cm', fs: '1', to: to || '', su: subject || '', body: body || '' });
+    return `https://mail.google.com/mail/?${q.toString()}`;
+}
+
+// Para quem nao usa o Gmail na web: abre o cliente padrao do sistema.
+export function mailtoUrl({ to, subject, body }) {
+    const q = new URLSearchParams({ subject: subject || '', body: body || '' });
+    return `mailto:${encodeURIComponent(to || '')}?${q.toString()}`;
+}

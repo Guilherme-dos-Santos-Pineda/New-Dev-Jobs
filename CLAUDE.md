@@ -56,6 +56,12 @@ regra existente, não acrescente uma nova que a contradiga.
 - Numeração sequencial: `0001`, `0002`, … A próxima é a maior + 1.
 - Aplicar: `node backend/scripts/apply-migration.mjs supabase/migrations/<arquivo>.sql` (escrita em prod é feita pelo dono — eu não rodo).
 
+## Planos e preço (o que pode ser anunciado)
+- **Só entra em `features` (backend/config/plans.js) o que EXISTE no código.** O Pro vendia "tracking de abertura", "multi-contas" e "agendamento automático" por R$189: nenhum dos três tinha uma linha de implementação, eram string no `plans.js` e `<li>` na landing. Antes de acrescentar um item, aponte a função que o entrega.
+- A landing (`pages/index.html`) e o app leem a mesma lista: o app vem de `/billing/plans`, a landing é HTML escrito à mão. **Mudou `plans.js`? Confira a landing também**, senão as duas divergem.
+- `priority` não ordena nada ainda. Não vire feature de venda enquanto a fila não usar.
+- O modelo é **pagamento único de 30 dias**, não assinatura. O Pro dizia "/mês" na landing: era contradição com o próprio checkout.
+
 ## Testes
 - `npm test` → `node --test backend/test/` (runner nativo do Node, sem dependência).
 - **A suíte roda SEM banco** (é lógica pura) e o CI não tem `.env`. Nunca ponha um `sql\`\`` no topo de um módulo: `sql` é `null` sem `DATABASE_URL` e o *import* quebra — passa local e derruba o CI, que foi como um deploy ficou parado sem ninguém ver.
@@ -140,6 +146,11 @@ regra existente, não acrescente uma nova que a contradiga.
 ## Segurança (invariantes)
 - Admin = allowlist `ADMIN_EMAILS` **ou** `Users.Role='admin'`. **Sem fallback aberto.**
 - `/jobs` e `/jobs/matches` **nunca** devolvem o email de contato (envio é server-side); plano free também não recebe a descrição.
+  - **Única exceção: `POST /jobs/:id/compose`** (o "enviar você mesmo"). Ela existe porque a permissão do Gmail era o maior buraco do funil (de 9 perfis salvos, só 4 conectaram), e é estreita de propósito: **uma vaga por vez**, **só se estiver no feed daquele usuário** (senão vira caminho paralelo para qualquer vaga da base, igual ao risco do `/highlights/apply`) e **gastando 1 do mesmo teto diário** do envio automático. Assim a taxa de coleta continua 7/dia no free, não 1500.
+  - A cota é conferida e gravada **na mesma transação**, depois de `for update` na linha do usuário. Checar e depois inserir em dois passos soltos é corrida: 20 pedidos em paralelo passavam todos pela checagem antes de qualquer um gravar. Coberto por `backend/test/composeLogic.test.js` e medido na prova (20 paralelos → exatamente 6 liberados).
+  - A URL do Gmail é montada **no navegador** (`gmailComposeUrl` em `frontend/src/utils.js`), não no servidor: o endereço do recrutador não precisa viver em log de servidor. E `window.open` é chamado **antes** do `await`, senão o navegador bloqueia como popup.
+  - A candidatura fica com `Status='manual'` (não `'sent'`): não sabemos se a pessoa mandou de fato. `SentAt` é preenchido porque é o que `countSentToday` conta, e o recurso escasso é o **endereço liberado**, não o clique em enviar.
+  - `/applications` devolve o email em `to` **de propósito e desde sempre** (é o registro de uma vaga a que a pessoa já se candidatou). Não confundir com o feed.
 - Segredos só no `.env` (gitignored) e no painel do provedor — **nunca** no código/commits. ⚠️ O repositório é **público**.
 - `/ranking` **não expõe nome completo** (abrevia: "Primeiro S."). Logout do front chama `POST /api/auth/logout` (purga o token do cache do middleware — sem isso o token deslogado valeria por até 60s).
 - Headers de segurança dos **sites estáticos** (app + landing) vivem no [deploy/oracle/nginx-newdevjobs.conf](deploy/oracle/nginx-newdevjobs.conf) (`add_header ... always` — X-Frame-Options etc.); o helmet cobre **só a API**. Os `_headers`/`_redirects` em `pages/` e `frontend/public/` são resquício de Render/Cloudflare Pages e o `deploy-static.sh` os remove da webroot.

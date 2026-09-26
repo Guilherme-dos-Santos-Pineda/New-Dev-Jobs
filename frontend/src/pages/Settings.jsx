@@ -11,6 +11,33 @@ const GOOGLE_MSG = {
     error: ['Falha ao conectar com o Google', 'error'],
 };
 
+// =========================
+// Bloco que recolhe no celular
+// =========================
+// Medido nesta aba, num celular de 800px de altura: 2.416px de conteúdo, três
+// telas de rolagem. O editor de modelo sozinho é 1.876px disso, e ele é a parte
+// que menos gente precisa: existe um modelo padrão que funciona, e mexer em
+// assunto e corpo de email no celular é trabalho que quase ninguém faz.
+//
+// Aberto por padrão no desktop, fechado no celular. A decisão é tomada UMA vez,
+// na montagem, e não num listener de resize: quem gira o telefone não espera
+// que a seção feche sozinha no meio da edição.
+function Recolhivel({ titulo, resumo, children }) {
+    const [aberto, setAberto] = useState(() => {
+        try { return window.innerWidth > 760; } catch { return true; }
+    });
+    return (
+        <details className="recolhivel card" open={aberto} onToggle={(e) => setAberto(e.currentTarget.open)}>
+            <summary>
+                <span className="recolhivel-t">{titulo}</span>
+                {resumo && <span className="recolhivel-r">{resumo}</span>}
+                <i className="ti ti-chevron-down recolhivel-seta" aria-hidden="true" />
+            </summary>
+            <div className="recolhivel-corpo">{children}</div>
+        </details>
+    );
+}
+
 export default function EmailSettings() {
     const { user, googleConfigured, refreshUser } = useAuth();
     const toast = useToast();
@@ -186,7 +213,7 @@ export default function EmailSettings() {
                     </div>
                 )}
                 {user.googleConnected ? (
-                    <div className="row" style={{ alignItems: 'center' }}>
+                    <div className="row conta-envio" style={{ alignItems: 'center' }}>
                         <div className="job-logo" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>
                             <i className="ti ti-brand-google" />
                         </div>
@@ -198,7 +225,7 @@ export default function EmailSettings() {
                         <button className="btn sm" disabled={disconnecting} onClick={disconnectGoogle}><i className="ti ti-unlink" /> {disconnecting ? 'Desconectando…' : 'Desconectar'}</button>
                     </div>
                 ) : (
-                    <div className="row" style={{ alignItems: 'center' }}>
+                    <div className="row conta-envio" style={{ alignItems: 'center' }}>
                         <div className="job-logo"><i className="ti ti-brand-google" /></div>
                         <div>
                             <div style={{ fontWeight: 600 }}>Conecte sua conta Google</div>
@@ -220,12 +247,12 @@ export default function EmailSettings() {
                 </a>
 
                 {/* Enviar email de teste */}
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border-light)' }}>
+                <div className="teste-envio">
                     <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Enviar email de teste</div>
                     <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
                         Envia um email real (com seu template e currículo) para conferir se está tudo certo.
                     </div>
-                    <div className="row" style={{ gap: 8, flexWrap: 'nowrap' }}>
+                    <div className="row teste-envio-linha" style={{ gap: 8 }}>
                         <input className="input" type="email" value={testTo}
                             onChange={(e) => setTestTo(e.target.value)} placeholder="email@destino.com" />
                         <button className="btn sm" style={{ flexShrink: 0 }} disabled={testing || !user.googleConnected}
@@ -238,17 +265,16 @@ export default function EmailSettings() {
             </div>
 
             {/* ---- Editor de template ---- */}
-            <div className="card">
-                <div className="row" style={{ alignItems: 'center', marginBottom: 4 }}>
-                    <div className="section-title" style={{ margin: 0 }}>Modelo do email</div>
+            <Recolhivel titulo="Modelo do email" resumo="assunto, corpo e variáveis">
+                <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
+                    <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+                        Personalize o assunto e o corpo. Use as variáveis (clique para inserir).
+                    </p>
                     <div className="spacer" />
                     <select className="select" style={{ width: 'auto' }} value="pt" disabled>
                         <option value="pt">Português</option>
                     </select>
                 </div>
-                <p className="muted" style={{ fontSize: 12.5, marginBottom: 16 }}>
-                    Personalize o assunto e o corpo. Use as variáveis (clique para inserir).
-                </p>
 
                 <div className="grid-2 tpl-grid" style={{ alignItems: 'start' }}>
                     {/* Coluna editor */}
@@ -342,7 +368,7 @@ export default function EmailSettings() {
                         {saving ? 'Salvando…' : (<><i className="ti ti-device-floppy" /> Salvar modelo</>)}
                     </button>
                 </div>
-            </div>
+            </Recolhivel>
         </>
     );
 }

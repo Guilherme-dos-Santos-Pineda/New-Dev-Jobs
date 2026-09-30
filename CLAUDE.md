@@ -130,6 +130,9 @@ regra existente, não acrescente uma nova que a contradiga.
 - **Não destrói: arquiva.** A linha inteira vira um retrato jsonb em `ProfileBackups` (migration `0015`) **na mesma transação** do delete — backup "quase sempre" não é backup. Um DELETE autenticado é idêntico vindo do dono ou de quem entrou na conta; arquivar é o que torna o sequestro reversível.
 - **O snapshot é jsonb, não colunas espelhadas**: o perfil ganha campo novo a cada mês e um espelho desatualizado restauraria um perfil pela metade, em silêncio.
 - **O usuário não alcança os backups** — nem para listar (`/api/admin/profile-backups` é `requireAdmin`). Se a conta foi tomada, quem está com ela não pode apagar a prova também.
+- **A tela NÃO anuncia mais a cópia** (decisão do dono, 30/09/2026). Quem apaga por privacidade não recebe, no meio da ação, a notícia de que algo foi guardado. A cópia continua sendo feita: o que saiu foi o aviso, não a rede de proteção.
+  - **A retenção é declarada na Política de Privacidade** (`pages/privacidade.html`, seção Retenção), e tem de continuar lá: a cópia e o PDF do currículo permanecem guardados, então dizer só "removemos seus dados" seria falso. Tirar da tela E da política deixaria a retenção sem declaração em lugar nenhum, o que é problema de LGPD, não de texto.
+- **Apagar o perfil DESLOGA em seguida.** Continuar logado num app sem perfil devolve a pessoa para um painel zerado que parece conta quebrada, e deixa a sessão aberta logo depois de uma ação feita justamente para se desfazer do acesso.
 - O arquivo do CV **não** é removido do Storage: sem ele a restauração devolveria um perfil sem PDF, ou seja, não restauraria nada.
 - Restaurar por cima de um perfil ativo é recusado (409): trocaria um estrago por outro.
 

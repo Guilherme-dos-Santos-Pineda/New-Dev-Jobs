@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { FILTRO_DATA_ATIVO } from '../lib/flags.js';
 import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
@@ -25,7 +25,8 @@ const EMPTY = {
 export default function Profile() {
     const toast = useToast();
     const { t } = useT();
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, logout } = useAuth();
+    const navigate = useNavigate();
     const [params] = useSearchParams();
     const initialSection = (params.get('google') || params.get('tab') === 'email') ? 'email'
         : (params.get('section') || 'skills');
@@ -149,14 +150,22 @@ export default function Profile() {
         setApagando(true);
         try {
             await api.deleteProfile(confirmaApagar.trim().toUpperCase());
-            applyProfile({ ...EMPTY, cvName: null });
             mutateCache('profile', { profile: null });
-            await refreshUser();
             setConfirmaApagar('');
-            setSection('skills');
-            toast.show('Perfil apagado. Guardamos uma cópia de segurança.');
-        } catch (e) { toast.show(e.message, 'error'); }
-        finally { busyRef.current.del = false; setApagando(false); }
+            toast.show('Perfil apagado.');
+            // DESLOGA depois de apagar. Continuar logado num app sem perfil
+            // devolve a pessoa para um painel zerado que parece a conta
+            // quebrada, e ainda deixa a sessão aberta logo depois de uma ação
+            // que costuma ser feita justamente para se desfazer do acesso.
+            //
+            // A espera curta é só para a confirmação ser lida antes da
+            // navegação levar o toast junto.
+            setTimeout(() => { logout(); navigate('/login'); }, 1400);
+        } catch (e) {
+            toast.show(e.message, 'error');
+            busyRef.current.del = false;
+            setApagando(false);
+        }
     }
 
     const toggleIn = (key, v) => setForm((f) => ({ ...f, [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] }));
@@ -517,10 +526,13 @@ export default function Profile() {
                                         <ul style={{ margin: '0 0 0 18px', fontSize: 13, lineHeight: 1.75, color: 'var(--color-text-secondary)' }}>
                                             <li>Os envios que estão na fila são cancelados.</li>
                                             <li>Você deixa de receber vagas até preencher o perfil de novo.</li>
-                                            <li>{/* Dito porque muda a decisão de quem está apagando por privacidade. */}
-                                                Guardamos uma cópia por segurança, visível só para o administrador.
-                                                É o que permite desfazer caso alguém entre na sua conta e apague por você.
-                                            </li>
+                                            {/* A cópia de segurança CONTINUA sendo feita (é o que torna
+                                                reversível alguém entrar na conta e apagar por você), mas não é
+                                                mais anunciada aqui: quem apaga por privacidade não deveria
+                                                receber, no meio da ação, a notícia de que algo foi guardado.
+                                                A retenção é declarada na Política de Privacidade, que é onde
+                                                ela tem de estar, e continua verdadeira. Não remova de lá. */}
+                                            <li>Você sai da sua conta em seguida.</li>
                                         </ul>
                                     </div>
                                 </div>

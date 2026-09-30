@@ -78,7 +78,28 @@ function areaTech(t) {
     // recurso cobre "Senior/Staff Engineer" que antes caíam em 'other' e vazavam.
     // "tech lead", "arquiteto de software" e "analista de sistemas" entraram por
     // aparecerem como 'other' nos dados reais: vaga boa escapando da classificação.
-    if (/desenvolvedor|developer|programador|engenheir[oa]s?\s+de\s+software|software engineer|\bengineer\b|full[\s-]?stack|back[\s-]?end|front[\s-]?end|\.net|\bjava\b|python|\bnode|react|angular|\bvue\b|svelte|\bphp\b|golang|kotlin|swift|\bruby\b|\brust\b|c\+\+|spring|django|laravel|\brails\b|tech lead|arquitet[oa] de software|software architect|analista de sistemas/.test(t)) return 'dev';
+    // --- Desenvolvimento, agora dividido em tres ---
+    //
+    // Antes era um balde so ('dev'): 4714 das 7826 vagas com email. Um dev de
+    // front recebia vaga de back, de dados, de tudo, e a queixa real foi "acho
+    // pouquissima vaga de front-end" — nao era filtro mal configurado, e que a
+    // categoria nao existia.
+    //
+    // A ORDEM aqui e o que faz funcionar:
+    //   1. fullstack primeiro, senao "Full Stack (React/Node)" vira front no
+    //      primeiro termo que casar;
+    //   2. front e back pelas TECNOLOGIAS, que e como o recrutador escreve
+    //      ("Desenvolvedor React", "Dev .NET") muito mais do que "front-end";
+    //   3. 'dev' continua existindo como SOBRA, para o titulo generico
+    //      ("Desenvolvedor de Software", "Tech Lead"). Nao some com a vaga:
+    //      quem escolheu 'dev' no perfil recebe as quatro (ver expandirAreas).
+    //
+    // Mobile e QA sao testados ANTES disto, entao "React Native" e "Test
+    // Engineer" nao caem aqui.
+    if (/full[\s-]?stack/.test(t)) return 'fullstack';
+    if (/front[\s-]?end|\breact\b|reactjs|angular|\bvue\b|vuejs|svelte|next\.?js|\bnuxt\b|\bhtml\b|\bcss\b|\bsass\b|tailwind|\bjavascript\b|\btypescript\b|\bui developer\b|desenvolvedor[a]?\s+web/.test(t)) return 'frontend';
+    if (/back[\s-]?end|\.net\b|\bc#|\bjava\b|python|\bnode(?:\.?js)?\b|\bphp\b|golang|\bruby\b|\brust\b|c\+\+|spring|django|laravel|\brails\b|\bapis?\b|microservi[cç]os?|microservices/.test(t)) return 'backend';
+    if (/desenvolvedor|developer|programador|engenheir[oa]s?\s+de\s+software|software engineer|\bengineer\b|kotlin|swift|tech lead|arquitet[oa] de software|software architect|analista de sistemas/.test(t)) return 'dev';
     // Suporte / Service Desk — carreira de TI legítima que caía inteira em 'other'.
     // "de TI" aceita qualquer prefixo de cargo: assistente e auxiliar de TI são
     // tão comuns quanto analista, e escreviam-se só como 'other'.
@@ -167,7 +188,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 1;
+export const CLASSIFY_VERSION = 2;
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 

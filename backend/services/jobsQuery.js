@@ -2,6 +2,7 @@ import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
 import { detectArea, detectLevel, detectModality, jobIsBR } from './classify.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
+import { expandirAreas } from '../config/areas.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -78,7 +79,10 @@ export function passesFilters(job, profile) {
 
     // Área profissional: descarta vagas de outro cargo (ex.: QA não recebe vaga de Dev).
     // Só filtra quando a área da vaga é identificável (≠ 'other'), p/ não perder vaga boa.
-    const areas = parseArr(profile.Areas);
+    // expandirAreas: quem escolheu 'dev' recebe front/back/full também, e
+    // vice-versa. Sem isso, todo perfil salvo antes da divisão receberia zero
+    // vaga no dia do deploy. Ver config/areas.js.
+    const areas = expandirAreas(parseArr(profile.Areas));
     if (areas.length) {
         const area = detectArea(job);
         if (area !== 'other' && !areas.includes(area)) return false;
@@ -205,7 +209,7 @@ const paraLike = (k) => `%${String(k).replace(/([\\%_])/g, '\\$1')}%`;
 async function buscarCandidatas(userId, profile) {
     const dias = Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
     const region = profile?.Region || 'br';
-    const areas = parseArr(profile?.Areas);
+    const areas = expandirAreas(parseArr(profile?.Areas));
     const mods = parseArr(profile?.Modalities).map((m) => String(m).toLowerCase());
     const levels = profile?.StrictLevel ? parseArr(profile?.Levels) : [];
     // Palavras exigidas/bloqueadas também vão para o SQL. Não é otimização de

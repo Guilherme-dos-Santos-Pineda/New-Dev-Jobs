@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { detectArea, detectLevel, passesFilters } from '../services/jobsQuery.js';
 
 test('detectArea: classifica o cargo a partir do título', () => {
-    assert.equal(detectArea({ JobTitle: 'Desenvolvedor .NET Sênior', Skills: [] }), 'dev');
+    assert.equal(detectArea({ JobTitle: 'Desenvolvedor .NET Sênior', Skills: [] }), 'backend');
     assert.equal(detectArea({ JobTitle: 'Analista de QA', Skills: [] }), 'qa');
     assert.equal(detectArea({ JobTitle: 'SDET', Skills: [] }), 'qa');
     assert.equal(detectArea({ JobTitle: 'Product Owner', Skills: [] }), 'po');
@@ -15,10 +15,39 @@ test('detectArea: classifica o cargo a partir do título', () => {
 
 test('detectArea: títulos ambíguos de Dev não caem mais em "other"', () => {
     // Antes vazavam como 'other' (não filtravam) e chegavam a um QA.
+    // 'dev' é a SOBRA: título genérico que não dá para dividir em front/back.
     assert.equal(detectArea({ JobTitle: 'Senior Engineer', Skills: [] }), 'dev');
     assert.equal(detectArea({ JobTitle: 'Staff Engineer', Skills: [] }), 'dev');
-    assert.equal(detectArea({ JobTitle: 'Backend Engineer', Skills: [] }), 'dev');
     assert.equal(detectArea({ JobTitle: 'Engenheiro de Software Sênior', Skills: [] }), 'dev');
+    assert.equal(detectArea({ JobTitle: 'Tech Lead', Skills: [] }), 'dev');
+});
+
+test('detectArea: a família dev é dividida em front, back e full', () => {
+    // A queixa real foi "acho pouquíssima vaga de front-end": até 30/09/2026
+    // tudo isto caía no mesmo balde 'dev', 4714 de 7826 vagas.
+    assert.equal(detectArea({ JobTitle: 'Desenvolvedor Front-end', Skills: [] }), 'frontend');
+    assert.equal(detectArea({ JobTitle: 'Desenvolvedor React', Skills: [] }), 'frontend');
+    assert.equal(detectArea({ JobTitle: 'Dev Angular Pleno', Skills: [] }), 'frontend');
+    assert.equal(detectArea({ JobTitle: 'Backend Engineer', Skills: [] }), 'backend');
+    assert.equal(detectArea({ JobTitle: 'Desenvolvedor Java Sênior', Skills: [] }), 'backend');
+    assert.equal(detectArea({ JobTitle: 'Pessoa Desenvolvedora Python', Skills: [] }), 'backend');
+    assert.equal(detectArea({ JobTitle: 'Desenvolvedor Full Stack', Skills: [] }), 'fullstack');
+    assert.equal(detectArea({ JobTitle: 'Fullstack Developer (React/Node)', Skills: [] }), 'fullstack');
+});
+
+test('detectArea: full-stack vence front e back quando os três aparecem', () => {
+    // "Full Stack (React/Node)" tem sinal de front E de back no título. Sem a
+    // ordem certa viraria 'frontend' no primeiro termo que casasse.
+    assert.equal(detectArea({ JobTitle: 'Full Stack React e Java', Skills: [] }), 'fullstack');
+});
+
+test('detectArea: mobile e QA não são engolidos pela divisão do dev', () => {
+    // React Native tem "React" no nome e cairia em frontend se mobile não
+    // fosse testado antes. Test Engineer tem "Engineer".
+    assert.equal(detectArea({ JobTitle: 'Desenvolvedor React Native', Skills: [] }), 'mobile');
+    assert.equal(detectArea({ JobTitle: 'Flutter Developer', Skills: [] }), 'mobile');
+    assert.equal(detectArea({ JobTitle: 'Test Automation Engineer', Skills: [] }), 'qa');
+    assert.equal(detectArea({ JobTitle: 'Engenheiro de Dados Python', Skills: [] }), 'data');
 });
 
 test('detectArea: QA continua QA mesmo com "engenheiro/quality engineer"', () => {

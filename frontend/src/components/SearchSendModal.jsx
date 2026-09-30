@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from './Toast.jsx';
@@ -29,6 +29,7 @@ export default function SearchSendModal({ onClose, onStarted, onManualSent }) {
     const { user, refreshUser } = useAuth();
     const toast = useToast();
     const { t } = useT();
+    const navigate = useNavigate();
     const [phase, setPhase] = useState('searching'); // searching | choose | manual | proprio
     const [matches, setMatches] = useState([]);
     const [filtered, setFiltered] = useState(0); // vagas escondidas pelos filtros do perfil
@@ -156,6 +157,14 @@ export default function SearchSendModal({ onClose, onStarted, onManualSent }) {
         }
     }
 
+    // Leva para a tela de conectar o Google. Fecha o modal antes: deixar o
+    // modal aberto por cima da navegacao esconde justamente a tela para onde a
+    // pessoa esta indo.
+    function irConectar() {
+        onClose();
+        navigate('/app/perfil?section=email');
+    }
+
     function toggle(id) {
         setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
     }
@@ -193,19 +202,31 @@ export default function SearchSendModal({ onClose, onStarted, onManualSent }) {
                             ) : (
                                 <>
                                     <p style={{ marginBottom: 16 }}>
-                                        Sistema encontrou <b style={{ color: 'var(--color-accent)' }}>{matches.length} matches</b> perfeitos!
-                                        Escolha como quer se candidatar.
+                                        {t('Achei')} <b style={{ color: 'var(--color-accent)' }}>{matches.length} {t('vagas')}</b> {t('para o seu perfil. Como você quer se candidatar?')}
                                     </p>
 
-                                    <div className={`choice ${ready ? '' : 'locked'}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
-                                        onClick={() => { if (ready) start('auto'); }}>
-                                        <div className={`choice-ico ${ready ? 'ok' : ''}`}><i className={`ti ${ready ? 'ti-bolt' : 'ti-lock'}`} /></div>
+                                    {/* ------------------------------------------------------------
+                                        Duas opcoes, e a diferenca entre elas e QUEM APERTA ENVIAR.
+                                        ------------------------------------------------------------
+                                        Antes a opcao automatica aparecia TRAVADA para quem nao tinha
+                                        Google, com um cadeado e uma frase dizendo o que faltava. Isso
+                                        e um beco: a pessoa le que nao pode e fecha. Medido: de 9 que
+                                        salvaram perfil, 5 nunca conectaram o Gmail.
+
+                                        Agora a opcao automatica CONVIDA a conectar (leva para a tela),
+                                        e ao lado dela fica a alternativa explicita de nao conectar
+                                        nada. Ninguem fica sem caminho. */}
+                                    <div className="choice" style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+                                        onClick={() => { if (ready) start('auto'); else irConectar(); }}>
+                                        <div className="choice-ico ok"><i className="ti ti-bolt" /></div>
                                         <div>
-                                            <div className="choice-t">{starting ? t('Iniciando envio…') : t('Enviar automaticamente')}</div>
+                                            <div className="choice-t">
+                                                {starting ? t('Iniciando envio…') : (ready ? t('Enviar tudo automaticamente') : t('Conectar o Gmail e deixar automático'))}
+                                            </div>
                                             <div className="choice-d">
                                                 {ready
-                                                    ? `Enviar todas as ${matches.length} vagas filtradas (uma a cada 60–120s).`
-                                                    : t('Precisa da conta Google conectada e do currículo no perfil.')}
+                                                    ? t('O sistema manda sozinho, uma vaga a cada 60 a 120 segundos. Você não faz nada.')
+                                                    : t('Você autoriza só o envio. O sistema manda por você, com o seu nome no remetente.')}
                                             </div>
                                         </div>
                                         {starting
@@ -213,21 +234,6 @@ export default function SearchSendModal({ onClose, onStarted, onManualSent }) {
                                             : <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />}
                                     </div>
 
-                                    <div className={`choice ${(isFree || !ready) ? 'locked' : ''}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
-                                        onClick={() => {
-                                            if (isFree) toast.show('Seleção manual disponível nos planos pagos.', 'error');
-                                            else if (!ready) toast.show('Conecte a conta Google e envie seu currículo primeiro.', 'error');
-                                            else setPhase('manual');
-                                        }}>
-                                        <div className="choice-ico"><i className={`ti ${(isFree || !ready) ? 'ti-lock' : 'ti-list-check'}`} /></div>
-                                        <div>
-                                            <div className="choice-t">{t('Revise antes de enviar')} {isFree && <span className="badge warn">Pro</span>}</div>
-                                            <div className="choice-d">{t('Revisar e selecionar vagas específicas para envio.')}</div>
-                                        </div>
-                                        <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
-                                    </div>
-
-                                    {/* Sem OAuth: é o caminho que prova o produto antes de pedir permissão. */}
                                     <div className={`choice ${temPerfil ? '' : 'locked'}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
                                         onClick={() => {
                                             if (temPerfil) entrarProprio();
@@ -236,17 +242,32 @@ export default function SearchSendModal({ onClose, onStarted, onManualSent }) {
                                         <div className="choice-ico"><i className={`ti ${temPerfil ? 'ti-mail-forward' : 'ti-lock'}`} /></div>
                                         <div>
                                             <div className="choice-t">
-                                                {t('Enviar você mesmo')}
-                                                {!user.googleConnected && <span className="badge ok" style={{ marginLeft: 6 }}>{t('sem conectar nada')}</span>}
+                                                {t('Não quero conectar nada')}
+                                                <span className="badge ok" style={{ marginLeft: 6 }}>{t('sem permissão')}</span>
                                             </div>
-                                            <div className="choice-d">{t('Abrimos o seu Gmail com o email já escrito. Você confere e manda.')}</div>
+                                            <div className="choice-d">{t('A gente te passa o email do recrutador com o texto pronto, e você manda do seu jeito.')}</div>
+                                        </div>
+                                        <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
+                                    </div>
+
+                                    {/* Seleção ampla continua paga: é o que diferencia o plano. */}
+                                    <div className={`choice ${(isFree || !ready) ? 'locked' : ''}`} style={starting ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+                                        onClick={() => {
+                                            if (isFree) toast.show(t('Escolher uma a uma é um recurso dos planos pagos.'), 'error');
+                                            else if (!ready) irConectar();
+                                            else setPhase('manual');
+                                        }}>
+                                        <div className="choice-ico"><i className={`ti ${(isFree || !ready) ? 'ti-lock' : 'ti-list-check'}`} /></div>
+                                        <div>
+                                            <div className="choice-t">{t('Escolher uma a uma')} {isFree && <span className="badge warn">Pro</span>}</div>
+                                            <div className="choice-d">{t('Revisar as {n} vagas e marcar só as que você quiser.', { n: matches.length })}</div>
                                         </div>
                                         <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }} />
                                     </div>
 
                                     {!ready && (
                                         <p className="muted" style={{ fontSize: 12, marginTop: 12, textAlign: 'center' }}>
-                                            {t('Quer que o sistema envie sozinho?')} <Link to="/app/perfil?section=email">{t('conecte sua conta Google')}</Link>.
+                                            {t('Permissão apenas de envio (gmail.send). Nunca lemos seus emails.')}
                                         </p>
                                     )}
                                 </>

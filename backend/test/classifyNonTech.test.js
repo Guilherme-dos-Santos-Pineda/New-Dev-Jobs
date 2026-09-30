@@ -92,7 +92,8 @@ test('classificação existente não regrediu', () => {
         'iOS Developer': 'mobile', 'React Native Developer': 'mobile',
         'DevOps Engineer': 'devops', 'Site Reliability Engineer': 'devops',
         'Cientista de Dados': 'data', 'Product Owner': 'po',
-        'Desenvolvedor Full Stack': 'dev', 'Senior Software Engineer': 'dev',
+        // A familia dev virou quatro em 30/09/2026; 'dev' e a sobra generica.
+        'Desenvolvedor Full Stack': 'fullstack', 'Senior Software Engineer': 'dev',
     };
     for (const [titulo, area] of Object.entries(esperado)) {
         assert.equal(detectArea(vaga(titulo)), area, `"${titulo}"`);
@@ -125,7 +126,7 @@ test('skill inventada não sobrepõe um título de outra profissão', () => {
 });
 
 test('título vago ainda usa as skills — é o único sinal que resta', () => {
-    assert.equal(detectArea({ JobTitle: 'Vaga', Skills: ['React', 'Node'] }), 'dev');
+    assert.equal(detectArea({ JobTitle: 'Vaga', Skills: ['React', 'Node'] }), 'frontend');
     assert.equal(detectArea({ JobTitle: 'Estamos contratando', Skills: ['Kubernetes'] }), 'devops');
 });
 

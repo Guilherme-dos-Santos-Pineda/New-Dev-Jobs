@@ -1689,3 +1689,116 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
     .recolhivel-r { display: none; }
     .recolhivel > summary { padding: 14px 16px; }
 }
+
+/* =========================
+   Wizard de primeiro acesso
+   =========================
+   Tela cheia no celular, cartao no desktop. O conteudo rola; topo e rodape
+   ficam fixos, senao o botao "Continuar" some abaixo da dobra justamente na
+   tela de area, que e a mais alta. */
+.modal.wizard {
+    max-width: 620px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    max-height: min(92vh, 780px);
+}
+.wizard-topo {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 22px 12px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+.wizard-barra {
+    flex: 1; height: 3px; background: var(--color-border-light); overflow: hidden;
+}
+.wizard-barra span {
+    display: block; height: 100%; background: var(--color-accent);
+    transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.wizard-conta { font-size: 12px; color: var(--color-text-tertiary); white-space: nowrap; }
+
+.wizard-corpo { padding: 22px; overflow-y: auto; flex: 1; }
+.wizard-corpo h2 { font-size: 21px; font-weight: 650; line-height: 1.25; }
+.wizard-sub { color: var(--color-text-secondary); font-size: 14px; margin-top: 8px; line-height: 1.55; }
+.wizard-nota { color: var(--color-text-tertiary); font-size: 12.5px; margin-top: 14px; }
+
+/* Cartoes de area: dois por linha no desktop, um no celular. */
+.wizard-grade {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px;
+}
+.wizard-cartao {
+    display: grid; grid-template-columns: auto 1fr; gap: 3px 11px;
+    align-items: center; text-align: left;
+    padding: 13px 14px; cursor: pointer;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    transition: border-color var(--transition), background-color var(--transition);
+}
+.wizard-cartao i { grid-row: span 2; font-size: 20px; color: var(--color-text-secondary); }
+.wizard-cartao .wc-t { font-weight: 600; font-size: 14px; }
+.wizard-cartao .wc-d { font-size: 11.5px; color: var(--color-text-tertiary); line-height: 1.35; }
+.wizard-cartao:hover { border-color: var(--color-text-tertiary); }
+.wizard-cartao.on {
+    border-color: var(--color-accent);
+    background: var(--color-accent-light);
+}
+.wizard-cartao.on i { color: var(--color-accent); }
+
+/* Niveis: lista de linhas, nao cartoes. Sao itens iguais de um campo so. */
+.wizard-linhas { display: flex; flex-direction: column; margin-top: 18px; border: 1px solid var(--color-border); }
+.wizard-linha {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 15px; cursor: pointer; text-align: left;
+    background: var(--color-surface); border: none;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: 14.5px; transition: background-color var(--transition);
+}
+.wizard-linha:last-child { border-bottom: none; }
+.wizard-linha i { font-size: 18px; color: var(--color-text-tertiary); }
+.wizard-linha:hover { background: var(--color-bg-secondary); }
+.wizard-linha.on { background: var(--color-accent-light); font-weight: 600; }
+.wizard-linha.on i { color: var(--color-success); }
+
+.wizard-dica {
+    display: grid; grid-template-columns: auto 1fr; gap: 11px;
+    padding: 13px 15px; margin: 18px 0 14px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    font-size: 13px; line-height: 1.5;
+}
+.wizard-dica i { font-size: 19px; color: var(--color-text-secondary); }
+.wizard-dica ol { margin: 6px 0 0; padding-left: 17px; color: var(--color-text-secondary); }
+.wizard-dica li { margin-bottom: 2px; }
+
+.wizard-largo { width: 100%; justify-content: center; }
+.wizard-ok { margin-top: 14px; }
+.wizard-palavras { margin-top: 18px; }
+/* O .input tem width:100%, entao sozinho ele ocupa a linha toda e o .row (que
+   tem flex-wrap: wrap) joga o botao "Adicionar" para baixo. Medido: campo com
+   574px de 574px disponiveis. O flex:1 + min-width:0 devolve o botao para a
+   mesma linha. */
+.wizard-palavras .row { flex-wrap: nowrap; align-items: center; }
+.wizard-palavras .row .input { flex: 1 1 auto; min-width: 0; width: auto; }
+.wizard-palavras .row .btn { flex: 0 0 auto; }
+.wizard-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+
+.wizard-pe {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--color-border-light);
+}
+.wizard-pe .btn.primary { margin-left: auto; }
+.wizard-calma { font-size: 12px; color: var(--color-text-tertiary); }
+
+@media (max-width: 620px) {
+    .modal.wizard { max-height: 100dvh; height: 100dvh; max-width: 100%; }
+    .wizard-grade { grid-template-columns: 1fr; }
+    .wizard-corpo { padding: 18px 16px; }
+    .wizard-corpo h2 { font-size: 19px; }
+    .wizard-topo, .wizard-pe { padding-left: 16px; padding-right: 16px; }
+    /* No celular o rodape fica apertado: a frase de "da para mudar depois" ja
+       aparece no corpo da pergunta, entao some daqui em vez de espremer o
+       botao que faz a pessoa avancar. */
+    .wizard-calma { display: none; }
+    .wizard-pe .btn.primary { flex: 1; justify-content: center; }
+}

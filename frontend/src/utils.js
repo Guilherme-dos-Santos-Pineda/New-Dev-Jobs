@@ -32,15 +32,26 @@ export const MODALITY_OPTIONS = [
 ];
 
 // Área profissional — filtra as vagas pelo cargo (não só skills/senioridade).
+// Espelha ALLOWED_AREAS (backend/config/profileOptions.js) e o que
+// detectArea() produz (backend/services/classify.js). As tres pontas tem de
+// bater: se o backend nao aceitar, o PUT /profile descarta a escolha EM
+// SILENCIO e a pessoa passa a receber o feed inteiro sem filtro.
+//
+// 'dev' e a sobra do classificador (titulo generico: "Desenvolvedor de
+// Software", "Tech Lead"). Fica no fim da lista porque nao e o que alguem
+// procura primeiro, mas continua escolhivel.
 export const AREA_OPTIONS = [
-    { value: 'dev', label: 'Desenvolvimento' },
-    { value: 'qa', label: 'QA / Testes' },
-    { value: 'devops', label: 'DevOps / Infra' },
-    { value: 'data', label: 'Dados / Analytics' },
-    { value: 'mobile', label: 'Mobile' },
-    { value: 'design', label: 'Design / UX' },
-    { value: 'po', label: 'Produto / PO' },
-    { value: 'suporte', label: 'Suporte / Service Desk' },
+    { value: 'frontend', label: 'Front-end', icone: 'ti-layout-2', desc: 'React, Vue, Angular, HTML/CSS' },
+    { value: 'backend', label: 'Back-end', icone: 'ti-server-2', desc: 'Java, .NET, Node, Python, APIs' },
+    { value: 'fullstack', label: 'Full-stack', icone: 'ti-stack-2', desc: 'Front e back na mesma vaga' },
+    { value: 'mobile', label: 'Mobile', icone: 'ti-device-mobile', desc: 'iOS, Android, Flutter, React Native' },
+    { value: 'data', label: 'Dados / IA', icone: 'ti-chart-histogram', desc: 'BI, engenharia de dados, ML' },
+    { value: 'devops', label: 'DevOps / Infra', icone: 'ti-cloud-cog', desc: 'Cloud, Kubernetes, SRE' },
+    { value: 'qa', label: 'QA / Testes', icone: 'ti-bug', desc: 'Testes manuais e automatizados' },
+    { value: 'design', label: 'Design / UX', icone: 'ti-palette', desc: 'UI, UX, produto' },
+    { value: 'po', label: 'Produto / PO', icone: 'ti-clipboard-check', desc: 'Product owner, scrum master' },
+    { value: 'suporte', label: 'Suporte / Service Desk', icone: 'ti-headset', desc: 'Help desk, suporte tecnico, TI' },
+    { value: 'dev', label: 'Desenvolvimento (geral)', icone: 'ti-code', desc: 'Nao sei ainda, quero ver de tudo' },
 ];
 
 export const LEVEL_OPTIONS = [
@@ -48,8 +59,11 @@ export const LEVEL_OPTIONS = [
     { value: 'junior', label: 'Júnior' },
     { value: 'pleno', label: 'Pleno' },
     { value: 'senior', label: 'Sênior' },
-    { value: 'lead', label: 'Lead / Tech Lead' },
-    { value: 'manager', label: 'Manager' },
+    // "tech lead" e "gerencia" sao NIVEL, nao area: vaga nenhuma e classificada
+    // como area "gerencia", entao oferecer isso na pergunta de area daria feed
+    // vazio para quem escolhesse.
+    { value: 'lead', label: 'Tech Lead' },
+    { value: 'manager', label: 'Gerência / Head' },
 ];
 
 // ---- Máscaras de telefone ----

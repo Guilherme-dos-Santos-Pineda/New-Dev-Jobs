@@ -11,6 +11,7 @@ import Sparkline from '../components/Sparkline.jsx';
 import CommunityBanner from '../components/CommunityBanner.jsx';
 import Onboarding from '../components/Onboarding.jsx';
 import TourInicial from '../components/TourInicial.jsx';
+import WizardInicial from '../components/WizardInicial.jsx';
 import HighlightsSection from '../components/HighlightsSection.jsx';
 
 // O X do banner de envio precisa valer depois do recarregamento. Guardar só
@@ -54,6 +55,15 @@ export default function Dashboard() {
     const profile = profData?.profile;
     const ranking = rankData?.ranking || [];
     const rankMetric = rankData?.metric || '';
+
+    // O wizard aparece para quem ainda NAO escolheu area: sem area o feed nao
+    // tem o que filtrar, e foi onde 8 das 17 contas pararam.
+    // `wizardFeito` e so para esta sessao (terminou ou pulou): o dado de
+    // verdade e o perfil, que chega pelo profData no proximo carregamento.
+    // Declarado AQUI, antes do JSX que usa: `no-use-before-define` ja derrubou
+    // o app inteiro uma vez por causa disso.
+    const [wizardFeito, setWizardFeito] = useState(false);
+    const mostraWizard = !wizardFeito && !!profData && !(profile?.areas?.length);
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [queue, setQueue] = useState(null);
@@ -174,11 +184,23 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Primeiro acesso, dois papéis diferentes e complementares:
-                o tour explica O QUE CADA PARTE É (uma vez só, dispensável) e o
-                checklist mostra O QUE FALTA FAZER (fica até terminar). */}
-            {!loading && <TourInicial profile={profile} user={user} />}
-            {!loading && <Onboarding profile={profile} user={user} />}
+            {/* Primeiro acesso, em três camadas com papéis distintos:
+                  wizard     PERGUNTA a configuração (quem ainda não tem área)
+                  tour       explica O QUE CADA PARTE É (uma vez, dispensável)
+                  checklist  mostra O QUE FALTA (fica até terminar)
+
+                O wizard vem primeiro e sozinho de propósito: de 17 contas, 8
+                nunca salvaram um perfil, e empilhar tour + checklist em cima
+                de quem ainda não respondeu nada é o que fazia fechar a aba.
+                Quem pula cai no tour, que é o comportamento antigo. */}
+            {!loading && mostraWizard && (
+                <WizardInicial
+                    onPronto={() => { setWizardFeito(true); refreshDash(); }}
+                    onPular={() => setWizardFeito(true)}
+                />
+            )}
+            {!loading && !mostraWizard && <TourInicial profile={profile} user={user} />}
+            {!loading && !mostraWizard && <Onboarding profile={profile} user={user} />}
 
             {/* Comunidade no WhatsApp (dispensável) */}
             <CommunityBanner style={{ marginBottom: 22 }} />

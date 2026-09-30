@@ -63,9 +63,39 @@ export async function pruneScraperHistory(dias = RETENCAO_DIAS) {
     return { runs: runs.length, posts: posts.length };
 }
 
+// =========================
+// Rede de proteção: envio preso na fila
+// =========================
+// `getStatus` devolve `active: pending > 0`, e o painel fica pesquisando a cada
+// 3 s enquanto `active` for verdadeiro. Uma linha que trava em `queued` deixa a
+// barra de "enviando" girando PARA SEMPRE, e foi assim que um usuário viu a tela
+// "carregando infinitamente".
+//
+// A causa concreta (email de contato inválido retentado por horas) está
+// corrigida em services/emailContato.js. Isto aqui é a rede: qualquer motivo
+// FUTURO que deixe uma linha pendurada vira uma falha visível em no máximo
+// HORAS_ATE_DESISTIR. Encontrei 14 linhas presas havia 81 a 85 dias.
+//
+// O teto é generoso de propósito: o envio real leva 60 a 120 s por item e um
+// lote grande pode demorar. Não é para atrapalhar quem está enviando, é para
+// não deixar ninguém preso até o fim dos tempos.
+const HORAS_ATE_DESISTIR = Number(process.env.FILA_HORAS_ATE_DESISTIR) || 6;
+
+export async function expireStuckQueue(horas = HORAS_ATE_DESISTIR) {
+    const linhas = await sql`
+        update "SendQueue"
+        set "Status" = 'failed',
+            "Error" = 'envio expirado: ficou pendente tempo demais',
+            "SentAt" = now()
+        where "Status" = 'queued'
+          and "CreatedAt" < now() - make_interval(hours => ${horas})
+        returning "Id"`;
+    return linhas.length;
+}
+
 /** Uma passada completa. Nunca lança: manutenção não pode derrubar o worker. */
 export async function runMaintenance() {
-    const out = { classificadas: 0, runs: 0, posts: 0 };
+    const out = { classificadas: 0, runs: 0, posts: 0, presos: 0 };
     try {
         out.classificadas = await reclassifyPending();
     } catch (e) { console.error('reclassifyPending falhou:', e.message); }
@@ -73,6 +103,10 @@ export async function runMaintenance() {
         const p = await pruneScraperHistory();
         out.runs = p.runs; out.posts = p.posts;
     } catch (e) { console.error('pruneScraperHistory falhou:', e.message); }
+    try {
+        out.presos = await expireStuckQueue();
+        if (out.presos) console.warn(`⚠️  ${out.presos} envio(s) preso(s) em queued foram marcados como falha`);
+    } catch (e) { console.error('expireStuckQueue falhou:', e.message); }
     if (out.classificadas || out.runs || out.posts) {
         console.log(`🧹 manutenção: ${out.classificadas} vaga(s) classificada(s), ${out.runs} run(s) e ${out.posts} post(s) antigos removidos`);
     }

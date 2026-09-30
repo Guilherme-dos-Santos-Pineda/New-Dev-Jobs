@@ -1,6 +1,7 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
 import { detectArea, detectLevel, detectModality, jobIsBR } from './classify.js';
+import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -17,6 +18,15 @@ export function passesFilters(job, profile) {
     // Vem antes do `if (!profile)` de propósito: vale até para quem ainda não
     // preencheu o perfil.
     if (detectArea(job) === 'nontech') return false;
+
+    // Vaga cujo "email" é telefone, link ou a palavra "informado" NUNCA entra.
+    // Vem antes do `if (!profile)` pelo mesmo motivo do nontech: não é filtro
+    // mal configurado, é lixo da extração, e vale para todo mundo.
+    //
+    // Sem isto a vaga era oferecida, entrava na fila, o Gmail recusava
+    // ("Recipient address required") e o worker retentava por horas com a linha
+    // presa em `queued` — o painel do usuário ficava "enviando" para sempre.
+    if (!emailDeContatoValido(job.Email)) return false;
 
     if (!profile) return true;
 
@@ -96,7 +106,7 @@ export function shapeJob(job, profile, appliedSet) {
 export async function countCandidatable(userId) {
     const [row] = await sql`
         select count(*)::int as n from "Jobs" j
-        where j."Email" is not null and j."Email" <> ''
+        where j."Email" is not null and j."Email" like ${LIKE_EMAIL}
           and not exists (
               select 1 from "Applications" a
               where a."UserId" = ${userId} and a."JobId" = j."Id"
@@ -208,7 +218,11 @@ async function buscarCandidatas(userId, profile) {
 
     return sql`
         select j.* from "Jobs" j
-        where j."Email" is not null and j."Email" <> ''
+        -- O like é LARGO de propósito (só derruba o que não tem cara nenhuma
+        -- de email): quem corta fino é o passesFilters, em JS. SQL mais
+        -- restritivo que o JS some com vaga boa em silêncio.
+        -- Ver services/emailContato.js.
+        where j."Email" is not null and j."Email" like ${LIKE_EMAIL}
           -- Vaga de outra profissão nunca entra, com ou sem perfil configurado.
           and coalesce(j."Area", 'other') <> 'nontech'
           and not exists (

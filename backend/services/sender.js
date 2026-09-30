@@ -5,6 +5,7 @@ import { sendApplicationEmail } from './mailer.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { resolveTemplate } from '../routes/templates.js';
 import { invalidateMatches } from './jobsQuery.js';
+import { emailDeContatoValido, ehErroDeDestinatario } from './emailContato.js';
 
 class ApplyError extends Error {
     constructor(message, status = 400) { super(message); this.status = status; }
@@ -32,7 +33,12 @@ export async function applyToJob(userId, jobId) {
     const { user, profile } = await assertCanSend(userId);
     const [job] = await sql`select * from "Jobs" where "Id" = ${jobId}`;
     if (!job) throw new ApplyError('Vaga não encontrada', 404);
-    if (!job.Email) throw new ApplyError('Vaga sem email de contato', 422);
+    // ApplyError = falha DEFINITIVA: o worker marca a linha como `failed` e não
+    // retenta. É o ponto crítico. "(11) 99153-5908" é truthy, então o `!job.Email`
+    // sozinho deixava passar telefone e link; o Gmail recusava, o erro subia como
+    // genérico, o worker chamava de transitório e retentava por 7 horas com a
+    // linha presa em `queued` — e o painel do usuário ficava "enviando" sem fim.
+    if (!emailDeContatoValido(job.Email)) throw new ApplyError('Vaga sem email de contato válido', 422);
     const [existing] = await sql`select "Id" from "Applications" where "UserId" = ${userId} and "JobId" = ${jobId}`;
     if (existing) return { skipped: true };
 
@@ -51,6 +57,11 @@ export async function applyToJob(userId, jobId) {
     } catch (e) {
         // Reconexão necessária = erro definitivo (retry não resolve); o worker marca falha.
         if (e.code === 'GOOGLE_REAUTH') throw new ApplyError(e.message, 403);
+        // Cinto e suspensório: mesmo com a validação acima, se o Gmail recusar
+        // por causa do DESTINATÁRIO, retentar não resolve nunca. Vira definitivo
+        // aqui para o worker marcar `failed` na hora em vez de segurar a linha
+        // em `queued` por horas.
+        if (ehErroDeDestinatario(e)) throw new ApplyError(`Gmail recusou o destinatário: ${e.message}`, 422);
         throw e; // erros transitórios (rede/Gmail 5xx) sobem para o retry do pg-boss
     }
 

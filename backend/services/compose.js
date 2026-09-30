@@ -5,6 +5,7 @@ import { resolveTemplate } from '../routes/templates.js';
 import { getMatches, invalidateMatches } from './jobsQuery.js';
 import { planOf } from '../config/plans.js';
 import { decideCompose } from './composeLogic.js';
+import { emailDeContatoValido } from './emailContato.js';
 
 // =========================
 // Email pronto para o usuário mandar do Gmail dele (sem OAuth)
@@ -54,7 +55,10 @@ export async function composeForJob(userId, jobId, planName) {
 
     const [job] = await sql`select * from "Jobs" where "Id" = ${jobId}`;
     if (!job) throw new ComposeError('Vaga não encontrada', 404);
-    if (!job.Email) throw new ComposeError('Vaga sem email de contato', 422);
+    // Mesma trava do envio automático: "(11) 99153-5908" é truthy e passava.
+    // Aqui doeria diferente, porque o endereço vai DIRETO para a tela e a
+    // pessoa colaria um telefone no campo "para" do Gmail.
+    if (!emailDeContatoValido(job.Email)) throw new ComposeError('Vaga sem email de contato válido', 422);
 
     const match = computeMatch(profile, job);
     const tpl = await resolveTemplate(userId, 'pt');

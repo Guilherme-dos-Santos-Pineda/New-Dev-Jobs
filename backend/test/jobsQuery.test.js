@@ -75,5 +75,19 @@ test('passesFilters: keyword obrigatória ausente descarta', () => {
 });
 
 test('passesFilters: sem perfil libera tudo', () => {
-    assert.equal(passesFilters({ JobTitle: 'X' }, null), true);
+    // A vaga precisa ter email de contato: o feed só oferece o que dá para
+    // enviar, e quem chega aqui já veio do buscarCandidatas, que exige email.
+    assert.equal(passesFilters({ JobTitle: 'X', Email: 'rh@empresa.com.br' }, null), true);
+});
+
+test('passesFilters: email inválido é barrado ATÉ sem perfil', () => {
+    // Regressão de 30/09/2026: o extrator grava telefone e link na coluna
+    // Email. A vaga era oferecida, entrava na fila, o Gmail recusava e o worker
+    // retentava por 7 horas com a linha presa em queued — o painel do usuário
+    // ficava "enviando" para sempre. Vale sem perfil pelo mesmo motivo do
+    // nontech: não é filtro mal configurado, é lixo da extração.
+    for (const ruim of ['(11) 99153-5908', 'https://lnkd.in/dPdbFCkV', 'informado', '', null, undefined]) {
+        assert.equal(passesFilters({ JobTitle: 'X', Email: ruim }, null), false, `deveria barrar: ${String(ruim)}`);
+        assert.equal(passesFilters({ JobTitle: 'X', Email: ruim }, { Region: 'br' }), false, `deveria barrar com perfil: ${String(ruim)}`);
+    }
 });

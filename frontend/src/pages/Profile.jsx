@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { FILTRO_DATA_ATIVO } from '../lib/flags.js';
 import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
 import { useToast } from '../components/Toast.jsx';
 import { useAuth } from '../auth.jsx';
@@ -163,7 +164,9 @@ export default function Profile() {
     if (loading) return <div className="page center"><div className="spinner" /></div>;
 
     // --- completude ---
-    const hasFilters = form.requiredKeywords.length || form.blockedWords.length || form.blockedDomains.length || form.postingDays;
+    // postingDays fora da conta enquanto o filtro esta desligado: senao o resumo
+    // anuncia "filtros ativos" por causa de um filtro que nao filtra nada.
+    const hasFilters = form.requiredKeywords.length || form.blockedWords.length || form.blockedDomains.length || (FILTRO_DATA_ATIVO && form.postingDays);
     const sections = [
         { id: 'skills', label: 'Skills & Keywords', icon: 'ti-tags', complete: form.skills.length > 0 },
         { id: 'work', label: 'Preferências de Trabalho', icon: 'ti-briefcase', complete: form.modalities.length > 0 && form.seniorities.length > 0 },
@@ -402,12 +405,20 @@ export default function Profile() {
                                 </label>
                             </div>
 
-                            <div className="field">
-                                <label>Data de postagem</label>
-                                <select className="select" value={form.postingDays} onChange={(e) => set('postingDays', e.target.value)}>
-                                    {POSTING_OPTIONS.map((o) => <option key={o.l} value={o.v}>{o.l}</option>)}
-                                </select>
-                            </div>
+                            {/* Filtro de data DESLIGADO por ora (backend/config/filtroData.js).
+                                O campo some da tela junto com o filtro: deixar um seletor que
+                                nao faz nada e pior do que nao ter seletor, porque a pessoa
+                                configura, nao ve efeito e conclui que o produto esta quebrado.
+                                O valor de cada um continua salvo no banco; ao religar a chave,
+                                volte este bloco. */}
+                            {FILTRO_DATA_ATIVO && (
+                                <div className="field">
+                                    <label>Data de postagem</label>
+                                    <select className="select" value={form.postingDays} onChange={(e) => set('postingDays', e.target.value)}>
+                                        {POSTING_OPTIONS.map((o) => <option key={o.l} value={o.v}>{o.l}</option>)}
+                                    </select>
+                                </div>
+                            )}
                         </div>
                     )}
 

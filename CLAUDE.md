@@ -100,6 +100,13 @@ regra existente, não acrescente uma nova que a contradiga.
 - Cada passo **afirma o resultado esperado**, nunca só o status HTTP: a maioria dos bugs daqui devolve **200 com o conteúdo errado** (perfil salvo pela metade, filtro ignorado, email de contato vazando). Foi assim que apareceram o `suporte` descartado no `PUT /profile` e o token que continuava válido depois do logout.
 - Rodar antes de cada mudança de preço/plano e depois de mexer em perfil, feed, auth ou cobrança.
 
+## Filtro de data de postagem (DESLIGADO por ora)
+- **A chave é `FILTRO_DATA_ATIVO`** e vive em DOIS arquivos que precisam concordar: [backend/config/filtroData.js](backend/config/filtroData.js) e `frontend/src/lib/flags.js` (o bundle não importa código do backend). Religar em um só: o front devolve o seletor sem o filtro funcionar, ou o backend filtra sem a pessoa conseguir configurar.
+- Desligado em 30/09/2026 por decisão do dono, temporariamente. Motivo: o scraper está parado por falta de crédito Apify e a base não recebe vaga nova desde 12/09; um filtro de "últimos N dias" sobre base parada esvazia sozinho até dar zero.
+- Efeito medido ao desligar: um usuário saiu de **116 para 762** vagas, e outro, com filtro de 7 dias, saiu de **ZERO para 829**. Ele não recebia nada e não tinha como saber por quê.
+- **O valor de cada pessoa continua salvo em `PostingDays`**: ninguém perde a configuração, e ao religar todo mundo recupera o que tinha. Não apague a coluna nem o código dos filtros.
+- `hasFilters` no Profile não conta `postingDays` enquanto a chave estiver desligada, senão o resumo anuncia "filtros ativos" por um filtro que não filtra.
+
 ## Matching (não regredir)
 - **Vaga de outra profissão NUNCA entra no feed.** `detectArea` (em `services/classify.js`) devolve `'nontech'` para RH, contábil, compras, logística, saúde, jurídico, engenharias não-software etc., e `passesFilters` barra isso **antes** do `if (!profile)` — vale até para quem não configurou o perfil. Foi assim que "Assistente Operacional de Logística" aparecia para um dev.
 - **A ordem das checagens importa**: `NONTECH` é testado **por último**, depois de todas as áreas de tech. Assim um título híbrido ("Analista de Sistemas Comercial") fica com o lado técnico — empatar a favor de tech é o erro barato, porque perder vaga boa custa mais do que exibir uma duvidosa.

@@ -3,6 +3,7 @@ import { computeMatch } from './matching.js';
 import { detectArea, detectLevel, detectModality, jobIsBR } from './classify.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
+import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -50,7 +51,9 @@ export function passesFilters(job, profile) {
         if (domains.some((d) => dom === d || dom.endsWith(`.${d}`))) return false;
     }
 
-    if (profile.PostingDays && job.CreatedAt) {
+    // FILTRO_DATA_ATIVO desligado por ora (config/filtroData.js). O valor de
+    // cada pessoa segue salvo; é só religar a chave.
+    if (FILTRO_DATA_ATIVO && profile.PostingDays && job.CreatedAt) {
         const created = new Date(job.CreatedAt).getTime();
         if ((Date.now() - created) / 86400000 > profile.PostingDays) return false;
     }
@@ -207,7 +210,9 @@ const textoDaVaga = () => sql`(
 const paraLike = (k) => `%${String(k).replace(/([\\%_])/g, '\\$1')}%`;
 
 async function buscarCandidatas(userId, profile) {
-    const dias = Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
+    // A chave vale para o SQL E para o JS. Ligar só num lado faz o SQL ficar
+    // mais restritivo que o JS, que some com vaga boa em silêncio.
+    const dias = FILTRO_DATA_ATIVO && Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
     const region = profile?.Region || 'br';
     const areas = expandirAreas(parseArr(profile?.Areas));
     const mods = parseArr(profile?.Modalities).map((m) => String(m).toLowerCase());

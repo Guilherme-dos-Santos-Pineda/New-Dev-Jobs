@@ -120,7 +120,15 @@ body {
 }
 .mono { font-family: var(--font-disp); font-variant-numeric: tabular-nums; }
 a { color: inherit; text-decoration: none; }
-button { font-family: inherit; }
+/* `color: inherit` NAO e detalhe de estilo, e correcao de bug.
+   Sem ele o <button> usa o preto padrao do navegador (`buttontext`) em vez de
+   herdar a cor do tema. No tema claro ninguem percebe, porque o preto do
+   navegador e quase igual ao --color-text (#101112). No ESCURO da texto preto
+   sobre fundo preto, ilegivel: medido rgb(0,0,0) sobre rgb(20,21,23) nos
+   cartoes do wizard.
+   O resto do app escapou disso por acidente, porque cada componente definia
+   `color` a mao. Aqui a regra passa a valer para todo botao novo. */
+button { font-family: inherit; color: inherit; }
 
 /* ============================================
    POLIMENTO / ACESSIBILIDADE (global)
@@ -1731,6 +1739,7 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
     align-items: center; text-align: left;
     padding: 13px 14px; cursor: pointer;
     background: var(--color-surface);
+    color: var(--color-text);
     border: 1px solid var(--color-border);
     transition: border-color var(--transition), background-color var(--transition);
 }
@@ -1738,9 +1747,12 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .wizard-cartao .wc-t { font-weight: 600; font-size: 14px; }
 .wizard-cartao .wc-d { font-size: 11.5px; color: var(--color-text-tertiary); line-height: 1.35; }
 .wizard-cartao:hover { border-color: var(--color-text-tertiary); }
+/* Em todo o resto do arquivo --color-accent-light anda junto com
+   color: var(--color-accent). Faltava aqui. */
 .wizard-cartao.on {
     border-color: var(--color-accent);
     background: var(--color-accent-light);
+    color: var(--color-accent);
 }
 .wizard-cartao.on i { color: var(--color-accent); }
 
@@ -1749,14 +1761,14 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .wizard-linha {
     display: flex; align-items: center; justify-content: space-between;
     padding: 13px 15px; cursor: pointer; text-align: left;
-    background: var(--color-surface); border: none;
+    background: var(--color-surface); color: var(--color-text); border: none;
     border-bottom: 1px solid var(--color-border-light);
     font-size: 14.5px; transition: background-color var(--transition);
 }
 .wizard-linha:last-child { border-bottom: none; }
 .wizard-linha i { font-size: 18px; color: var(--color-text-tertiary); }
 .wizard-linha:hover { background: var(--color-bg-secondary); }
-.wizard-linha.on { background: var(--color-accent-light); font-weight: 600; }
+.wizard-linha.on { background: var(--color-accent-light); color: var(--color-accent); font-weight: 600; }
 .wizard-linha.on i { color: var(--color-success); }
 
 .wizard-dica {
@@ -1801,4 +1813,56 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
        botao que faz a pessoa avancar. */
     .wizard-calma { display: none; }
     .wizard-pe .btn.primary { flex: 1; justify-content: center; }
+}
+
+/* =========================
+   Cascata de filtros (Admin > usuario > Feed desta pessoa)
+   =========================
+   Tabela de tres colunas: etapa, barra e numero. A barra existe porque o olho
+   compara comprimento muito mais rapido que digito, e a pergunta que a tela
+   responde e "onde cai mais", nao "quanto exatamente". */
+.cascata { margin-top: 10px; border: 1px solid var(--color-border-light); }
+.cascata-linha {
+    display: grid; grid-template-columns: minmax(0, 1fr) 90px auto;
+    gap: 12px; align-items: center;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: 12.5px;
+}
+.cascata-linha:last-child { border-bottom: none; }
+/* O degrau que mais corta ganha marca propria: e a resposta da tela. */
+.cascata-linha.pior { background: var(--color-bg-secondary); }
+.cascata-linha.pior .cl-nome { font-weight: 600; }
+.cl-nome { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cl-det {
+    font-size: 11px; color: var(--color-text-tertiary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cl-barra { height: 5px; background: var(--color-border-light); overflow: hidden; }
+.cl-barra span { display: block; height: 100%; background: var(--color-text-secondary); }
+.cascata-linha.pior .cl-barra span { background: var(--color-warn); }
+.cl-num {
+    text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;
+    white-space: nowrap;
+}
+.cl-perdeu { color: var(--color-danger); font-weight: 400; font-size: 11px; margin-left: 6px; }
+
+.cascata-resumo {
+    margin-top: 10px; padding: 10px 12px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    font-size: 12.5px; line-height: 1.7;
+}
+.cascata-ex { margin-top: 12px; }
+.cascata-ex-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 5px 0; font-size: 12.5px; min-width: 0;
+}
+.cex-t { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cex-e { font-size: 11.5px; white-space: nowrap; }
+
+@media (max-width: 620px) {
+    /* A barra e o primeiro a sair: e apoio visual, e o numero ja diz tudo. */
+    .cascata-linha { grid-template-columns: minmax(0, 1fr) auto; }
+    .cl-barra { display: none; }
 }

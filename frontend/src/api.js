@@ -191,6 +191,8 @@ export const api = {
     adminApifyReset: () => request('POST', '/admin/apify/reset'),
     // Perfis apagados: so admin ve. Se a conta foi tomada, quem esta com ela nao
     // pode apagar o backup tambem.
+    // Cascata de filtros de UM usuario: mostra em qual etapa as vagas somem.
+    adminUserFeed: (id) => request('GET', `/admin/users/${id}/feed`),
     adminProfileBackups: () => request('GET', '/admin/profile-backups'),
     adminProfileBackup: (id) => request('GET', `/admin/profile-backups/${id}`),
     adminRestoreProfile: (id) => request('POST', `/admin/profile-backups/${id}/restore`),

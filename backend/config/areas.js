@@ -16,29 +16,41 @@ export const FAMILIA_DEV = ['dev', 'frontend', 'backend', 'fullstack'];
 /**
  * Expande a escolha do usuário para o conjunto de áreas que ele deve receber.
  *
- * DUAS REGRAS, e as duas existem por um motivo concreto:
+ * TRÊS REGRAS, e as três vieram de um problema concreto:
  *
- * 1. Quem escolheu 'dev' recebe as QUATRO. Sem isto, todo perfil salvo antes
- *    desta mudança (a maioria da base: `Areas: ["dev"]`) passaria a receber
- *    ZERO vaga no dia do deploy, porque as vagas viraram frontend/backend/
- *    fullstack e nenhuma seria mais 'dev'. Quebrar todo mundo para arrumar uma
- *    categoria seria um preço absurdo, e silencioso.
+ * 1. Quem escolheu 'dev' recebe as QUATRO. 'dev' é tanto a sobra do
+ *    classificador quanto a opção "não sei ainda, quero ver de tudo". Sem
+ *    isto, todo perfil salvo antes da divisão (a maioria da base tinha
+ *    `Areas: ["dev"]`) passaria a receber ZERO vaga no dia do deploy.
  *
- * 2. Quem escolheu 'frontend' (ou back, ou full) TAMBÉM recebe 'dev'. O balde
- *    genérico tem "Desenvolvedor de Software" e "Tech Lead" dentro, que
- *    servem para os três. É o mesmo raciocínio do 'other', que passa de
- *    propósito: título ruim não quer dizer vaga ruim, e perder vaga boa custa
- *    mais do que mostrar uma duvidosa.
+ * 2. Quem escolheu uma área específica TAMBÉM recebe 'dev'. O balde genérico
+ *    tem "Desenvolvedor de Software" e "Tech Lead" dentro, que servem para
+ *    qualquer um dos três. Mesmo raciocínio do 'other', que passa de
+ *    propósito: perder vaga boa custa mais do que mostrar uma duvidosa.
+ *
+ * 3. MAS front e back NÃO se puxam. A primeira versão desta função expandia
+ *    qualquer escolha da família para a família inteira, e o efeito foi que
+ *    escolher "front-end" continuava trazendo vaga de back-end pura: o filtro
+ *    não estreitava quase nada, que era exatamente a queixa que motivou
+ *    dividir a área. 'fullstack' entra nos dois lados porque vaga full-stack
+ *    pede front E back, então é relevante para os dois; o contrário não vale.
  *
  * @param {string[]} escolhidas
  * @returns {string[]} sem repetição
  */
+const VIZINHAS = {
+    dev: FAMILIA_DEV,                         // "quero ver de tudo"
+    frontend: ['frontend', 'fullstack', 'dev'],
+    backend: ['backend', 'fullstack', 'dev'],
+    fullstack: ['fullstack', 'dev'],
+};
+
 export function expandirAreas(escolhidas) {
     const lista = Array.isArray(escolhidas) ? escolhidas.filter(Boolean).map(String) : [];
     if (!lista.length) return [];
     const fora = new Set(lista);
-    if (lista.some((a) => FAMILIA_DEV.includes(a))) {
-        for (const a of FAMILIA_DEV) fora.add(a);
+    for (const a of lista) {
+        for (const v of (VIZINHAS[a] || [])) fora.add(v);
     }
     return [...fora];
 }

@@ -12,6 +12,7 @@ import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 import { removeCv } from '../lib/cvStorage.js';
 import { decideConcessaoDePlano, DIAS_MAX_CONCESSAO } from '../services/billingLogic.js';
 import { PLANS } from '../config/plans.js';
+import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
 
 const router = Router();
 
@@ -140,6 +141,20 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
 const concessaoSchema = z.object({
     plan: z.string(),
     dias: z.coerce.number().int().min(1).max(DIAS_MAX_CONCESSAO).optional(),
+});
+
+// GET /api/admin/users/:id/feed — por que esta pessoa vê poucas vagas?
+//
+// Devolve a CASCATA de filtros, não só o total. O total sozinho já existia e
+// não ajudou ninguém: foi a cascata que mostrou que 82% do corte de um usuário
+// real vinha de um único filtro (data de postagem), e não do classificador.
+//
+// requireAdmin porque expõe os filtros e o feed de outra pessoa.
+router.get('/users/:id/feed', requireAdmin, async (req, res) => {
+    const [u] = await sql`select "Id", "Email", "Name" from "Users" where "Id" = ${req.params.id}`;
+    if (!u) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const diag = await diagnosticoDoFeed(req.params.id);
+    res.json({ usuario: { id: u.Id, email: u.Email, nome: u.Name }, ...diag });
 });
 
 router.patch('/users/:id/plan', requireAdmin, validate(concessaoSchema), async (req, res) => {

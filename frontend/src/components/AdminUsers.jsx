@@ -16,6 +16,11 @@ export default function AdminUsers() {
     const [q, setQ] = useState('');
     const [open, setOpen] = useState(null);     // usuário selecionado (linha)
     const [detail, setDetail] = useState(null); // detalhe carregado
+    // Diagnostico do feed: carregado SOB DEMANDA, num clique.
+    // Sao ~7 contagens sobre a tabela de Jobs; puxar isso junto de todo detalhe
+    // faria o admin pagar o custo mesmo quando so quer ver o plano da pessoa.
+    const [feed, setFeed] = useState(null);
+    const [carregandoFeed, setCarregandoFeed] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [concedendo, setConcedendo] = useState(false);
     const [plano, setPlano] = useState('pro');
@@ -30,10 +35,21 @@ export default function AdminUsers() {
     useEffect(() => { load('', 1); }, []);  
 
     async function openDetail(u) {
-        setOpen(u); setDetail(null);
+        // Zera o diagnostico junto: sem isso, abrir outro usuario mostraria a
+        // cascata do anterior, que e o tipo de erro que faz o admin tomar
+        // decisao sobre a pessoa errada.
+        setOpen(u); setDetail(null); setFeed(null);
         try { setDetail(await api.adminUser(u.id)); }
         catch (e) { toast.show(e.message, 'error'); }
     }
+    async function verFeed(id) {
+        if (carregandoFeed) return;
+        setCarregandoFeed(true);
+        try { setFeed(await api.adminUserFeed(id)); }
+        catch (e) { toast.show(e.message, 'error'); }
+        finally { setCarregandoFeed(false); }
+    }
+
     async function del(u) {
         if (!window.confirm(`Apagar ${u.email}?\n\nRemove a conta, perfil e candidaturas. É irreversível.`)) return;
         setDeleting(true);
@@ -189,6 +205,68 @@ Isto NÃO dá acesso de admin.`)) return;
                                                 </div>
                                             ))}
                                         </div>
+                                    )}
+
+                                    {/* ------------------------------------------------------------
+                                        Quantas vagas esta pessoa ve, e ONDE ela perde as outras.
+                                        ------------------------------------------------------------
+                                        Mostra a cascata, nao so o total. O total sozinho ja existia
+                                        e nao respondia nada: foi a cascata que revelou que 82% do
+                                        corte de um usuario real vinha de UM filtro (data de
+                                        postagem), e nao do classificador. */}
+                                    <div className="section-title" style={{ fontSize: 13, marginTop: 20 }}>Feed desta pessoa</div>
+                                    {!feed ? (
+                                        <button className="btn sm" disabled={carregandoFeed} onClick={() => verFeed(detail.user.id)}>
+                                            {carregandoFeed
+                                                ? <><div className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} /> Calculando…</>
+                                                : <><i className="ti ti-filter-search" /> Ver quantas vagas aparecem</>}
+                                        </button>
+                                    ) : !feed.temPerfil ? (
+                                        <div className="notice warn"><i className="ti ti-alert-triangle" /><span>Esta pessoa ainda não salvou um perfil, então não há filtro para analisar.</span></div>
+                                    ) : (
+                                        <>
+                                            <div className="cascata">
+                                                {feed.etapas.map((e, i) => (
+                                                    <div key={e.nome} className={`cascata-linha ${feed.maiorDegrau?.nome === e.nome ? 'pior' : ''}`}>
+                                                        <div className="cl-nome">
+                                                            {e.nome}
+                                                            {e.detalhe && <span className="cl-det">{e.detalhe}</span>}
+                                                        </div>
+                                                        <div className="cl-barra" aria-hidden="true">
+                                                            <span style={{ width: `${feed.etapas[0].restam ? (e.restam / feed.etapas[0].restam) * 100 : 0}%` }} />
+                                                        </div>
+                                                        <div className="cl-num">
+                                                            {nf(e.restam)}
+                                                            {i > 0 && e.perdeu > 0 && <span className="cl-perdeu">-{nf(e.perdeu)}</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="cascata-resumo">
+                                                <div><b>{nf(feed.noFeed)}</b> vagas no feed dela</div>
+                                                {/* O numero que importa para o envio automatico: abaixo de
+                                                    50% o sistema nao manda, entao um feed grande com match
+                                                    baixo continua sem enviar nada. */}
+                                                <div><b>{nf(feed.comMatchAlto)}</b> com match ≥ 50% (o que o envio automático manda)</div>
+                                                {feed.maiorDegrau && feed.maiorDegrau.perdeu > 0 && (
+                                                    <div>Maior corte: <b>{feed.maiorDegrau.nome}</b> (tira {nf(feed.maiorDegrau.perdeu)})</div>
+                                                )}
+                                            </div>
+
+                                            {feed.exemplos.length > 0 && (
+                                                <div className="cascata-ex">
+                                                    <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>O que ela vê primeiro:</div>
+                                                    {feed.exemplos.map((x, i) => (
+                                                        <div key={i} className="cascata-ex-item">
+                                                            <span className={`score ${scoreClass(x.score)}`}>{x.score}%</span>
+                                                            <span className="cex-t">{x.titulo || 'Vaga'}</span>
+                                                            {x.empresa && <span className="muted cex-e">{x.empresa}</span>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </>
                             )}

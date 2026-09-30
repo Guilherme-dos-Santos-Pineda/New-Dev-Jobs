@@ -28,16 +28,41 @@ test('quem escolheu "frontend" também recebe o balde genérico', () => {
     assert.ok(r.includes('dev'));
 });
 
+test('front NÃO puxa back (e vice-versa)', () => {
+    // REGRESSÃO da primeira versão: qualquer escolha da família expandia para a
+    // família inteira, então escolher "front-end" continuava trazendo back-end
+    // puro e o filtro não estreitava quase nada — exatamente a queixa que
+    // motivou dividir a área. Medido num usuário real: trocar 'dev' por
+    // 'frontend' não mudava o tamanho do feed (762 antes e depois).
+    const front = expandirAreas(['frontend']);
+    assert.equal(front.includes('backend'), false, 'front não pode puxar back');
+    const back = expandirAreas(['backend']);
+    assert.equal(back.includes('frontend'), false, 'back não pode puxar front');
+});
+
+test('fullstack entra nos dois lados, mas não puxa os dois', () => {
+    // Vaga full-stack pede front E back, então serve para quem escolheu
+    // qualquer um dos dois. O contrário não vale: quem quer full-stack não
+    // quer necessariamente vaga de só um lado.
+    assert.ok(expandirAreas(['frontend']).includes('fullstack'));
+    assert.ok(expandirAreas(['backend']).includes('fullstack'));
+    const full = expandirAreas(['fullstack']);
+    assert.equal(full.includes('frontend'), false);
+    assert.equal(full.includes('backend'), false);
+});
+
 test('área de fora da família dev não arrasta a família junto', () => {
     const r = expandirAreas(['qa']);
     assert.deepEqual(r, ['qa']);
     assert.equal(r.includes('frontend'), false);
 });
 
-test('mistura: qa + frontend traz qa e a família dev, nada mais', () => {
+test('mistura: qa + frontend traz qa e o lado do front, nada mais', () => {
     const r = new Set(expandirAreas(['qa', 'frontend']));
     assert.ok(r.has('qa'));
-    for (const a of FAMILIA_DEV) assert.ok(r.has(a), `faltou ${a}`);
+    assert.ok(r.has('frontend'));
+    assert.ok(r.has('dev'));
+    assert.equal(r.has('backend'), false);
     assert.equal(r.has('data'), false);
 });
 

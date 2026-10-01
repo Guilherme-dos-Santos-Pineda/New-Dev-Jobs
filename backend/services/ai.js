@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { createCircuitBreaker } from '../lib/circuitBreaker.js';
+import { emailConfirmadoNoTexto } from './emailExtraido.js';
 
 // =========================
 // Pré-análise de conteúdo com IA — classifica + extrai dados de vagas.
@@ -65,7 +66,7 @@ export function aiState() {
     };
 }
 
-function normalize(p) {
+function normalize(p, texto) {
     const str = (v) => (v && String(v).trim() ? String(v).trim() : null);
     return {
         isJob: !!p.isJob, isRecruiter: !!p.isRecruiter, isCompany: !!p.isCompany,
@@ -73,7 +74,14 @@ function normalize(p) {
         cargo: str(p.cargo), empresa: str(p.empresa), senioridade: str(p.senioridade),
         modalidade: str(p.modalidade), localizacao: str(p.localizacao),
         tecnologias: Array.isArray(p.tecnologias) ? p.tecnologias.map(String).slice(0, 20) : [],
-        email: str(p.email), linkedin: str(p.linkedin), salario: str(p.salario), beneficios: str(p.beneficios),
+        // O email passa por uma CONFERENCIA contra o texto do post, nao e
+        // copiado da resposta da IA. Medido em 01/10/2026: 382 vagas na base
+        // tinham endereco que nao existia em lugar nenhum do post. A IA
+        // inventava um plausivel (dominio certo da empresa, nome de pessoa
+        // deduzido) e o email saia da conta Gmail do usuario direto para o
+        // vazio, voltando como bounce na caixa dele. Ver emailExtraido.js.
+        email: emailConfirmadoNoTexto(str(p.email), texto),
+        linkedin: str(p.linkedin), salario: str(p.salario), beneficios: str(p.beneficios),
         confidence: Math.max(0, Math.min(100, Math.round(Number(p.confidence) || 0))),
     };
 }
@@ -99,7 +107,7 @@ async function callProvider({ name, cfg }, text) {
         const data = await res.json();
         const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
         breakers[name].recordSuccess();
-        return normalize(parsed);
+        return normalize(parsed, text);
     } catch (e) {
         breakers[name].recordFailure();
         throw e;

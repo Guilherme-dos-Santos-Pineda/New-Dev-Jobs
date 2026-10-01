@@ -121,6 +121,15 @@ regra existente, não acrescente uma nova que a contradiga.
 - Ao mexer aqui, **valide contra os dados reais** antes de publicar (`backend/scripts/check-perf.mjs` mostra o caminho). Regressão coberta em `backend/test/classifyNonTech.test.js`.
 - `getMatches` tem **memo curto por usuário** (guarda a *promise*, não o resultado). Invalide com `invalidateMatches(userId)` ao criar candidatura ou salvar perfil.
 
+## Extração do email (a IA inventa endereço)
+- **A IA pode LER o email do post, nunca ESCREVER um.** `normalize()` em `services/ai.js` NÃO copia `p.email` da resposta: passa por `emailConfirmadoNoTexto` (services/emailExtraido.js), que só mantém o que aparece **literalmente** no conteúdo do post.
+- Medido em 01/10/2026: de 7826 vagas com email, **382 tinham endereço que não existia em lugar nenhum do post**. Os descarados eram placeholders de manual (`contato@empresa.com`, `shanmugam@company.com`, `mounika@example.com`); a maioria era pior, endereço plausível com o domínio certo da empresa e um nome de pessoa deduzido do texto. Um post que só tinha um link do LinkedIn virou `contato@empresa.com`.
+- **Por que machuca mais do que parece**: o email sai da conta Gmail do usuário, e cada endereço inexistente volta como bounce na caixa dele. Sequência de bounce é o sinal que o Gmail usa para rebaixar reputação de remetente, então além de não chegar no recrutador, piora a entrega do que estava certo. Um usuário real tinha 9 das 35 candidaturas nessa situação.
+- **Lista com um intruso perde só o intruso**, não a lista: um post pode trazer três emails bons e a IA acrescentar um quarto.
+- **Nunca "corrigir" endereço parecido.** A IA devolveu `point.in` onde o post dizia `3point.in`; aceitar por semelhança reintroduz exatamente o bug.
+- Não confundir com `emailContato.js`, que valida a FORMA (telefone e link não são email). Aqui a forma está certa e a pergunta é se o endereço existe. Os dois juntos cobrem as duas falhas.
+- Limpeza da base: as 382 tiveram `Email` zerado, com os valores antigos salvos em `emails-removidos.json` (gitignored, é PII). As vagas continuam na base, só não são mais oferecidas, porque não dá para se candidatar a elas.
+
 ## Scraper / robôs
 - Apify aceita **no máx. 10 `authorUrls` por execução** → fatiar em lotes (já feito em `runMonitoring`).
 - Vagas filtradas por **área profissional** (`detectArea`) além de skills/senioridade. Auto-send só dispara em match **≥ 50%**.

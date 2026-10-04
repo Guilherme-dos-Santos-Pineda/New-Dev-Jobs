@@ -4,6 +4,7 @@ import sql from '../lib/sql.js';
 import { config } from '../config.js';
 import { analyzeContent } from './ai.js';
 import { runActor } from './apifyPool.js';
+import { proximosMonitoraveis } from './recrutadorMonitoravel.js';
 
 // =========================
 // Scraper DevScout (Apify) — escreve no Postgres
@@ -219,18 +220,19 @@ export async function runMonitoring({
     // Estratégia de origem da busca:
     //  - 'global'   → sem authorUrls (busca em todo o LinkedIn pela query; mais volume/custo)
     //  - 'selected' → apenas os recrutadores escolhidos (recruiterIds)
-    //  - 'saved'    → recrutadores aprovados, priorizando os MAIS OBSOLETOS (rotação
+    //  - 'saved'    → recrutadores MONITORÁVEIS (já geraram vaga, ou foram
+    //                 aprovados à mão), priorizando os mais obsoletos (rotação
     //                 por LastCheckedAt; cap maxRecruiters controla custo Apify). [padrão]
     let authorUrls = [];
     if (source === 'selected' && recruiterIds?.length) {
         authorUrls = (await sql`select "LinkedinUrl" from "Recruiters" where "Id" = any(${recruiterIds}) and "LinkedinUrl" is not null`).map((r) => r.LinkedinUrl);
     } else if (source !== 'global') {
         const cap = maxRecruiters && maxRecruiters > 0 ? maxRecruiters : null;
-        authorUrls = (await sql`
-            select "LinkedinUrl" from "Recruiters"
-            where "Status" = 'approved' and "LinkedinUrl" is not null
-            order by "LastCheckedAt" asc nulls first, "Id" asc
-            ${cap ? sql`limit ${cap}` : sql``}`).map((r) => r.LinkedinUrl);
+        // Quem é monitorável está definido num lugar só (recrutadorMonitoravel.js),
+        // porque a MESMA pergunta é feita pelo painel do admin e pelo KPI do
+        // dashboard. Escrita três vezes, a primeira mudança numa delas faz o
+        // número na tela contradizer o que o robô faz, e os dois "funcionam".
+        authorUrls = await proximosMonitoraveis(cap);
         if (!authorUrls.length) {
             authorUrls = (await sql`select "Url" from "RecruiterSources" where "Active" = true`).map((r) => r.Url);
         }

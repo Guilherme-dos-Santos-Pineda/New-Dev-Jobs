@@ -54,7 +54,10 @@ router.get('/overview', requireAdmin, async (_req, res) => {
             (select count(*)::int from "Feedback") as feedback,
             (select count(*)::int from "RecruiterSources") as sources,
             (select count(*)::int from "Recruiters") as recruiters,
-            (select count(*)::int from "Recruiters" where "Status"='approved') as recruitersApproved,
+            -- MONITORAVEIS, nao "aprovados": desde 04/10/2026 ter vaga na base
+            -- ja basta. Contar so os aprovados mostraria um numero menor do que
+            -- o robo realmente visita. Definicao unica em recrutadorMonitoravel.js.
+            (select count(*)::int from "Recruiters" r where ${condicaoMonitoravel()}) as recruitersApproved,
             (select count(*)::int from "SendQueue" where "Status"='queued') as queued`;
     const topUsers = await sql`
         select u."Name", u."Email", u."Plan", count(a."Id")::int as apps

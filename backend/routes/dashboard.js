@@ -40,7 +40,9 @@ router.get('/', requireAuth, async (req, res) => {
                 (select coalesce(round(avg("MatchScore")), 0)::int from "Applications"
                   where "UserId" = ${uid})                                                as apps_avgmatch,
                 (select count(*)::int from "Recruiters")                                  as rec_total,
-                (select count(*)::int from "Recruiters" where "Status" = 'approved')      as rec_approved,
+                -- Monitoraveis (tem vaga na base OU aprovado a mao), nao so os
+                -- aprovados. Mesma definicao do robo: recrutadorMonitoravel.js.
+                (select count(*)::int from "Recruiters" r where ${condicaoMonitoravel()}) as rec_approved,
                 (select coalesce(json_agg(c order by d), '[]'::json) from (
                     select d, count(a."Id")::int as c
                     from generate_series(current_date - interval '6 days', current_date, interval '1 day') d

@@ -131,6 +131,10 @@ regra existente, não acrescente uma nova que a contradiga.
 - Limpeza da base: as 382 tiveram `Email` zerado, com os valores antigos salvos em `emails-removidos.json` (gitignored, é PII). As vagas continuam na base, só não são mais oferecidas, porque não dá para se candidatar a elas.
 
 ## Scraper / robôs
+- **Existe UM robô só: "Monitorar recrutadores salvos"** (`source: 'saved'`), e é assim de propósito. Até 04/10/2026 eram **305 robôs** rotulados `monitoring` mas com `source: 'global'`, que é o modo que o próprio código descreve como "sem authorUrls, busca em todo o LinkedIn pela query, mais volume/custo". Eles não monitoravam recrutador nenhum: eram 305 buscas por palavra-chave queimando o crédito. Backup em `robos-removidos.json` (gitignored).
+- **`maxRecruiters` tem de ficar em 10, e isso não é estética.** O teto diário (`SCHEDULER_MAX_PER_DAY`, 16) conta linhas em `ScraperRuns`, ou seja, RUNS. Mas `runMonitoring` fatia os recrutadores em lotes de 10 e **cada lote é uma chamada Apify**. Com `maxRecruiters: 50`, uma run vira 5 chamadas e continua contando 1 no teto: o orçamento é furado por 5x sem nada no log acusar. Com 10, run = 1 chamada e o teto significa o que diz.
+- **Só recrutador `approved` é monitorado.** Em 04/10/2026, 4220 recrutadores que JÁ tinham gerado vaga com email válido estavam parados em `discovered` e eram ignorados; foram promovidos com base nessa prova (existe `Jobs.RecruiterId` com email válido), não por palpite. De 36 monitoráveis passou para 4256.
+- A rotação é por `LastCheckedAt asc nulls first`: 10 por run × 16 runs/dia = 160/dia, ou seja, **~27 dias por volta completa** nos 4256. Quem define esse número é o crédito da Apify, não o desenho.
 - Apify aceita **no máx. 10 `authorUrls` por execução** → fatiar em lotes (já feito em `runMonitoring`).
 - Vagas filtradas por **área profissional** (`detectArea`) além de skills/senioridade. Auto-send só dispara em match **≥ 50%**.
 - Gerador de robôs: `npm run seed:robots` (simula por padrão; `--commit` cria; queries naturais de posts reais). Cuidado: cada robô gasta crédito Apify.

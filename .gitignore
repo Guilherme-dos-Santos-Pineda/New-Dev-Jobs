@@ -42,3 +42,6 @@ pages/en/
 # Backup dos emails fantasma removidos (01/10/2026). Contem endereco de
 # recrutador: e PII e o repositorio e publico.
 emails-removidos.json
+
+# Backup dos 305 robos de busca global removidos (04/10/2026).
+robos-removidos.json

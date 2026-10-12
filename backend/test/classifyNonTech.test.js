@@ -189,3 +189,25 @@ test('sem filtro de modalidade declarado, nada é barrado por modalidade', () =>
     const base = { JobTitle: 'Desenvolvedor Java', Email: 'r@x.com.br', Description: 'vaga no Brasil' };
     assert.equal(passesFilters({ ...base, Modality: 'presencial' }, perfil), true);
 });
+
+// Primeiro run do monitoramento novo (12/10/2026): estes títulos reais caíam em
+// 'other', que passa no feed de propósito, e chegavam a quem procura vaga de dev.
+test('nontech: cargos que vazavam como other no monitoramento', () => {
+    const fora = [
+        'Auxiliar de Exportação', 'Jovem Aprendiz', 'Captador(a) de Leads',
+        'BDR – BUSINESS DEVELOPMENT REPRESENTATIVE', 'Coordenador(a) de Transporte',
+    ];
+    for (const t of fora) {
+        assert.equal(detectArea(vaga(t)), 'nontech', `"${t}" deveria ser nontech`);
+    }
+    // e quem é de tech continua de tech
+    assert.notEqual(detectArea(vaga('Desenvolvedor(a) Júnior - Integrações')), 'nontech');
+    assert.notEqual(detectArea(vaga('Engenheiro de Sistemas .NET / Azure Pleno/Sênior')), 'nontech');
+});
+
+// "(a)" no meio do cargo escondia a área: "Engenheiro(a) de Dados" não casava
+// com a regra de dados e, com "Importação" no título, virava nontech.
+test('area: marca de gênero entre parênteses não esconde o cargo', () => {
+    assert.equal(detectArea(vaga('Engenheiro(a) de Dados - Importacao & Integracoes')), 'data');
+    assert.equal(detectArea(vaga('Engenheiro(a) de Dados')), detectArea(vaga('Engenheiro de Dados')));
+});

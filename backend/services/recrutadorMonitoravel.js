@@ -52,20 +52,50 @@ export async function contarMonitoraveis() {
     return row.n;
 }
 
+/** Não revisitar antes disto: casa com o `postedLimit: 'week'` do robô. */
+export const DIAS_ENTRE_VISITAS = 6;
+
 /**
- * O próximo lote a visitar, os mais obsoletos primeiro.
+ * O próximo lote a visitar: os mais PRODUTIVOS primeiro, entre os que não
+ * foram visitados nos últimos DIAS_ENTRE_VISITAS.
  *
- * A ordem por `LastCheckedAt asc nulls first` é o que faz a rotação girar
- * sozinha: quem acabou de ser visitado vai para o fim da fila. Sem ela, o robô
- * visitaria sempre os mesmos dez.
+ * Por que produtividade e não "o mais obsoleto": o crédito da Apify paga
+ * ~240 posts por dia, e um recrutador ativo publica ~20 por semana. Isso cobre
+ * uns 140 recrutadores por semana, não 4 mil. Girar a base inteira por ordem de
+ * `LastCheckedAt` gastava o crédito visitando quem não posta há meses (medido:
+ * 10 recrutadores do topo deram 79 vagas com email numa semana; a média da base
+ * dá perto de zero).
  *
- * @param {number|null} limite  teto de recrutadores (10 = uma chamada Apify)
+ * "Produtivo" = vagas BR de tecnologia com email nos últimos 90 dias, depois no total. Recrutador
+ * novo achado pela busca de descoberta entra com vaga recente e sobe sozinho; o
+ * que parou de postar cai sozinho quando a janela de 90 dias passa por ele.
+ *
+ * A janela de revisita evita pagar duas vezes pelo mesmo post: o robô pede os
+ * posts da última semana, então voltar antes de 6 dias recompra o que já veio.
+ *
+ * @param {number|null} limite  teto de recrutadores por run
  */
 export async function proximosMonitoraveis(limite) {
     const rows = await sql`
+        with prod as (
+            select j."RecruiterId" as id,
+                   count(*) filter (where j."CreatedAt" > now() - interval '90 days')::int as recentes,
+                   count(*)::int as total
+            from "Jobs" j
+            where j."RecruiterId" is not null and j."Email" like '%@%.%'
+              and j."IsBR" is true   -- produto é BR: recrutador indiano produtivo não interessa
+              -- e vaga de TECNOLOGIA: tem recrutador que posta 30 vagas por
+              -- semana de logística e RH. Contá-las gastaria o crédito nele.
+              and coalesce(j."Area", 'other') not in ('nontech', 'other')
+            group by 1
+        )
         select r."LinkedinUrl" from "Recruiters" r
+        left join prod p on p.id = r."Id"
         where ${condicaoMonitoravel()}
-        order by r."LastCheckedAt" asc nulls first, r."Id" asc
+          and (r."LastCheckedAt" is null
+               or r."LastCheckedAt" < now() - make_interval(days => ${DIAS_ENTRE_VISITAS}))
+        order by coalesce(p.recentes, 0) desc, coalesce(p.total, 0) desc,
+                 r."LastCheckedAt" asc nulls first, r."Id" asc
         ${limite && limite > 0 ? sql`limit ${limite}` : sql``}`;
     return rows.map((r) => r.LinkedinUrl);
 }

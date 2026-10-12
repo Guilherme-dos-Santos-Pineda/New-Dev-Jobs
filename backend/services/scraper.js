@@ -209,13 +209,35 @@ export async function runDiscovery({ queries, location = 'Brazil', locations, ma
 // =========================
 // FASE 2 — Monitoramento de recrutadores aprovados
 // =========================
+// =========================
+// Queries padrão (medidas contra a Apify em 12/10/2026)
+// =========================
+// MONITORAMENTO (com authorUrls): a query só filtra os posts DESTES
+// recrutadores. Nos mesmos 10 recrutadores, numa semana:
+//   sem query           242 posts pagos,  44 com email  (US$ 0,011 por vaga)
+//   esta query (OR)     197 posts pagos,  79 com email  (US$ 0,005 por vaga)
+// O OR traz MAIS vaga pagando MENOS: sem query o actor devolve o feed recente
+// do autor (repost, parabéns, evento), com ela vai direto aos anúncios.
+export const QUERY_MONITORAMENTO = 'vaga OR vagas OR contratando OR oportunidade OR currículo OR CV';
+// DESCOBERTA (sem authorUrls, LinkedIn inteiro): rende bem menos, por isso
+// roda pouco. Medido, % de posts com email: "vaga desenvolvedor" 3%, frases de
+// "envie seu currículo" 14% (mas RH, logística...), "#vagati" 13% e quase tudo
+// de TI. Serve para achar recrutador NOVO, que entra sozinho no monitoramento
+// quando gera a primeira vaga.
+export const QUERY_DESCOBERTA = '#vagati OR #vagasti';
+
 export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
     region = 'global', excludeCountries, maxRecruiters = 10,
 } = {}) {
-    // Queries entre aspas → o Post Search Scraper trata como frase (busca mais precisa).
-    const searchQueries = (queries && queries.length ? queries : ['"hiring software engineer"', '"hiring backend developer"']);
+    // Sem query explícita, o padrão depende do modo (ver QUERY_MONITORAMENTO).
+    // Era `"hiring software engineer"` para TUDO: somado aos authorUrls, a busca
+    // virava "posts destes recrutadores BR que digam isso em inglês", e as 14
+    // runs de outubro voltaram com 0 posts cada.
+    const searchQueries = queries && queries.length
+        ? queries
+        : [source === 'global' ? QUERY_DESCOBERTA : QUERY_MONITORAMENTO];
 
     // Estratégia de origem da busca:
     //  - 'global'   → sem authorUrls (busca em todo o LinkedIn pela query; mais volume/custo)
@@ -290,9 +312,13 @@ export async function runMonitoring({
         const [existing] = await sql`select "Status" from "ScrapedPosts" where "LinkedinId" = ${postId}`;
         const prevStatus = existing?.Status || null;
 
-        // Pré-análise com IA (todo post passa pela IA; respeita o teto por run)
+        // Pré-análise com IA, SÓ em post que tem email no texto. Post sem email
+        // nunca vira vaga (ver `qualifies`), e a IA não pode trazer um email que
+        // não esteja escrito no post (emailConfirmadoNoTexto), ou seja, o que
+        // ela acharia o regex já acha. Chamar a IA nos ~70% sem email só gastava
+        // o teto diário de tokens do Groq grátis antes de chegar nas vagas.
         let ai = null;
-        if (aiCalls < config.ai.maxCallsPerRun) {
+        if (aiCalls < config.ai.maxCallsPerRun && extractEmail(content)) {
             aiCalls += 1;
             ai = await analyzeContent(content); // null se IA off / circuito aberto / erro
             if (ai) s.aiUsed += 1;

@@ -238,11 +238,13 @@ router.delete('/sources/:id', requireAdmin, async (req, res) => {
 
 // GET /api/admin/recruiters/stats — total / com vagas / sem vagas / com email
 router.get('/recruiters/stats', requireAdmin, async (_req, res) => {
+    // Agregado UMA vez e juntado: o `exists` por linha varria Jobs 5 mil vezes (7 s).
     const [s] = await sql`
+        with jc as (select distinct "RecruiterId" as id from "Jobs" where "RecruiterId" is not null)
         select count(*)::int as total,
-               count(*) filter (where exists (select 1 from "Jobs" j where j."RecruiterId" = r."Id"))::int as withjobs,
+               count(jc.id)::int as withjobs,
                count(*) filter (where r."Email" is not null and r."Email" <> '')::int as withemail
-        from "Recruiters" r`;
+        from "Recruiters" r left join jc on jc.id = r."Id"`;
     res.json({ total: s.total, withJobs: s.withjobs, withoutJobs: s.total - s.withjobs, withEmail: s.withemail });
 });
 
@@ -269,14 +271,27 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
           and (${q}::text is null or r."Name" ilike ${q} or r."Email" ilike ${q} or r."Company" ilike ${q})
           and (${hasEmail}::text is null or (r."Email" is not null and r."Email" <> ''))
           and (${monitorable}::text is null or r."LinkedinUrl" is not null)
-          and (${hasJobs}::text is null or (${hasJobs} = 'true') = exists (select 1 from "Jobs" j where j."RecruiterId" = r."Id"))`;
+          and (${hasJobs}::text is null or (${hasJobs} = 'true') = (jc.id is not null))`;
 
-    const [{ total }] = await sql`select count(*)::int as total from "Recruiters" r ${where}`;
+    // As contagens por recrutador são agregadas UMA vez e juntadas. Antes eram
+    // subconsultas por linha, e ordenar por "vagas" (o padrão da tela) obrigava a
+    // calcular as 5 mil: 13 s para abrir a aba, com uma conexão do pool presa.
+    const contagens = sql`
+        with jc as (
+            select "RecruiterId" as id, count(*)::int as n from "Jobs"
+            where "RecruiterId" is not null group by 1
+        ), ec as (
+            select j."RecruiterId" as id, count(*)::int as n
+            from "Applications" a join "Jobs" j on j."Id" = a."JobId"
+            where j."RecruiterId" is not null group by 1
+        )`;
+    const de = sql`from "Recruiters" r left join jc on jc.id = r."Id" left join ec on ec.id = r."Id"`;
+
+    const [{ total }] = await sql`${contagens} select count(*)::int as total ${de} ${where}`;
     const rows = await sql`
-        select r.*,
-            (select count(*)::int from "Jobs" j where j."RecruiterId" = r."Id") as jobs_count,
-            (select count(*)::int from "Applications" a join "Jobs" j on j."Id" = a."JobId" where j."RecruiterId" = r."Id") as emails_sent
-        from "Recruiters" r ${where}
+        ${contagens}
+        select r.*, coalesce(jc.n, 0) as jobs_count, coalesce(ec.n, 0) as emails_sent
+        ${de} ${where}
         order by ${orderBy}
         limit ${pageSize} offset ${(page - 1) * pageSize}`;
     res.json({ recruiters: rows.map(shapeRecruiter), total, page, pageSize });

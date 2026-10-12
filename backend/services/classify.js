@@ -48,9 +48,12 @@ const NONTECH = new RegExp([
     'compras', 'suprimentos', 'licita[çc][õo]es', 'almoxarifad', 'log[íi]stic',
     'expedi[çc][ãa]o', 'estoquista', 'armaz[ée]m', 'motorista', 'entregador',
     'facilities', 'manuten[çc][ãa]o predial', 'operador de m[áa]quina',
+    // vistos no primeiro run do monitoramento novo (12/10/2026): todos caíam em
+    // 'other' e passavam no feed de dev
+    'exporta[çc][ãa]o', 'importa[çc][ãa]o', 'transporte', '\\baprendiz\\b',
     // comercial e marketing
     'vendedor', 'representante comercial', 'consultor de vendas', 'analista comercial',
-    '\\bsdr\\b', 'pr[ée][- ]vendas', 'telemarketing', 'social media', 'publicidade',
+    '\\bsdr\\b', '\\bbdr\\b', 'business development', 'captador','pr[ée][- ]vendas', 'telemarketing', 'social media', 'publicidade',
     'marketing digital', `${CARGO}s?\\s+(?:de\\s+)?marketing`, '\\bredator', 'jornalista',
     'videomaker', 'fot[óo]grafo', `${CARGO}s?\\s+(?:de\\s+)?eventos`, 'customer success',
     // saúde, jurídico e educação
@@ -122,7 +125,10 @@ function areaTech(t) {
  * sim as skills decidem; (4) 'other'.
  */
 export function detectArea(job) {
-    const titulo = String(job.JobTitle || '').toLowerCase();
+    // "Engenheiro(a) de Dados" não casava com "engenheir[oa] de dados": o "(a)"
+    // fica no meio. Tirar a marca de gênero antes resolve todas as regras de uma
+    // vez, em vez de remendar regex por regex.
+    const titulo = String(job.JobTitle || '').toLowerCase().replace(/\((?:a|o|as|os|e|es)\)/g, '');
 
     // 1. O título é o sinal confiável.
     const porTitulo = areaTech(titulo);
@@ -188,7 +194,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 2;
+export const CLASSIFY_VERSION = 3;
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 

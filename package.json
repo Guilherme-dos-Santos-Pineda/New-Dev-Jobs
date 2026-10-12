@@ -19,6 +19,7 @@
     "check:feed": "node backend/scripts/check-feed-parity.mjs",
     "loadtest": "node backend/scripts/load-test.mjs",
     "prova": "node backend/scripts/prova-real.mjs",
+    "check:admin": "node backend/scripts/check-admin.mjs",
     "check:icons": "node backend/scripts/check-icons.mjs",
     "funil": "node backend/scripts/funil.mjs",
     "lint": "npm run lint --prefix frontend && npm run lint:backend",

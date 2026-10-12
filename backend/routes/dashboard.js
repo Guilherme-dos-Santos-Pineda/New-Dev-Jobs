@@ -3,6 +3,7 @@ import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
 import { planUsage } from '../services/usage.js';
 import { getMatches } from '../services/jobsQuery.js';
+import { condicaoMonitoravel } from '../services/recrutadorMonitoravel.js';
 
 const router = Router();
 

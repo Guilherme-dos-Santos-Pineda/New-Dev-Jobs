@@ -21,7 +21,8 @@
     "prova": "node backend/scripts/prova-real.mjs",
     "check:icons": "node backend/scripts/check-icons.mjs",
     "funil": "node backend/scripts/funil.mjs",
-    "lint": "npm run lint --prefix frontend"
+    "lint": "npm run lint --prefix frontend && npm run lint:backend",
+    "lint:backend": "node frontend/node_modules/eslint/bin/eslint.js -c eslint.backend.config.mjs backend"
   },
   "keywords": [],
   "type": "module",

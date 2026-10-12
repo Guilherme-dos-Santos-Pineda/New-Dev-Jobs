@@ -79,6 +79,12 @@ jobs:
           npm ci --no-audit --no-fund
           npm run lint
 
+      # Funcao usada sem import no backend passa por node --check e pelos testes
+      # (que nao chamam as rotas): so estoura quando a rota roda. Foi assim que o
+      # /dashboard de todo usuario deu 500. Usa o eslint ja instalado acima.
+      - name: Lint do backend (no-undef)
+        run: npm run lint:backend
+
       - name: Build do frontend
         working-directory: frontend
         env:

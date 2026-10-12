@@ -13,6 +13,7 @@ import { removeCv } from '../lib/cvStorage.js';
 import { decideConcessaoDePlano, DIAS_MAX_CONCESSAO } from '../services/billingLogic.js';
 import { PLANS } from '../config/plans.js';
 import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
+import { condicaoMonitoravel } from '../services/recrutadorMonitoravel.js';
 
 const router = Router();
 

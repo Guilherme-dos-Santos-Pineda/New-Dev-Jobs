@@ -45,3 +45,6 @@ emails-removidos.json
 
 # Backup dos 305 robos de busca global removidos (04/10/2026).
 robos-removidos.json
+
+# IDs dos recrutadores rebaixados da promocao em massa (12/10/2026).
+recrutadores-rebaixados.json

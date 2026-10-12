@@ -41,6 +41,10 @@ export function condicaoMonitoravel() {
             or exists (
                 select 1 from "Jobs" j
                 where j."RecruiterId" = r."Id" and j."Email" like '%@%.%'
+                  -- vaga BR: 3569 dos 4256 recrutadores só tinham vaga de fora
+                  -- (vieram das antigas buscas em inglês) e levariam 84% do
+                  -- crédito para um produto que é brasileiro.
+                  and j."IsBR" is not false
             )
         )`;
 }

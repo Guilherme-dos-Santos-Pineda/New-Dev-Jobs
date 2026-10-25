@@ -260,3 +260,35 @@ test('vaga de fora do Brasil não passa como BR', async () => {
     assert.equal(jobIsBR({ Email: 'a@vagas.abler.in', Location: 'Blumenau/SC', Description: '' }), true);
     assert.equal(jobIsBR({ Email: 'a@mazza.tech', Location: 'Av. Faria Lima', Description: 'Vaga de desenvolvedor, experiência com currículo' }), true);
 });
+
+// =========================================================================
+// Revisão vaga a vaga do feed (25/10/2026), casos reais.
+// =========================================================================
+test('indústria que não é software sai, mesmo com "engineer" ou "qualidade"', () => {
+    for (const t of ['Field Engineer I - FLD (Fluidos de Perfuração e Completação)', 'Offshore Maintenance Engineer',
+        'Engenheiro(a) de Qualidade Offshore I', 'Analista de Desenvolvimento Organizacional - DHO',
+        'Analista de Qualidade', 'Analista de Qualidade Pleno', 'Designer Gráfico', 'Analista de Suporte Fiscal I']) {
+        assert.equal(detectArea(vaga(t)), 'nontech', `"${t}"`);
+    }
+    // e o que é software continua
+    assert.equal(detectArea(vaga('Engenheiro de Software Automotivo')), 'dev');
+    assert.equal(detectArea(vaga('Analista de QA')), 'qa');
+    assert.equal(detectArea(vaga('Engenheiro de Qualidade / Testador Manual')), 'qa');
+});
+
+test('título vago: o post decide, e skill só conta se estiver escrita nele', () => {
+    const v = (Description, Skills = []) => ({ JobTitle: 'Vaga', Skills, Email: 'r@x.com.br', Description });
+    // a IA listou .NET, Go e Rust num post de bobinador e vendas
+    assert.equal(detectArea(v('Oportunidade para Bobinador(a). Consultor(a) de Vendas e Marketing.', ['.NET', 'Go', 'Rust'])), 'nontech');
+    assert.equal(detectArea(v('OPORTUNIDADES: MOTORISTA - CNH B. Conduzir o veículo de entrega.', ['Go'])), 'nontech');
+    // post de TI sem skill confirmada: área indefinida, mas continua no feed
+    assert.notEqual(detectArea(v('Vaga para Analista de Suporte Júnior (Remoto). Envie seu currículo.')), 'nontech');
+    assert.equal(detectArea(v('#VagasTI: buscamos dev com Python e Django', ['Python', 'Rust'])), 'backend');
+    // sem post não há o que conferir: segue passando
+    assert.equal(detectArea({ JobTitle: 'Vaga', Skills: [] }), 'other');
+});
+
+test('título com vários cargos não é descartado só porque um deles é designer', () => {
+    assert.equal(detectArea(vaga('Angular / React Developer Intern, Graphic Designer Intern')), 'frontend');
+    assert.equal(detectArea({ JobTitle: 'Designer UX/UI Pleno', Skills: [], Description: '' }), 'design');
+});

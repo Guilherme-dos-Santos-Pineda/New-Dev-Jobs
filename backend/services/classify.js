@@ -71,7 +71,7 @@ const NONTECH = new RegExp([
 function areaTech(t) {
     // QA / Testes / Qualidade — inclui as variações em inglês e "engenheiro/analista
     // de qualidade", que senão escorregariam para "dev" por causa do "engineer".
-    if (/\bqa\b|quality assurance|quality engineer|\bsdet\b|\btae\b|test(?:s)? engineer|test automation|automation test|\btester\b|analista\s+de\s+(?:testes?|qualidade)|engenheir[oa]s?\s+de\s+(?:testes?|qualidade)|automa[çc][ãa]o de testes?|testes? automatizad|qualidade de software|gerente de testes|\btesting\b|automatizador de testes|quality analyst/.test(t)) return 'qa';
+    if (/\bqa\b|quality assurance|quality engineer|\bsdet\b|\btae\b|test(?:s)? engineer|test automation|automation test|\btester\b|testador|analista\s+de\s+testes?|analista\s+de\s+qualidade\s+de\s+software|engenheir[oa]s?\s+de\s+(?:testes?|qualidade)|automa[çc][ãa]o de testes?|testes? automatizad|qualidade de software|gerente de testes|\btesting\b|automatizador de testes|quality analyst/.test(t)) return 'qa';
     // Produto inclui PROJETOS de TI (PM, PMO, analista funcional/de negócios).
     if (/product owner|product manager|\bpo\b|\bpm\b|gerente de produto|gest[ãa]o de produto|scrum master|agilista|agile (?:coach|master)|project manager|program manager|gerente de projetos?|gerente de programas?|\bpmo\b|analista de projetos|coordenador[a]? de projetos|business analyst|analista de neg[óo]cios|analista funcional|product analyst/.test(t)) return 'po';
     if (/data engineer|engenheir[oa]s?\s+(?:de\s+)?dados|eng\.? (?:de )?dados|mlops|cientista de dados|data scientist|data analyst|analista de dados|business intelligence|\bbi\b|analytics|machine learning|\bml\b|\bdba\b|database administrator|administrador[a]? de banco|banco de dados|data architect|data science|databricks|snowflake|power bi|microsoft fabric|governan[çc]a de dados|(?:especialista|consultor[a]?|arquitet[oa]|l[íi]der t[ée]cnic[oa]) (?:\w+ )?(?:em|de) dados/.test(t)) return 'data';
@@ -143,18 +143,41 @@ export function detectArea(job) {
     // vez, em vez de remendar regex por regex.
     const titulo = String(job.JobTitle || '').toLowerCase().replace(/\((?:a|o|as|os|e|es)\)/g, '');
 
+    const descricao = String(job.Description || '').toLowerCase();
+
+    // 0. Indústria que não é software, mesmo com "engineer"/"qualidade" no
+    //    título: "Field Engineer - Fluidos de Perfuração", "Offshore
+    //    Maintenance Engineer", "Analista de Desenvolvimento Organizacional".
+    //    Salvo se o próprio título disser software/sistemas/dados.
+    if (FORA_DE_SOFTWARE.test(titulo) && !SINAL_SOFTWARE.test(titulo)) return 'nontech';
+
     // 1. O título é o sinal confiável.
     const porTitulo = areaTech(titulo);
+    // "Designer" sozinho é quase sempre peça de social media de agência. Só é
+    // Design/UX se o título ou o post falarem de UX, UI, interface ou produto.
+    // Título com vários cargos ("React Developer Intern, Graphic Designer Intern")
+    // é reavaliado sem o designer, para o resto decidir.
+    if (porTitulo === 'design' && !/\bux\b|\bui\b|produto|product|interface|figma/.test(titulo)
+        && !/\bux\b|\bui\b|figma|interface|usabilidade|product design|produto digital/.test(descricao)) {
+        return areaTech(titulo.replace(/\b(?:web |graphic |gr[áa]fico )?designers?\b/g, ' ')) || 'nontech';
+    }
     if (porTitulo) return porTitulo;
 
     // 2. Título de outra profissão: skill alucinada não reverte.
     if (NONTECH.test(titulo)) return 'nontech';
 
-    // 3. Título sem informação ("Vaga", "Estamos contratando"): as skills são o
-    //    único sinal que resta, então valem — com o risco assumido de errar aqui.
+    // 3. Título sem informação ("Vaga", "Estamos contratando"): o POST decide.
+    //    Se ele não fala de tecnologia, é outra profissão (motorista, condomínio,
+    //    construção: todos chegavam com título "Vaga"). Se fala, as skills dizem
+    //    a área, mas só as que aparecem escritas no post: a IA inventa skill
+    //    como inventava email ("Bobinador" virava back-end com .NET, Go e Rust).
+    //    Sem post nenhum não há o que conferir: as skills valem como antes.
     if (tituloVago(titulo)) {
-        const comSkills = `${titulo} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
-        return areaTech(comSkills) || 'other';
+        const skills = parseArr(job.Skills).map(String).filter((s) => s.trim());
+        if (!descricao.trim()) return areaTech(`${titulo} ${skills.join(' ')}`.toLowerCase()) || 'other';
+        if (!TEXTO_DE_TI.test(descricao)) return 'nontech';
+        const confirmadas = skills.filter((s) => descricao.includes(s.toLowerCase().trim()));
+        return areaTech(`${titulo} ${confirmadas.join(' ')}`.toLowerCase()) || 'other';
     }
 
     // 4. Título CLARO que não casou com nenhuma área de tech: é outra profissão.
@@ -166,6 +189,14 @@ export function detectArea(job) {
     //    Lista de profissões não-tech nunca fecha; a de tech é finita.
     return 'nontech';
 }
+
+// Indústrias que usam "engenheiro", "qualidade" e "técnico" sem ser software.
+// Medido em 25/10/2026: petróleo (Halliburton, offshore), qualidade automotiva
+// e de construção civil, e DHO (RH) estavam no feed de dev.
+const FORA_DE_SOFTWARE = /offshore|perfura[çc]|drilling|fluidos|petr[óo]le|[óo]leo e g[áa]s|oil (?:and|&) gas|subsea|geolog|geof[íi]s|mec[âa]nic|el[ée]tric|eletr[ôo]nica|mecatr[ôo]nic|constru[çc][ãa]o civil|automotiv|manuten[çc][ãa]o|maintenance|desenvolvimento (?:organizacional|humano)|\bdho\b|designer gr[áa]fic|design gr[áa]fic|suporte fiscal/;
+const SINAL_SOFTWARE = /software|sistemas|\bdados\b|\bdata\b|\bti\b|\bit\b|cloud|desenvolvedor|developer|programador|devops|\bsap\b|computador|inform[áa]tica|embarcad|firmware/;
+// O post fala de tecnologia? Para decidir título vago ("Vaga").
+const TEXTO_DE_TI = /\bti\b|vagas ?ti\b|tecnologia da informa|software|desenvolvedor|developer|programador|\bdev\b|devops|\bdados\b|\bdata\b|cloud|sistemas|infraestrutura|front-?end|back-?end|full ?stack|\bqa\b|\bsap\b|\bjava\b|python|\.net\b|react|node|tech lead|\bdba\b|suporte t[ée]cnico|analista de suporte|help ?desk|service desk|\bit (?:help|support|analyst|specialist|manager)/;
 
 // Título que não diz o cargo: aí, e só aí, as skills decidem.
 function tituloVago(t) {
@@ -231,7 +262,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 4;
+export const CLASSIFY_VERSION = 5;
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 

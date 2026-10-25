@@ -292,3 +292,21 @@ test('título com vários cargos não é descartado só porque um deles é desig
     assert.equal(detectArea(vaga('Angular / React Developer Intern, Graphic Designer Intern')), 'frontend');
     assert.equal(detectArea({ JobTitle: 'Designer UX/UI Pleno', Skills: [], Description: '' }), 'design');
 });
+
+// Nível vem do título; a descrição só decide quando o título não diz nada.
+test('nível: o título manda sobre a descrição', async () => {
+    const { nivelDaVaga } = await import('../services/classify.js');
+    assert.equal(nivelDaVaga({ JobTitle: 'Consultor SAP SD Sênior', Description: 'Temos também vaga de estagiário.' }), 'senior');
+    assert.equal(nivelDaVaga({ JobTitle: 'Estágio em Desenvolvimento Front-end', Description: 'Você vai aprender com devs sênior.' }), 'estagio');
+    assert.equal(nivelDaVaga({ JobTitle: 'Desenvolvedor React', Description: 'Vaga de estágio, 6h por dia.' }), 'estagio');
+});
+
+test('estágio: "Estágio em TI" fica no feed, curadoria não vira estágio, vaga encerrada sai', async () => {
+    const { nivelDaVaga } = await import('../services/classify.js');
+    assert.equal(detectArea(vaga('Estágio em TI')), 'suporte');
+    assert.equal(detectArea(vaga('Estágio em T.I.')), 'suporte');
+    const curadoria = 'Curadoria de vagas da semana: ' + 'Dev Java, Dev Python, Analista SAP, '.repeat(10) + 'e uma de estágio.';
+    assert.equal(nivelDaVaga({ JobTitle: 'Salesforce Developer', Description: curadoria }), null);
+    assert.equal(nivelDaVaga({ JobTitle: 'Vaga', Description: 'VAGA DE ESTÁGIO em suporte técnico' }), 'estagio');
+    assert.equal(detectArea({ JobTitle: 'Estágio em Desenvolvimento', Skills: [], Description: '**PROCESSO SELETIVO ENCERRADO** Vaga de estágio' }), 'nontech');
+});

@@ -120,6 +120,9 @@ function areaTech(t) {
     // Sobras de tech sem área clara: "Oracle" (DBA, PL/SQL, APEX) e "architect"
     // em inglês, que no LinkedIn é quase sempre de TI.
     if (/\boracle\b|pl\/?sql|\barchitect\b/.test(t)) return 'dev';
+    // "TI" solto ("Estágio em TI", "Estágio em T.I.", "Vaga de TI"): é de TI,
+    // sem dizer qual. Suporte é o destino mais comum desse título.
+    if (/\bti\b|\bt\.i\b/.test(t)) return 'suporte';
     return null;
 }
 
@@ -144,6 +147,11 @@ export function detectArea(job) {
     const titulo = String(job.JobTitle || '').toLowerCase().replace(/\((?:a|o|as|os|e|es)\)/g, '');
 
     const descricao = String(job.Description || '').toLowerCase();
+
+    // Post avisando que a vaga ACABOU ("PROCESSO SELETIVO ENCERRADO", "VAGA
+    // FECHADA"): não se oferece. Vai para o mesmo balde do que não entra no
+    // feed, porque mandar currículo para vaga fechada é queimar a cota à toa.
+    if (VAGA_ENCERRADA.test(descricao.slice(0, 300))) return 'nontech';
 
     // 0. Indústria que não é software, mesmo com "engineer"/"qualidade" no
     //    título: "Field Engineer - Fluidos de Perfuração", "Offshore
@@ -195,6 +203,7 @@ export function detectArea(job) {
 // e de construção civil, e DHO (RH) estavam no feed de dev.
 const FORA_DE_SOFTWARE = /offshore|perfura[çc]|drilling|fluidos|petr[óo]le|[óo]leo e g[áa]s|oil (?:and|&) gas|subsea|geolog|geof[íi]s|mec[âa]nic|el[ée]tric|eletr[ôo]nica|mecatr[ôo]nic|constru[çc][ãa]o civil|automotiv|manuten[çc][ãa]o|maintenance|desenvolvimento (?:organizacional|humano)|\bdho\b|designer gr[áa]fic|design gr[áa]fic|suporte fiscal/;
 const SINAL_SOFTWARE = /software|sistemas|\bdados\b|\bdata\b|\bti\b|\bit\b|cloud|desenvolvedor|developer|programador|devops|\bsap\b|computador|inform[áa]tica|embarcad|firmware/;
+const VAGA_ENCERRADA = /processo seletivo (?:encerrado|finalizado)|vagas? (?:fechada|encerrada|preenchida)s?|inscri[çc][õo]es encerradas/;
 // O post fala de tecnologia? Para decidir título vago ("Vaga").
 const TEXTO_DE_TI = /\bti\b|vagas ?ti\b|tecnologia da informa|software|desenvolvedor|developer|programador|\bdev\b|devops|\bdados\b|\bdata\b|cloud|sistemas|infraestrutura|front-?end|back-?end|full ?stack|\bqa\b|\bsap\b|\bjava\b|python|\.net\b|react|node|tech lead|\bdba\b|suporte t[ée]cnico|analista de suporte|help ?desk|service desk|\bit (?:help|support|analyst|specialist|manager)/;
 
@@ -262,7 +271,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 5;
+export const CLASSIFY_VERSION = 7;
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 
@@ -300,6 +309,25 @@ export function jobIsBR(job) {
  * Tudo o que dá para saber da vaga sem conhecer o usuário. É o que vai para as
  * colunas derivadas — e o que o SQL passa a filtrar.
  */
+/**
+ * Nível da vaga: o TÍTULO manda, a descrição só decide quando o título não diz.
+ * Lendo título + descrição juntos, bastava o post citar "estagiário" em algum
+ * canto (ou "reporta ao gerente") para "Consultor SAP" e "Salesforce Developer"
+ * virarem estágio: das 19 vagas de estágio de outubro/2026, mais da metade era
+ * isso. Usada pelo SQL (via classifyJob) E pelo passesFilters.
+ */
+export function nivelDaVaga(job) {
+    const doTitulo = detectLevel(String(job.JobTitle || ''));
+    if (doTitulo) return doTitulo;
+    const desc = String(job.Description || '');
+    const daDescricao = detectLevel(desc);
+    // Estágio pela descrição só se o post ANUNCIA estágio logo no começo. Post de
+    // curadoria lista dez vagas e cita "estágio" numa delas: sem isto,
+    // "Salesforce Developer" e "Consultor SAP" saíam como estágio.
+    if (daDescricao === 'estagio' && !/est[áa]gi|\bintern|trainee/i.test(desc.slice(0, 250))) return null;
+    return daDescricao;
+}
+
 /** Marca gravada em "AiClassification" quando o admin tira a vaga do feed. */
 export const REMOVIDA_PELO_ADMIN = 'removida-admin';
 
@@ -316,7 +344,7 @@ export function areaDaVaga(job) {
 export function classifyJob(job) {
     return {
         area: areaDaVaga(job),
-        level: detectLevel(`${job.JobTitle || ''} ${job.Description || ''}`),
+        level: nivelDaVaga(job),
         mods: detectModality(job), // array ou null ("não dá para afirmar")
         isBR: jobIsBR(job),
         version: CLASSIFY_VERSION,

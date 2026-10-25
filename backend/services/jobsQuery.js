@@ -1,6 +1,6 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
-import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga } from './classify.js';
+import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga } from './classify.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
@@ -61,7 +61,7 @@ export function passesFilters(job, profile) {
     if (profile.StrictLevel) {
         const levels = parseArr(profile.Levels);
         if (levels.length) {
-            const lvl = detectLevel(`${job.JobTitle || ''} ${job.Description || ''}`);
+            const lvl = nivelDaVaga(job);
             if (lvl && !levels.includes(lvl)) return false;
         }
     }

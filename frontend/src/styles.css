@@ -1866,3 +1866,85 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
     .cascata-linha { grid-template-columns: minmax(0, 1fr) auto; }
     .cl-barra { display: none; }
 }
+
+/* ============================================
+   Admin: robôs, vagas e recrutadores
+   ============================================ */
+.ti.spin { display: inline-block; animation: spin 1s linear infinite; }
+
+/* Interruptor liga/desliga. Checkbox não diz "isto está rodando agora"; um
+   interruptor diz, e é o controle que a pessoa já conhece do celular. */
+.liga {
+    position: relative; width: 42px; height: 24px; flex-shrink: 0;
+    border-radius: 999px; border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary); cursor: pointer; padding: 0;
+    transition: background var(--transition), border-color var(--transition);
+}
+.liga span {
+    position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--color-text-tertiary); transition: transform var(--transition), background var(--transition);
+}
+.liga.on { background: var(--color-success-bg); border-color: var(--color-success); }
+.liga.on span { transform: translateX(18px); background: var(--color-success); }
+.liga:disabled { opacity: .55; cursor: wait; }
+.liga:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+.robos-status { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+.robos-status-ico {
+    width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; border-radius: 50%; background: var(--color-bg-secondary); color: var(--color-text-tertiary);
+}
+.robos-status.ok .robos-status-ico { background: var(--color-success-bg); color: var(--color-success); }
+.robos-status.off .robos-status-ico { background: var(--color-warn-bg); color: var(--color-warn); }
+.robos-status-titulo { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+
+.kpi-cel-de { font-size: 13px; color: var(--color-text-tertiary); letter-spacing: 0; }
+.progress.alerta > span { background: var(--color-danger); }
+
+.robos-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 14px; }
+.robo { display: flex; flex-direction: column; gap: 12px; }
+.robo.desligado .robo-ico { background: var(--color-bg-secondary); color: var(--color-text-tertiary); }
+.robo-topo { display: flex; align-items: center; gap: 12px; }
+.robo-ico {
+    width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 19px; border-radius: 50%; background: var(--color-accent-light); color: var(--color-accent);
+}
+.robo-nome { font-size: 14.5px; font-weight: 600; }
+.robo-explica { font-size: 12.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0; }
+.robo-ultima {
+    display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; font-size: 13px;
+    background: var(--color-bg-secondary); border-radius: var(--radius);
+}
+.robo-ultima > i { font-size: 17px; color: var(--color-success); margin-top: 1px; }
+.robo-ultima.falhou > i { color: var(--color-danger); }
+.robo-ultima.falhou { color: var(--color-danger); }
+.robo-acoes { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+.robo-acoes .select { width: auto; padding: 7px 10px; font-size: 13px; }
+.robo-acoes .btn { margin-left: auto; }
+
+.run-detalhe {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 18px;
+    padding: 12px 18px 16px 52px; border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-bg-secondary); font-size: 12.5px;
+}
+.run-num { display: flex; justify-content: space-between; gap: 10px; color: var(--color-text-secondary); }
+.run-num b { color: var(--color-text); font-variant-numeric: tabular-nums; }
+
+.chip-n { font-weight: 600; margin-left: 4px; opacity: .8; font-variant-numeric: tabular-nums; }
+
+/* Linhas de vaga e recrutador: mesma régua da lista de Candidaturas. */
+.linha-vaga .badge, .linha-recrutador .badge { flex-shrink: 0; }
+.linha-recrutador { cursor: default; }
+.linha-recrutador .linha-titulo a { color: inherit; }
+.linha-recrutador .linha-titulo a:hover { color: var(--color-accent); }
+.rec-num { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; flex-shrink: 0; min-width: 96px; }
+.rec-num b { color: var(--color-text); font-variant-numeric: tabular-nums; }
+.rec-acoes { display: flex; gap: 4px; flex-shrink: 0; }
+
+@media (max-width: 760px) {
+    .rec-num { display: none; }
+    .linha-vaga, .linha-recrutador { flex-wrap: wrap; }
+    .linha-vaga .linha-txt, .linha-recrutador .linha-txt { flex-basis: 100%; }
+    .run-detalhe { padding-left: 18px; }
+    .robos-grade { grid-template-columns: 1fr; }
+}

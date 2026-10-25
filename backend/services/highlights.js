@@ -33,7 +33,8 @@ const TITULO_LONGO = 64;
 const ehTituloUsavel = (t) => t.length <= TITULO_LONGO && (t.match(/,/g) || []).length < 2;
 
 const AREA_LABEL = {
-    dev: 'Desenvolvimento', qa: 'QA', data: 'Dados', devops: 'DevOps',
+    dev: 'Desenvolvimento', frontend: 'Front-end', backend: 'Back-end', fullstack: 'Full-stack',
+    qa: 'QA', data: 'Dados', devops: 'Infra', erp: 'ERP / SAP',
     mobile: 'Mobile', design: 'Design', po: 'Produto', suporte: 'Suporte',
 };
 const NIVEL_LABEL = {

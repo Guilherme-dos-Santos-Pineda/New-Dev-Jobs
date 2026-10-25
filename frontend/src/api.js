@@ -184,6 +184,11 @@ export const api = {
         const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
         return request('GET', `/admin/raw${qs ? `?${qs}` : ''}`);
     },
+    // Tela de robôs: robôs + última execução + números da semana + crédito, numa chamada.
+    adminRobots: () => request('GET', '/admin/robots'),
+    // "Não é vaga de TI": sai do feed de todos e não volta numa reclassificação.
+    adminRemoverVaga: (id) => request('POST', `/admin/jobs/${id}/remover`),
+    adminRestaurarVaga: (id) => request('POST', `/admin/jobs/${id}/restaurar`),
     adminRawStatus: (id, status) => request('PATCH', `/admin/raw/${id}`, { status }),
     adminReprocess: (id) => request('POST', `/admin/raw/${id}/reprocess`),
     adminRawBulk: (action, status) => request('POST', '/admin/raw/bulk', { action, status }),

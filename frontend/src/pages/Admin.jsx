@@ -85,7 +85,7 @@ export default function Admin() {
                     ['usuarios', 'Usuários', 'ti-users'],
                     ['vagas', 'Vagas', 'ti-briefcase'],
                     ['recrutadores', 'Recrutadores', 'ti-address-book'],
-                    ['bots', 'Bots & Scraper', 'ti-robot'],
+                    ['bots', 'Robôs', 'ti-robot'],
                     ['raw', 'Conteúdo bruto', 'ti-file-text'],
                     ['stats', 'Estatísticas', 'ti-chart-bar'],
                     ['report', 'Relatório', 'ti-report-analytics'],

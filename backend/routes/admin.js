@@ -13,7 +13,8 @@ import { removeCv } from '../lib/cvStorage.js';
 import { decideConcessaoDePlano, DIAS_MAX_CONCESSAO } from '../services/billingLogic.js';
 import { PLANS } from '../config/plans.js';
 import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
-import { condicaoMonitoravel } from '../services/recrutadorMonitoravel.js';
+import { condicaoMonitoravel, DIAS_ENTRE_VISITAS } from '../services/recrutadorMonitoravel.js';
+import { REMOVIDA_PELO_ADMIN, detectArea } from '../services/classify.js';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ function shapeRecruiter(r) {
         lastPostDate: r.LastPostDate, lastCheckedAt: r.LastCheckedAt, checkCount: r.CheckCount,
         createdAt: r.CreatedAt,
         jobsCount: r.jobs_count ?? undefined, emailsSent: r.emails_sent ?? undefined,
+        techBrCount: r.tech_br ?? undefined, monitoravel: r.monitoravel ?? undefined,
     };
 }
 
@@ -245,7 +247,21 @@ router.get('/recruiters/stats', requireAdmin, async (_req, res) => {
                count(jc.id)::int as withjobs,
                count(*) filter (where r."Email" is not null and r."Email" <> '')::int as withemail
         from "Recruiters" r left join jc on jc.id = r."Id"`;
-    res.json({ total: s.total, withJobs: s.withjobs, withoutJobs: s.total - s.withjobs, withEmail: s.withemail });
+    // Os números que a tela mostra no topo, na linguagem do robô: quem ele
+    // visita, quantos já visitou nesta volta, quem foi bloqueado. Uma consulta
+    // com subconsultas escalares (regra do pool: nada em paralelo).
+    const [m] = await sql`
+        select
+            (select count(*)::int from "Recruiters" r where ${condicaoMonitoravel()}) as monitorados,
+            (select count(*)::int from "Recruiters" r where ${condicaoMonitoravel()}
+                and r."LastCheckedAt" > now() - make_interval(days => ${DIAS_ENTRE_VISITAS})) as visitados,
+            (select count(*)::int from "Recruiters" where "Status" = 'rejected') as bloqueados,
+            (select count(*)::int from "Recruiters" where "CreatedAt" > now() - interval '7 days') as novos7d`;
+    res.json({
+        total: s.total, withJobs: s.withjobs, withoutJobs: s.total - s.withjobs, withEmail: s.withemail,
+        monitorados: m.monitorados, visitados: m.visitados, bloqueados: m.bloqueados, novos7d: m.novos7d,
+        diasEntreVisitas: DIAS_ENTRE_VISITAS,
+    });
 });
 
 // GET /api/admin/recruiters?status=&hasJobs=&hasEmail=&q=&sort=&page=&pageSize=
@@ -255,10 +271,19 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
     const hasJobs = req.query.hasJobs || null;      // 'true' | 'false'
     const hasEmail = req.query.hasEmail || null;    // 'true'
     const monitorable = req.query.monitorable || null; // 'true' → só com perfil do LinkedIn
+    // Grupo na linguagem da tela: quem o robô visita, quem fica de fora, quem foi
+    // bloqueado. A regra é a MESMA do robô (condicaoMonitoravel), senão a lista
+    // contradiz o que ele faz.
+    const grupos = {
+        monitorados: sql`and ${condicaoMonitoravel()}`,
+        fora: sql`and not (${condicaoMonitoravel()}) and coalesce(r."Status", '') <> 'rejected'`,
+        bloqueados: sql`and r."Status" = 'rejected'`,
+    };
+    const grupo = grupos[req.query.grupo] || sql``;
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(100, Math.max(5, Number(req.query.pageSize) || 25));
     const sortMap = {
-        jobs: sql`jobs_count desc nulls last, r."UpdatedAt" desc`,
+        jobs: sql`tech_br desc, jobs_count desc nulls last, r."UpdatedAt" desc`,
         emails: sql`emails_sent desc nulls last`,
         name: sql`r."Name" asc`,
         recent: sql`r."CreatedAt" desc`,
@@ -271,14 +296,18 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
           and (${q}::text is null or r."Name" ilike ${q} or r."Email" ilike ${q} or r."Company" ilike ${q})
           and (${hasEmail}::text is null or (r."Email" is not null and r."Email" <> ''))
           and (${monitorable}::text is null or r."LinkedinUrl" is not null)
-          and (${hasJobs}::text is null or (${hasJobs} = 'true') = (jc.id is not null))`;
+          and (${hasJobs}::text is null or (${hasJobs} = 'true') = (jc.id is not null))
+          ${grupo}`;
 
     // As contagens por recrutador são agregadas UMA vez e juntadas. Antes eram
     // subconsultas por linha, e ordenar por "vagas" (o padrão da tela) obrigava a
     // calcular as 5 mil: 13 s para abrir a aba, com uma conexão do pool presa.
     const contagens = sql`
         with jc as (
-            select "RecruiterId" as id, count(*)::int as n from "Jobs"
+            select "RecruiterId" as id, count(*)::int as n,
+                   count(*) filter (where "IsBR" is not false and "Email" like '%@%.%'
+                       and coalesce("Area", 'other') not in ('nontech', 'other'))::int as tech
+            from "Jobs"
             where "RecruiterId" is not null group by 1
         ), ec as (
             select j."RecruiterId" as id, count(*)::int as n
@@ -290,7 +319,8 @@ router.get('/recruiters', requireAdmin, async (req, res) => {
     const [{ total }] = await sql`${contagens} select count(*)::int as total ${de} ${where}`;
     const rows = await sql`
         ${contagens}
-        select r.*, coalesce(jc.n, 0) as jobs_count, coalesce(ec.n, 0) as emails_sent
+        select r.*, coalesce(jc.n, 0) as jobs_count, coalesce(ec.n, 0) as emails_sent,
+               coalesce(jc.tech, 0) as tech_br, (${condicaoMonitoravel()}) as monitoravel
         ${de} ${where}
         order by ${orderBy}
         limit ${pageSize} offset ${(page - 1) * pageSize}`;
@@ -354,6 +384,49 @@ router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) 
 });
 
 // ---------- Robôs agendados (ScraperSchedules) — automação ----------
+
+// GET /api/admin/robots — tudo o que a tela de robôs precisa numa chamada só:
+// os robôs com o resultado da última execução, os números da semana, a
+// cobertura dos recrutadores e o crédito da Apify. Consultas SEQUENCIAIS (regra
+// do pool); o crédito vem do cache de 60 s de apifyUsage.
+router.get('/robots', requireAdmin, async (_req, res) => {
+    const schedules = await sql`select * from "ScraperSchedules" order by "Id" asc`;
+    const recentes = await sql`select * from "ScraperRuns" order by "CreatedAt" desc limit 40`;
+    const [n] = await sql`
+        select
+            (select count(*)::int from "Jobs" where "CreatedAt" > now() - interval '7 days' and "Email" like '%@%.%') as novas7d,
+            (select count(*)::int from "Jobs" where "CreatedAt" > now() - interval '7 days' and "Email" like '%@%.%'
+                and coalesce("Area", 'other') <> 'nontech' and "IsBR" is not false) as feed7d,
+            (select coalesce(sum(("Stats"->>'found')::int), 0)::int from "ScraperRuns"
+                where "CreatedAt" > now() - interval '7 days') as posts7d,
+            (select count(*)::int from "ScraperRuns" where "CreatedAt" > now() - interval '7 days') as runs7d,
+            (select count(*)::int from "ScraperRuns" where "CreatedAt" > now() - interval '7 days' and "Status" = 'failed') as falhas7d,
+            (select count(*)::int from "Recruiters" r where ${condicaoMonitoravel()}) as monitorados,
+            (select count(*)::int from "Recruiters" r where ${condicaoMonitoravel()}
+                and r."LastCheckedAt" > now() - make_interval(days => ${DIAS_ENTRE_VISITAS})) as visitados`;
+    const porDia = await sql`
+        select to_char(d, 'YYYY-MM-DD') as dia,
+               count(j."Id")::int as novas,
+               count(j."Id") filter (where coalesce(j."Area", 'other') <> 'nontech' and j."IsBR" is not false)::int as feed
+        from generate_series((now() at time zone 'America/Sao_Paulo')::date - 13,
+                             (now() at time zone 'America/Sao_Paulo')::date, interval '1 day') d
+        left join "Jobs" j on (j."CreatedAt" at time zone 'America/Sao_Paulo')::date = d::date
+                          and j."Email" like '%@%.%'
+        group by d order by d`;
+    let apify = null;
+    try { apify = await apifyUsage(); } catch { apify = null; }
+
+    // Última execução de cada robô (o run guarda o scheduleId nos Params).
+    const ultimaDe = (id) => recentes.find((r) => String(r.Params?.scheduleId) === String(id));
+    res.json({
+        robots: schedules.map((s) => ({ ...shapeSchedule(s), ultima: ultimaDe(s.Id) ? shapeRun(ultimaDe(s.Id)) : null })),
+        runs: recentes.slice(0, 15).map(shapeRun),
+        semana: n,
+        diasEntreVisitas: DIAS_ENTRE_VISITAS,
+        porDia,
+        apify: apify ? { usado: apify.totalUsed, limite: apify.totalFree, restante: apify.totalRemaining } : null,
+    });
+});
 
 // GET /api/admin/schedules
 router.get('/schedules', requireAdmin, async (_req, res) => {
@@ -440,6 +513,9 @@ function shapeJob(j) {
         aiScore: j.AiScore, classification: j.AiClassification, seniority: j.Seniority,
         modality: j.Modality, location: j.Location, salary: j.Salary, description: j.Description,
         linkedinId: j.LinkedinId, postedAt: j.PostedAt, createdAt: j.CreatedAt,
+        area: j.Area, level: j.Level, isBR: j.IsBR, recruiterName: j.recruiter_name ?? undefined,
+        recruiterUrl: j.recruiter_url ?? undefined,
+        removida: j.AiClassification === REMOVIDA_PELO_ADMIN,
     };
 }
 
@@ -451,17 +527,79 @@ router.get('/jobs', requireAdmin, async (req, res) => {
     const techLike = req.query.tech ? `%${req.query.tech}%` : null;
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(100, Math.max(10, Number(req.query.pageSize) || 30));
+    // Grupos na linguagem da tela. "no feed" é o que um usuário BR pode receber:
+    // com email, fora de outras profissões e não marcada como de fora do Brasil
+    // (os mesmos cortes de buscarCandidatas antes do perfil).
+    const NO_FEED = sql`j."Email" like '%@%.%' and coalesce(j."Area", 'other') <> 'nontech' and j."IsBR" is not false`;
+    const grupos = {
+        feed: sql`and ${NO_FEED}`,
+        fora_ti: sql`and j."Area" = 'nontech'`,
+        fora_br: sql`and j."IsBR" is false and coalesce(j."Area", 'other') <> 'nontech'`,
+        sem_area: sql`and coalesce(j."Area", 'other') = 'other'`,
+        sem_email: sql`and (j."Email" is null or j."Email" not like '%@%.%')`,
+        removidas: sql`and j."AiClassification" = ${REMOVIDA_PELO_ADMIN}`,
+    };
+    const grupo = grupos[req.query.grupo] || sql``;
+    const area = req.query.area || null;
+    const dias = { hoje: 1, '7d': 7, '30d': 30 }[req.query.periodo] || null;
     const where = sql`
-        where (${q}::text is null or "JobTitle" ilike ${q} or "Company" ilike ${q})
-          and (${seniority}::text is null or lower(coalesce("Seniority",'')) = lower(${seniority}))
-          and (${minScore}::int is null or coalesce("AiScore",0) >= ${minScore})
-          and (${techLike}::text is null or "Skills"::text ilike ${techLike})`;
-    const [{ total }] = await sql`select count(*)::int as total from "Jobs" ${where}`;
+        where (${q}::text is null or j."JobTitle" ilike ${q} or j."Company" ilike ${q})
+          and (${seniority}::text is null or lower(coalesce(j."Seniority",'')) = lower(${seniority}))
+          and (${minScore}::int is null or coalesce(j."AiScore",0) >= ${minScore})
+          and (${techLike}::text is null or j."Skills"::text ilike ${techLike})
+          and (${area}::text is null or j."Area" = ${area})
+          and (${dias}::int is null or j."CreatedAt" > now() - make_interval(days => ${dias}))
+          ${grupo}`;
+    const [{ total }] = await sql`select count(*)::int as total from "Jobs" j ${where}`;
     const rows = await sql`
-        select * from "Jobs" ${where}
-        order by "CreatedAt" desc, "Id" desc
+        select j.*, r."Name" as recruiter_name, r."LinkedinUrl" as recruiter_url
+        from "Jobs" j left join "Recruiters" r on r."Id" = j."RecruiterId"
+        ${where}
+        order by j."CreatedAt" desc, j."Id" desc
         limit ${pageSize} offset ${(page - 1) * pageSize}`;
-    res.json({ jobs: rows.map(shapeJob), total, page, pageSize });
+    // Contagem por grupo no mesmo recorte de busca/período, para os chips da tela
+    // dizerem quanto tem em cada um sem a pessoa precisar clicar para descobrir.
+    const base = sql`
+        where (${q}::text is null or j."JobTitle" ilike ${q} or j."Company" ilike ${q})
+          and (${dias}::int is null or j."CreatedAt" > now() - make_interval(days => ${dias}))`;
+    const [c] = await sql`
+        select count(*)::int as todas,
+               count(*) filter (where ${NO_FEED})::int as feed,
+               count(*) filter (where j."Area" = 'nontech')::int as fora_ti,
+               count(*) filter (where j."IsBR" is false and coalesce(j."Area", 'other') <> 'nontech')::int as fora_br,
+               count(*) filter (where coalesce(j."Area", 'other') = 'other')::int as sem_area,
+               count(*) filter (where j."Email" is null or j."Email" not like '%@%.%')::int as sem_email,
+               count(*) filter (where j."AiClassification" = ${REMOVIDA_PELO_ADMIN})::int as removidas
+        from "Jobs" j ${base}`;
+    res.json({ jobs: rows.map(shapeJob), total, page, pageSize, contagens: c });
+});
+
+// POST /api/admin/jobs/:id/remover — "isto não é vaga de TI": sai do feed de
+// todo mundo e não volta. A marca vai em AiClassification (classifyJob respeita
+// em toda reclassificação) e o post de origem fica 'rejected', que o scraper já
+// pula: sem isso, o mesmo post coletado de novo voltaria como vaga nova.
+// Não apaga: a vaga pode ter candidaturas ligadas, e remover é reversível.
+router.post('/jobs/:id/remover', requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    const [j] = await sql`
+        update "Jobs" set "AiClassification" = ${REMOVIDA_PELO_ADMIN}, "Area" = 'nontech'
+        where "Id" = ${id} returning *`;
+    if (!j) return res.status(404).json({ error: 'Vaga não encontrada' });
+    if (j.LinkedinId) await sql`update "ScrapedPosts" set "Status" = 'rejected' where "LinkedinId" = ${j.LinkedinId}`;
+    res.json({ job: shapeJob(j) });
+});
+
+// POST /api/admin/jobs/:id/restaurar — desfaz o "remover": volta a valer a regra.
+router.post('/jobs/:id/restaurar', requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    const [atual] = await sql`select * from "Jobs" where "Id" = ${id}`;
+    if (!atual) return res.status(404).json({ error: 'Vaga não encontrada' });
+    const area = detectArea(atual);
+    const [j] = await sql`
+        update "Jobs" set "AiClassification" = null, "Area" = ${area}
+        where "Id" = ${id} returning *`;
+    if (j.LinkedinId) await sql`update "ScrapedPosts" set "Status" = 'pending' where "LinkedinId" = ${j.LinkedinId} and "Status" = 'rejected'`;
+    res.json({ job: shapeJob(j) });
 });
 
 // ---------- Conteúdo bruto (ScrapedPosts) ----------

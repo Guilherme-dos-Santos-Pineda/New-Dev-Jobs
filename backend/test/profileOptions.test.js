@@ -40,6 +40,7 @@ test('toda área que o classificador produz pode ser escolhida no perfil', () =>
     const exemplos = [
         'Desenvolvedor Backend Node', 'QA Engineer', 'Product Owner', 'Engenheiro de Dados',
         'UX Designer', 'Engenheiro DevOps', 'Desenvolvedor Android', 'Analista de Suporte Técnico',
+        'Consultor SAP SD Sênior',
     ];
     for (const t of exemplos) produzidas.add(detectArea({ JobTitle: t, Skills: [] }));
 
@@ -51,6 +52,7 @@ test('toda área que o classificador produz pode ser escolhida no perfil', () =>
         assert.ok(escolhiveis.has(a), `o classificador produz '${a}' mas o perfil não deixa escolher`);
     }
     assert.ok(produzidas.has('suporte'), 'suporte deve continuar sendo uma área reconhecida');
+    assert.ok(produzidas.has('erp'), 'erp deve ser uma área reconhecida');
 });
 
 test('toda modalidade que o classificador produz pode ser escolhida no perfil', () => {

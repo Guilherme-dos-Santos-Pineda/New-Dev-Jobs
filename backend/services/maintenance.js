@@ -20,7 +20,7 @@ const LOTE_CLASSIFICACAO = Number(process.env.RECLASSIFY_BATCH) || 300;
  */
 export async function reclassifyPending(limite = LOTE_CLASSIFICACAO) {
     const rows = await sql`
-        select "Id", "JobTitle", "Description", "Skills", "Modality", "Location", "Email"
+        select "Id", "JobTitle", "Description", "Skills", "Modality", "Location", "Email", "AiClassification"
         from "Jobs" where "ClassVersion" < ${CLASSIFY_VERSION}
         order by "Id" desc limit ${limite}`;
     if (!rows.length) return 0;

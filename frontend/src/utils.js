@@ -46,10 +46,11 @@ export const AREA_OPTIONS = [
     { value: 'fullstack', label: 'Full-stack', icone: 'ti-stack-2', desc: 'Front e back na mesma vaga' },
     { value: 'mobile', label: 'Mobile', icone: 'ti-device-mobile', desc: 'iOS, Android, Flutter, React Native' },
     { value: 'data', label: 'Dados / IA', icone: 'ti-chart-histogram', desc: 'BI, engenharia de dados, ML' },
-    { value: 'devops', label: 'DevOps / Infra', icone: 'ti-cloud-cog', desc: 'Cloud, Kubernetes, SRE' },
+    { value: 'devops', label: 'DevOps / Infra / Segurança', icone: 'ti-cloud-cog', desc: 'Cloud, redes, SRE, segurança da informação' },
     { value: 'qa', label: 'QA / Testes', icone: 'ti-bug', desc: 'Testes manuais e automatizados' },
     { value: 'design', label: 'Design / UX', icone: 'ti-palette', desc: 'UI, UX, produto' },
-    { value: 'po', label: 'Produto / PO', icone: 'ti-clipboard-check', desc: 'Product owner, scrum master' },
+    { value: 'po', label: 'Produto / Projetos', icone: 'ti-clipboard-check', desc: 'PO, scrum master, gerente de projetos' },
+    { value: 'erp', label: 'ERP / SAP / CRM', icone: 'ti-building-factory-2', desc: 'SAP, TOTVS, Salesforce, ServiceNow' },
     { value: 'suporte', label: 'Suporte / Service Desk', icone: 'ti-headset', desc: 'Help desk, suporte tecnico, TI' },
     { value: 'dev', label: 'Desenvolvimento (geral)', icone: 'ti-code', desc: 'Nao sei ainda, quero ver de tudo' },
 ];

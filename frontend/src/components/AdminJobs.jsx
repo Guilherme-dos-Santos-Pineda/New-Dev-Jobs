@@ -1,112 +1,176 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { useToast } from './Toast.jsx';
-import { fmtDate, scoreClass } from '../utils.js';
+import { fmtDate, AREA_OPTIONS } from '../utils.js';
+import { haQuanto } from '../lib/tempo.js';
 
-const SENIORITIES = ['', 'estagio', 'junior', 'pleno', 'senior', 'lead'];
+// =========================
+// Vagas (admin)
+// =========================
+// A pergunta desta tela é "o que entrou, e está certo?". Os grupos de cima são
+// os cortes que o feed faz (outra profissão, fora do Brasil, sem email) e cada
+// um mostra quanto tem: dá para ver de relance se o robô trouxe lixo. Vaga que
+// passou e não é de TI sai com UM clique ("Não é TI"), e não volta: o backend
+// grava a decisão e a reclassificação respeita.
 
 const PAGE_SIZE = 30;
+const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
+
+const GRUPOS = [
+    ['feed', 'No feed', 'ti-circle-check'],
+    ['fora_ti', 'Fora de TI', 'ti-ban'],
+    ['fora_br', 'Fora do Brasil', 'ti-world'],
+    ['sem_area', 'Sem área definida', 'ti-help-circle'],
+    ['sem_email', 'Sem email', 'ti-mail-off'],
+    ['removidas', 'Removidas por você', 'ti-trash'],
+    ['', 'Todas', 'ti-list'],
+];
+const PERIODOS = [['hoje', 'Hoje'], ['7d', '7 dias'], ['30d', '30 dias'], ['', 'Tudo']];
+const AREA_NOME = Object.fromEntries(AREA_OPTIONS.map((a) => [a.value, a.label]));
+const nomeArea = (a) => (a === 'nontech' ? 'Fora de TI' : a === 'other' || !a ? 'Sem área' : AREA_NOME[a] || a);
 
 export default function AdminJobs() {
     const toast = useToast();
-    const [data, setData] = useState({ jobs: [], total: 0, page: 1 });
+    const [data, setData] = useState({ jobs: [], total: 0, page: 1, contagens: null });
     const [loading, setLoading] = useState(true);
-    const [open, setOpen] = useState(null);
-    const [f, setF] = useState({ q: '', seniority: '', minScore: '', tech: '' });
+    const [aberta, setAberta] = useState(null);
+    const [f, setF] = useState({ q: '', grupo: 'feed', periodo: '7d', area: '' });
+    const ocupado = useRef(new Set());
 
-    async function load(filters = f, page = 1) {
+    async function load(filtros = f, page = 1) {
         setLoading(true);
-        try { setData(await api.adminJobs({ ...filters, page, pageSize: PAGE_SIZE })); }
+        try { setData(await api.adminJobs({ ...filtros, page, pageSize: PAGE_SIZE })); }
         catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(f, 1); }, []);  
+    useEffect(() => { load(f, 1); }, []);
 
-    const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+    // Chip e select aplicam na hora; a busca, no Enter (senão consulta a cada tecla).
+    const aplicar = (k, v) => { const novo = { ...f, [k]: v }; setF(novo); load(novo, 1); };
+
+    async function mudar(job, remover) {
+        if (ocupado.current.has(job.id)) return;
+        ocupado.current.add(job.id);
+        try {
+            const { job: novo } = remover ? await api.adminRemoverVaga(job.id) : await api.adminRestaurarVaga(job.id);
+            // Sai da lista atual (não pertence mais ao grupo) e o detalhe reflete o novo estado.
+            setData((d) => ({ ...d, jobs: d.jobs.filter((j) => j.id !== job.id), total: Math.max(0, d.total - 1) }));
+            setAberta((a) => (a?.id === job.id ? { ...a, ...novo } : a));
+            toast.show(remover ? 'Vaga removida do feed. Não volta mais.' : 'Vaga restaurada.');
+        } catch (e) { toast.show(e.message, 'error'); }
+        finally { ocupado.current.delete(job.id); }
+    }
+
     const jobs = data.jobs || [];
+    const c = data.contagens || {};
+    const contagemDe = (g) => c[g || 'todas'];
     const totalPages = Math.max(1, Math.ceil((data.total || 0) / PAGE_SIZE));
 
     return (
-        <div className="card">
-            <div className="toolbar">
-                <div className="search"><i className="ti ti-search" />
-                    <input className="input" placeholder="Cargo ou empresa…" value={f.q}
-                        onChange={(e) => set('q', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(f, 1)} />
+        <>
+            <div className="card" style={{ marginBottom: 14 }}>
+                <div className="toolbar" style={{ marginBottom: 12 }}>
+                    <div className="search"><i className="ti ti-search" />
+                        <input className="input" placeholder="Buscar cargo ou empresa e Enter" value={f.q}
+                            onChange={(e) => setF((p) => ({ ...p, q: e.target.value }))} onKeyDown={(e) => e.key === 'Enter' && load(f, 1)} />
+                    </div>
+                    <div className="segmented">
+                        {PERIODOS.map(([v, l]) => (
+                            <button key={v} className={f.periodo === v ? 'active' : ''} onClick={() => aplicar('periodo', v)}>{l}</button>
+                        ))}
+                    </div>
+                    <select className="select" style={{ maxWidth: 190 }} value={f.area} onChange={(e) => aplicar('area', e.target.value)} aria-label="Área">
+                        <option value="">Todas as áreas</option>
+                        {AREA_OPTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                    </select>
                 </div>
-                <input className="input" style={{ maxWidth: 150 }} placeholder="Tecnologia" value={f.tech}
-                    onChange={(e) => set('tech', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(f, 1)} />
-                <select className="select" style={{ maxWidth: 150 }} value={f.seniority} onChange={(e) => set('seniority', e.target.value)}>
-                    {SENIORITIES.map((s) => <option key={s} value={s}>{s || 'Senioridade'}</option>)}
-                </select>
-                <select className="select" style={{ maxWidth: 140 }} value={f.minScore} onChange={(e) => set('minScore', e.target.value)}>
-                    <option value="">Score mín.</option>
-                    {[50, 70, 80, 90].map((s) => <option key={s} value={s}>≥ {s}%</option>)}
-                </select>
-                <button className="btn primary sm" onClick={() => load(f, 1)}><i className="ti ti-filter" /> Filtrar</button>
+                <div className="chips">
+                    {GRUPOS.map(([g, l, ico]) => (
+                        <button key={g} className={`chip toggle ${f.grupo === g ? 'on' : ''}`} onClick={() => aplicar('grupo', g)}>
+                            <i className={`ti ${ico}`} /> {l}{contagemDe(g) != null ? <b className="chip-n">{nf(contagemDe(g))}</b> : null}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {loading ? (
-                <div><div className="skeleton sk-line" /><div className="skeleton sk-line" style={{ width: '70%' }} /></div>
-            ) : jobs.length === 0 ? (
-                <div className="empty" style={{ padding: 30 }}><i className="ti ti-briefcase-off" />Nenhuma vaga encontrada.</div>
-            ) : (
-                <div className="dtable-wrap">
-                    <table className="dtable">
-                        <thead><tr><th>Cargo</th><th>Empresa</th><th>Skills</th><th>Score IA</th><th>Senioridade</th><th>Local</th><th>Data</th></tr></thead>
-                        <tbody>
-                            {jobs.map((j) => (
-                                <tr key={j.id} style={{ cursor: 'pointer' }} onClick={() => setOpen(j)}>
-                                    <td style={{ fontWeight: 600, maxWidth: 240 }}>{j.title || ''}</td>
-                                    <td>{j.company || ''}</td>
-                                    <td style={{ maxWidth: 180 }}>{(j.skills || []).slice(0, 3).join(', ') || ''}</td>
-                                    <td>{j.aiScore != null ? <span className={`score ${scoreClass(j.aiScore)}`}>{j.aiScore}%</span> : null}</td>
-                                    <td>{j.seniority || ''}</td>
-                                    <td style={{ maxWidth: 140 }}>{j.location || ''}</td>
-                                    <td className="muted" style={{ whiteSpace: 'nowrap' }}>{fmtDate(j.createdAt)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            <div className="card lista-card">
+                {loading ? (
+                    <div style={{ padding: 16 }}><div className="skeleton sk-line" /><div className="skeleton sk-line" style={{ width: '70%' }} /></div>
+                ) : jobs.length === 0 ? (
+                    <div className="empty" style={{ padding: 30 }}><i className="ti ti-briefcase-off" />Nenhuma vaga neste filtro.</div>
+                ) : jobs.map((j) => (
+                    <div key={j.id} className="linha linha-vaga" role="button" tabIndex={0}
+                        onClick={() => setAberta(j)} onKeyDown={(e) => e.key === 'Enter' && setAberta(j)}>
+                        <span className="linha-txt">
+                            <span className="linha-titulo">{j.title || 'Vaga sem título'}</span>
+                            <span className="linha-sub">
+                                {j.company ? `${j.company} · ` : ''}{j.recruiterName ? `por ${j.recruiterName} · ` : ''}{haQuanto(j.createdAt)}
+                            </span>
+                        </span>
+                        <span className={`badge ${j.area === 'nontech' ? 'danger' : j.area === 'other' || !j.area ? 'neutral' : 'info'}`}>{nomeArea(j.area)}</span>
+                        {j.isBR === false && <span className="badge warn">fora do BR</span>}
+                        {j.removida ? (
+                            <button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); mudar(j, false); }}>
+                                <i className="ti ti-arrow-back-up" /> Restaurar
+                            </button>
+                        ) : j.area !== 'nontech' && (
+                            <button className="btn ghost sm" title="Tirar do feed de todos" onClick={(e) => { e.stopPropagation(); mudar(j, true); }}>
+                                <i className="ti ti-ban" /> Não é TI
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+
             <div className="row" style={{ alignItems: 'center', marginTop: 10 }}>
-                <span className="muted" style={{ fontSize: 12 }}>{(data.total || 0).toLocaleString('pt-BR')} vaga(s) · página {data.page || 1}/{totalPages}</span>
+                <span className="muted" style={{ fontSize: 12 }}>{nf(data.total)} vaga(s) · página {data.page || 1} de {totalPages}</span>
                 <div className="spacer" />
                 <button className="btn ghost sm" disabled={loading || (data.page || 1) <= 1} onClick={() => load(f, (data.page || 1) - 1)}><i className="ti ti-chevron-left" /> anterior</button>
                 <button className="btn ghost sm" disabled={loading || (data.page || 1) >= totalPages} onClick={() => load(f, (data.page || 1) + 1)}>próxima <i className="ti ti-chevron-right" /></button>
             </div>
 
-            {/* Detalhe da vaga (inclui o conteúdo bruto do post) */}
-            {open && (
-                <div className="modal-overlay" onClick={() => setOpen(null)}>
-                    <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-head">
-                            <h3>{open.title || 'Vaga'}</h3>
-                            <button className="close" onClick={() => setOpen(null)}><i className="ti ti-x" /></button>
+            {aberta && (
+                <div className="modal-overlay" onClick={() => setAberta(null)}>
+                    <div className="modal det" onClick={(e) => e.stopPropagation()}>
+                        <div className="det-topo">
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <h3>{aberta.title || 'Vaga'}</h3>
+                                <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>{aberta.company}</div>
+                            </div>
+                            <button className="close" onClick={() => setAberta(null)} aria-label="Fechar"><i className="ti ti-x" /></button>
                         </div>
-                        <div className="modal-body" style={{ padding: 20 }}>
-                            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                                {open.aiScore != null && <span className={`score ${scoreClass(open.aiScore)}`}>{open.aiScore}% IA</span>}
-                                {open.classification && <span className="badge neutral">{open.classification}</span>}
-                                {open.seniority && <span className="badge info">{open.seniority}</span>}
-                                {open.modality && <span className="badge info">{open.modality}</span>}
+                        <div className="modal-body">
+                            <div className="det-campos">
+                                <div className="det-campo"><span className="det-rotulo">Área</span>
+                                    <span className={`det-valor ${aberta.area === 'nontech' ? 'danger' : ''}`}>{nomeArea(aberta.area)}{aberta.removida ? ' (removida por você)' : ''}</span></div>
+                                <div className="det-campo"><span className="det-rotulo">País</span>
+                                    <span className="det-valor">{aberta.isBR === false ? 'Fora do Brasil' : 'Brasil'}</span></div>
+                                <div className="det-campo"><span className="det-rotulo">Email de contato</span>
+                                    <span className="det-valor">{aberta.email || 'sem email'}</span></div>
+                                <div className="det-campo"><span className="det-rotulo">Coletada</span>
+                                    <span className="det-valor">{fmtDate(aberta.createdAt)}</span></div>
+                                {aberta.recruiterName && (
+                                    <div className="det-campo"><span className="det-rotulo">Recrutador</span>
+                                        <span className="det-valor">{aberta.recruiterUrl
+                                            ? <a href={aberta.recruiterUrl} target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>{aberta.recruiterName}</a>
+                                            : aberta.recruiterName}</span></div>
+                                )}
+                                {aberta.level && <div className="det-campo"><span className="det-rotulo">Nível</span><span className="det-valor">{aberta.level}</span></div>}
                             </div>
-                            <div style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 12 }}>
-                                <div><b>Empresa:</b> {open.company || ''}</div>
-                                <div><b>Email:</b> {open.email || ''}</div>
-                                {open.location && <div><b>Local:</b> {open.location}</div>}
-                                {open.salary && <div><b>Salário:</b> {open.salary}</div>}
-                                <div><b>Skills:</b> {(open.skills || []).join(', ') || ''}</div>
-                                <div className="muted"><b>Coletada:</b> {fmtDate(open.createdAt)}</div>
+                            <div className="det-secao">
+                                <span className="det-rotulo">Post original</span>
+                                <div className="det-descricao">{aberta.description || '(sem conteúdo)'}</div>
                             </div>
-                            <div className="section-title" style={{ fontSize: 13 }}>Conteúdo do post (bruto)</div>
-                            <div style={{ fontSize: 12.5, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--color-text-secondary)', background: 'var(--color-bg-secondary)', padding: 12, borderRadius: 10, maxHeight: 320, overflow: 'auto' }}>
-                                {open.description || '(sem conteúdo)'}
+                            <div className="modal-foot">
+                                {aberta.removida
+                                    ? <button className="btn ghost sm" onClick={() => mudar(aberta, false)}><i className="ti ti-arrow-back-up" /> Restaurar</button>
+                                    : aberta.area !== 'nontech' && <button className="btn danger sm" onClick={() => mudar(aberta, true)}><i className="ti ti-ban" /> Não é vaga de TI</button>}
+                                <button className="btn ghost sm" onClick={() => setAberta(null)}>Fechar</button>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }

@@ -28,7 +28,7 @@ try {
   await fetch(`${API}/api/auth/me`, { headers: H });
   await sql`update "Users" set "Role"='admin' where "Id"=${id}`;
   const [u] = await sql`select "Id" from "Users" order by "CreatedAt" asc limit 1`;
-  const paths = ['/admin/overview','/admin/users','/admin/users/'+u.Id,'/admin/users/'+u.Id+'/feed','/admin/sources','/admin/recruiters','/admin/recruiters/stats','/admin/scraper/runs','/admin/schedules','/admin/jobs','/admin/raw','/admin/ai-stats','/admin/profile-backups','/admin/report','/admin/campaigns','/bugs','/highlights?post=1'];
+  const paths = ['/admin/overview','/admin/users','/admin/users/'+u.Id,'/admin/users/'+u.Id+'/feed','/admin/sources','/admin/recruiters','/admin/recruiters?grupo=monitorados','/admin/recruiters?grupo=fora&sort=stale','/admin/recruiters?grupo=bloqueados','/admin/recruiters/stats','/admin/robots','/admin/scraper/runs','/admin/schedules','/admin/jobs','/admin/jobs?grupo=feed&periodo=7d','/admin/jobs?grupo=fora_ti&periodo=hoje','/admin/jobs?grupo=fora_br&area=backend','/admin/jobs?grupo=removidas','/admin/raw','/admin/ai-stats','/admin/profile-backups','/admin/report','/admin/campaigns','/bugs','/highlights?post=1'];
   for (const p of paths) {
     const t = Date.now();
     const res = await fetch(`${API}/api${p}`, { headers: H });

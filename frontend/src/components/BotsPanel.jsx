@@ -1,511 +1,299 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { useToast } from '../components/Toast.jsx';
-import { fmtDate } from '../utils.js';
+import { haQuanto, emQuanto, aCada } from '../lib/tempo.js';
 
-// Fora do componente de proposito: era declarado no corpo, DEPOIS do early return
-// de `loading`. O callback do polling fecha sobre o `fmtStats` do render em que
-// nasceu, e num render que voltou cedo ele nunca chegou a existir. Robo terminando
-// enquanto o painel carrega = ReferenceError.
-const fmtStats = (s) => (s && Object.keys(s).length ? Object.entries(s).map(([k, v]) => `${k}: ${v}`).join(' · ') : '');
+// =========================
+// Robôs (antes "Bots & Scraper")
+// =========================
+// A tela antiga era um formulário de API: queries entre aspas, páginas, "máx.
+// posts por query", checkbox de contentType, seletor de recrutadores e uma
+// tabela com ações em massa para 305 robôs. Servia para configurar o actor, não
+// para responder o que o dono quer saber ao abrir: "está funcionando? achou
+// vaga? quanto gastou?". Agora a tela responde isso em cima, e o resto é ligar,
+// desligar, mudar a frequência e rodar agora. A busca avulsa fica escondida em
+// "Avançado".
 
-const STATUS_BADGE = { discovered: 'warn', approved: 'ok', rejected: 'danger' };
-const RUN_BADGE = { queued: 'warn', running: 'warn', done: 'ok', failed: 'danger' };
+const FREQUENCIAS = [120, 360, 720, 1440];
+const ROTULO = { monitor: 'Monitorar recrutadores', descoberta: 'Descobrir recrutadores novos' };
+const EXPLICA = {
+    monitor: 'Visita 10 recrutadores por vez e lê as vagas que eles postaram na última semana. Todo recrutador com vaga no Brasil é visitado uma vez por semana.',
+    descoberta: 'Procura #vagati no LinkedIn inteiro. Quem posta vaga com email vira recrutador monitorado sozinho.',
+};
+const tipoDe = (robo) => (robo.params?.source === 'global' ? 'descoberta' : 'monitor');
+const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
+const usd = (v) => (v == null ? '' : `US$ ${Number(v).toFixed(2).replace('.', ',')}`);
 
-const parseQueries = (text) => text.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+// Resultado de uma execução em uma frase, sem o JSON de stats.
+function resumoRun(run) {
+    if (!run) return 'Ainda não rodou';
+    if (run.status === 'queued') return 'Na fila, começa em instantes';
+    if (run.status === 'running') return 'Rodando agora…';
+    if (run.status === 'failed') return `Falhou: ${run.error || 'erro desconhecido'}`;
+    const s = run.stats || {};
+    const novas = s.novos ?? 0;
+    return `${nf(novas)} vaga${novas === 1 ? '' : 's'} nova${novas === 1 ? '' : 's'} de ${nf(s.found ?? 0)} posts lidos`;
+}
 
-const INTERVALS = [
-    { v: 60, l: 'a cada 1h' }, { v: 180, l: 'a cada 3h' }, { v: 360, l: 'a cada 6h' },
-    { v: 720, l: 'a cada 12h' }, { v: 1440, l: '1x ao dia' },
+// Os campos de stats que valem mostrar, com nome de gente.
+const DETALHES = [
+    ['found', 'Posts lidos'], ['novos', 'Vagas novas'], ['duplicados', 'Já existiam'],
+    ['semEmail', 'Sem email (descartados)'], ['foraRegiao', 'Fora do Brasil'],
+    ['descartadosIA', 'Não eram vaga (IA)'], ['rejeitados', 'Bloqueados antes'],
+    ['recruiters', 'Recrutadores visitados'], ['recrutadoresAdd', 'Recrutadores novos'], ['aiUsed', 'Leituras da IA'],
 ];
-const fmtInterval = (m) => INTERVALS.find((i) => i.v === m)?.l || `a cada ${m}min`;
-const fmtWhen = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+
+function Liga({ ligado, onChange, disabled, rotulo }) {
+    return (
+        <button type="button" role="switch" aria-checked={ligado} aria-label={rotulo}
+            className={`liga ${ligado ? 'on' : ''}`} disabled={disabled} onClick={() => onChange(!ligado)}>
+            <span />
+        </button>
+    );
+}
 
 export default function BotsPanel() {
     const toast = useToast();
-    const [recruiters, setRecruiters] = useState([]);
-    const [runs, setRuns] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [running, setRunning] = useState('');
+    const [d, setD] = useState(null);
+    const [erro, setErro] = useState('');
+    const [aberto, setAberto] = useState(null);     // run com detalhes abertos
+    const [avancado, setAvancado] = useState(false);
+    const [salvando, setSalvando] = useState('');   // id do robô sendo alterado
+    const trava = useRef(false);
 
-    // formulários dos runs
-    const [discQueries, setDiscQueries] = useState('Tech Recruiter\nTalent Acquisition');
-    const [discMax, setDiscMax] = useState(5);
-    const [discLocations, setDiscLocations] = useState('Brazil');
-    const [discPages, setDiscPages] = useState(1);
-    const [monQueries, setMonQueries] = useState('"hiring backend developer"\n"hiring full stack developer"');
-    const [monMax, setMonMax] = useState(10);
-    const [monPeriod, setMonPeriod] = useState('month');
-    const [monPages, setMonPages] = useState(1);
-    const [monOnlyJobs, setMonOnlyJobs] = useState(true);
-    const [monRegion, setMonRegion] = useState('br');   // br | global
-    const [monExclude, setMonExclude] = useState('india'); // países a excluir (quando global)
-    const [monSource, setMonSource] = useState('saved'); // global | saved | selected
-    const [monSelected, setMonSelected] = useState([]);  // ids quando 'selected'
-    const [monMaxRecruiters, setMonMaxRecruiters] = useState(10); // cap da rotação (modo 'saved')
-    // Seletor de recrutadores (modo 'selected'): busca + filtro de status (mostra TODOS)
-    const [pickerQ, setPickerQ] = useState('');
-    const [pickerStatus, setPickerStatus] = useState('');
-    const [pickerList, setPickerList] = useState([]);
-    const [pickerLoading, setPickerLoading] = useState(false);
-    // Robôs agendados (automação)
-    const [schedules, setSchedules] = useState([]);
-    const [schedInterval, setSchedInterval] = useState({ discovery: 1440, monitoring: 360 });
-    const [selSched, setSelSched] = useState(() => new Set()); // ids selecionados (ações em massa)
-    const [runsAll, setRunsAll] = useState(false);       // execuções: mostrar todas
-    const [runDetail, setRunDetail] = useState(null);    // run aberto no modal
-    const [runningSched, setRunningSched] = useState(''); // id do robô disparado "agora"
-    const [watchUntil, setWatchUntil] = useState(0);     // segue puxando execuções até este epoch
+    const carregar = useCallback(async () => {
+        try { setD(await api.adminRobots()); setErro(''); }
+        catch (e) { setErro(e.message); }
+    }, []);
+    useEffect(() => { carregar(); }, [carregar]);
 
-    const load = useCallback(async () => {
-        try {
-            const [{ recruiters }, { runs }] = await Promise.all([api.adminRecruiters(), api.adminScraperRuns()]);
-            setRecruiters(recruiters);
-            setRuns(runs);
-        } catch (e) { toast.show(e.message, 'error'); }
-        finally { setLoading(false); }
-        // Agendamentos: opcional — a tabela pode não existir até aplicar a migration 0008.
-        try { const { schedules } = await api.adminSchedules(); setSchedules(schedules); }
-        catch { /* sem robôs agendados ainda */ }
-    }, [toast]);
-
-    useEffect(() => { load(); }, [load]);
-
-    // Mantém "Execuções recentes" vivo sem F5: enquanto houver run em andamento
-    // (ou logo após disparar um robô), puxa a lista a cada 4s e avisa ao concluir.
+    // Enquanto houver execução na fila ou rodando, atualiza sozinho e avisa ao fim.
+    const ativos = (d?.runs || []).filter((r) => r.status === 'queued' || r.status === 'running').map((r) => r.id);
+    const chaveAtivos = ativos.join(',');
     useEffect(() => {
-        const active = runs.some((r) => r.status === 'queued' || r.status === 'running');
-        if (!active && Date.now() > watchUntil) return;
+        if (!chaveAtivos) return;
+        const antes = new Set(chaveAtivos.split(','));
         const iv = setInterval(async () => {
             try {
-                const { runs: fresh } = await api.adminScraperRuns();
-                setRuns((prev) => {
-                    // avisa quando um run que estava rodando termina
-                    const done = fresh.find((r) => (r.status === 'done' || r.status === 'failed')
-                        && prev.some((p) => p.id === r.id && (p.status === 'queued' || p.status === 'running')));
-                    if (done) {
-                        toast.show(done.status === 'done'
-                            ? `Robô concluído · ${fmtStats(done.stats)}`
-                            : `Robô falhou: ${done.error || 'erro'}`, done.status === 'done' ? 'success' : 'error');
-                        setRunningSched('');
-                    }
-                    return fresh;
-                });
-                const stillActive = fresh.some((r) => r.status === 'queued' || r.status === 'running');
-                if (!stillActive && Date.now() > watchUntil) { setRunningSched(''); clearInterval(iv); }
-            } catch { /* ignore */ }
-        }, 4000);
+                const novo = await api.adminRobots();
+                setD(novo);
+                const fim = novo.runs.find((r) => antes.has(String(r.id)) && (r.status === 'done' || r.status === 'failed'));
+                if (fim) toast.show(fim.status === 'done' ? `Robô terminou: ${resumoRun(fim)}` : resumoRun(fim), fim.status === 'done' ? 'success' : 'error');
+            } catch { /* tenta de novo no próximo ciclo */ }
+        }, 5000);
         return () => clearInterval(iv);
-    }, [runs, watchUntil]);  
+    }, [chaveAtivos, toast]);
 
-    // Carrega recrutadores monitoráveis (com LinkedIn) para o seletor do modo 'selected'.
-    const loadPicker = useCallback(async (q, status) => {
-        setPickerLoading(true);
-        try {
-            // Mostra TODOS os recrutadores (qualquer status/fonte). Os sem LinkedIn
-            // aparecem marcados como não monitoráveis (não dá pra raspar posts deles).
-            const { recruiters } = await api.adminRecruiters({ q: q || undefined, status: status || undefined, pageSize: 100, sort: 'recent' });
-            setPickerList(recruiters);
-        } catch (e) { toast.show(e.message, 'error'); }
-        finally { setPickerLoading(false); }
-    }, [toast]);
-
-    useEffect(() => { if (monSource === 'selected') loadPicker(pickerQ, pickerStatus); }, [monSource]);  
-
-    async function setStatus(r, status) {
-        try {
-            await api.adminUpdateRecruiter(r.id, status);
-            setRecruiters((prev) => prev.map((x) => (x.id === r.id ? { ...x, status } : x)));
-        } catch (e) { toast.show(e.message, 'error'); }
-    }
-
-    // Monta os params do run a partir dos formulários (reusado pelo run manual e pelos robôs).
-    function buildParams(type) {
-        return type === 'discovery'
-            ? {
-                queries: parseQueries(discQueries), maxResults: Number(discMax) || 5,
-                locations: parseQueries(discLocations), takePages: Number(discPages) || 1,
-            }
-            : {
-                queries: parseQueries(monQueries), maxPosts: Number(monMax) || 10,
-                source: monSource, ...(monSource === 'selected' ? { recruiterIds: monSelected } : {}),
-                ...(monSource === 'saved' ? { maxRecruiters: Number(monMaxRecruiters) || 10 } : {}),
-                contentType: monOnlyJobs ? 'jobs' : 'all', postedLimit: monPeriod, scrapePages: Number(monPages) || 1,
-                region: monRegion, ...(monRegion === 'global' && monExclude.trim() ? { excludeCountries: parseQueries(monExclude) } : {}),
-            };
-    }
-
-    // ----- Robôs agendados (automação) -----
-    async function createSchedule(type) {
-        if (type === 'monitoring' && monSource === 'selected' && !monSelected.length) {
-            toast.show('Selecione ao menos um recrutador.', 'error'); return;
-        }
-        const name = window.prompt(`Nome do robô (${type === 'discovery' ? 'descoberta' : 'monitoramento'}):`,
-            type === 'discovery' ? 'Descoberta diária' : `Monitoramento ${monRegion === 'br' ? 'BR' : 'global'}`);
-        if (!name) return;
-        try {
-            await api.adminCreateSchedule({ name, type, intervalMinutes: Number(schedInterval[type]) || 360, params: buildParams(type) });
-            toast.show('Robô agendado criado. Começa no próximo ciclo.');
-            setWatchUntil(Date.now() + 90000);
-            load();
-        } catch (e) { toast.show(e.message, 'error'); }
-    }
-    async function toggleSchedule(s) {
-        try { await api.adminUpdateSchedule(s.id, { active: !s.active }); load(); }
+    async function alterar(robo, patch, msg) {
+        setSalvando(robo.id);
+        try { await api.adminUpdateSchedule(robo.id, patch); if (msg) toast.show(msg); await carregar(); }
         catch (e) { toast.show(e.message, 'error'); }
-    }
-    async function runScheduleNow(s) {
-        setRunningSched(s.id);
-        try {
-            await api.adminUpdateSchedule(s.id, { runNow: true });
-            toast.show(`"${s.name}" enfileirado, rodando em até 1 min…`);
-            setWatchUntil(Date.now() + 90000); // segue puxando ~90s até o run aparecer/terminar
-            await load();
-        } catch (e) { toast.show(e.message, 'error'); setRunningSched(''); }
-    }
-    async function deleteSchedule(s) {
-        if (!window.confirm(`Excluir o robô "${s.name}"?`)) return;
-        try { await api.adminDeleteSchedule(s.id); load(); }
-        catch (e) { toast.show(e.message, 'error'); }
-    }
-    // Ação em massa: ids selecionados, ou todos se nada selecionado.
-    async function bulkSchedules(action) {
-        const ids = [...selSched];
-        const scope = ids.length ? `${ids.length} selecionado(s)` : 'TODOS os robôs';
-        const verb = action === 'delete' ? 'Excluir' : action === 'activate' ? 'Ativar' : 'Pausar';
-        if (!window.confirm(`${verb} ${scope}?`)) return;
-        try {
-            const { affected } = await api.adminBulkSchedules(action, ids.length ? ids : undefined);
-            toast.show(`${verb}: ${affected} robô(s).`);
-            if (action === 'activate') setWatchUntil(Date.now() + 90000); // acompanha os que vão rodar
-            setSelSched(new Set());
-            load();
-        } catch (e) { toast.show(e.message, 'error'); }
-    }
-    const toggleSel = (id) => setSelSched((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-
-    async function runScraper(type) {
-        const params = buildParams(type);
-        if (type === 'monitoring' && monSource === 'selected' && !monSelected.length) {
-            toast.show('Selecione ao menos um recrutador.', 'error'); return;
-        }
-        const cost = type === 'discovery' ? '~$0.03/perfil (com email)' : '~$0.01 a cada 5 posts';
-        if (!window.confirm(`Rodar ${type === 'discovery' ? 'descoberta' : 'monitoramento'}?\n\nIsso consome créditos do Apify (${cost}).`)) return;
-        setRunning(type);
-        let started;
-        try {
-            const r = await api.adminRunScraper(type, params);
-            started = r.run;
-            toast.show('Run iniciado, atualizando ao concluir…');
-            await load(); // mostra o run "running" na hora
-        } catch (e) { toast.show(e.message, 'error'); setRunning(''); return; }
-
-        // Hot-reload: acompanha o run até terminar e recarrega sozinho (sem F5)
-        let tries = 0;
-        const iv = setInterval(async () => {
-            tries += 1;
-            try {
-                const { runs } = await api.adminScraperRuns();
-                const cur = runs.find((x) => x.id === started.id);
-                if (cur && (cur.status === 'done' || cur.status === 'failed')) {
-                    clearInterval(iv);
-                    setRunning('');
-                    await load();
-                    toast.show(cur.status === 'done' ? `Concluído · ${fmtStats(cur.stats)}` : `Falhou: ${cur.error || 'erro'}`, cur.status === 'done' ? 'success' : 'error');
-                }
-            } catch { /* ignore */ }
-            if (tries > 100) { clearInterval(iv); setRunning(''); } // ~5min de teto
-        }, 3000);
+        finally { setSalvando(''); }
     }
 
-    if (loading) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;
+    async function rodarAgora(robo) {
+        if (trava.current) return;
+        trava.current = true;
+        try { await alterar(robo, { runNow: true }, 'Vai rodar em até 1 minuto.'); }
+        finally { setTimeout(() => { trava.current = false; }, 1500); }
+    }
 
+    if (erro && !d) return <div className="notice danger"><i className="ti ti-alert-circle" />{erro}</div>;
+    if (!d) return <div className="card center" style={{ padding: 40 }}><div className="spinner" /></div>;
+
+    const s = d.semana || {};
+    const ligados = d.robots.filter((r) => r.active);
+    const proxima = ligados.map((r) => r.nextRunAt).filter(Boolean).sort()[0];
+    const cobertura = s.monitorados ? Math.round((s.visitados / s.monitorados) * 100) : 0;
+    const credito = d.apify ? Math.min(100, Math.round((d.apify.usado / (d.apify.limite || 1)) * 100)) : 0;
 
     return (
-        <>
-            {/* ---- Disparar runs ---- */}
-            <div className="row" style={{ alignItems: 'stretch', gap: 14 }}>
-                <div className="card" style={{ flex: 1, minWidth: 300 }}>
-                    <div className="section-title"><i className="ti ti-user-search" /> Descoberta de recrutadores</div>
-                    <p className="muted" style={{ fontSize: 12.5, marginTop: -4, marginBottom: 10 }}>
-                        Busca perfis (Profile Search) e popula a base. Gasta créditos do Apify.
-                    </p>
-                    <div className="field">
-                        <label>Queries (uma por linha)</label>
-                        <textarea className="input" rows={3} value={discQueries} onChange={(e) => setDiscQueries(e.target.value)} />
+        <div className="robos">
+            {/* ---- Está funcionando? ---- */}
+            <div className={`card robos-status ${ligados.length ? 'ok' : 'off'}`}>
+                <span className="robos-status-ico"><i className={`ti ${ligados.length ? 'ti-robot' : 'ti-robot-off'}`} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="robos-status-titulo">
+                        {ligados.length ? 'Os robôs estão ligados' : 'Os robôs estão desligados'}
                     </div>
-                    <div className="field">
-                        <label>Países / locais (um por linha)</label>
-                        <textarea className="input" rows={2} value={discLocations} onChange={(e) => setDiscLocations(e.target.value)} placeholder="Brazil&#10;Portugal" />
-                    </div>
-                    <div className="grid-2">
-                        <div className="field">
-                            <label>Máx. resultados</label>
-                            <input className="input" type="number" min="1" max="100" value={discMax} onChange={(e) => setDiscMax(e.target.value)} />
-                        </div>
-                        <div className="field">
-                            <label>Páginas (25/pág)</label>
-                            <input className="input" type="number" min="1" max="40" value={discPages} onChange={(e) => setDiscPages(e.target.value)} />
-                        </div>
-                    </div>
-                    <button className="btn primary block sm" disabled={!!running} onClick={() => runScraper('discovery')}>
-                        {running === 'discovery' ? 'Enfileirando…' : (<><i className="ti ti-player-play" /> Rodar descoberta</>)}
-                    </button>
-                    <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 8 }}>
-                        <select className="select" style={{ maxWidth: 130 }} value={schedInterval.discovery}
-                            onChange={(e) => setSchedInterval((p) => ({ ...p, discovery: Number(e.target.value) }))}>
-                            {INTERVALS.map((i) => <option key={i.v} value={i.v}>{i.l}</option>)}
-                        </select>
-                        <button className="btn ghost sm" onClick={() => createSchedule('discovery')}><i className="ti ti-clock-plus" /> Agendar robô</button>
+                    <div className="muted" style={{ fontSize: 13 }}>
+                        {ligados.length
+                            ? (proxima ? `Próxima busca ${emQuanto(proxima)}.` : 'Rodando.')
+                            : 'Nenhuma vaga nova vai entrar até ligar um deles abaixo.'}
+                        {s.falhas7d ? ` ${s.falhas7d} execução(ões) falharam nos últimos 7 dias.` : ''}
                     </div>
                 </div>
+                <button className="btn ghost sm" onClick={carregar} title="Atualizar"><i className="ti ti-refresh" /></button>
+            </div>
 
-                <div className="card" style={{ flex: 1, minWidth: 300 }}>
-                    <div className="section-title"><i className="ti ti-radar" /> Monitoramento de vagas</div>
-                    <p className="muted" style={{ fontSize: 12.5, marginTop: -4, marginBottom: 10 }}>
-                        Busca posts (queries entre aspas = mais preciso).
-                    </p>
-                    <div className="field">
-                        <label>Onde buscar</label>
-                        <select className="select" value={monSource} onChange={(e) => setMonSource(e.target.value)}>
-                            <option value="saved">Todos os recrutadores salvos (aprovados)</option>
-                            <option value="selected">Recrutadores selecionados</option>
-                            <option value="global">LinkedIn inteiro (mais volume/custo)</option>
-                        </select>
-                    </div>
-                    {monSource === 'saved' && (
-                        <div className="field">
-                            <label>Quantos recrutadores por run (mais obsoletos primeiro)</label>
-                            <input className="input" type="number" min="1" max="500" value={monMaxRecruiters}
-                                onChange={(e) => setMonMaxRecruiters(e.target.value)} />
-                            <div className="hint">Rotaciona pela base aprovada (os mais obsoletos primeiro). Apify processa em lotes de 10, e cada 10 é 1 chamada (mais custo).</div>
-                        </div>
-                    )}
-                    {monSource === 'selected' && (
-                        <div className="field">
-                            <label>Selecione os recrutadores <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({monSelected.length} selecionado(s))</span></label>
-                            <div className="row" style={{ gap: 8, marginBottom: 8 }}>
-                                <div className="search" style={{ flex: 1 }}>
-                                    <i className="ti ti-search" />
-                                    <input className="input" placeholder="Buscar por nome, empresa ou email…" value={pickerQ}
-                                        onChange={(e) => setPickerQ(e.target.value)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); loadPicker(pickerQ, pickerStatus); } }} />
-                                </div>
-                                <select className="select" style={{ maxWidth: 150 }} value={pickerStatus}
-                                    onChange={(e) => { setPickerStatus(e.target.value); loadPicker(pickerQ, e.target.value); }}>
-                                    <option value="">Todos os status</option>
-                                    <option value="approved">Aprovados</option>
-                                    <option value="discovered">Descobertos (IA)</option>
-                                    <option value="rejected">Rejeitados</option>
-                                </select>
-                            </div>
-                            <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--color-border-light)', borderRadius: 10, padding: 8 }}>
-                                {pickerLoading ? <div className="muted" style={{ fontSize: 12 }}>Carregando…</div>
-                                    : pickerList.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Nenhum recrutador encontrado. Importe contatos ou rode a descoberta.</div>
-                                        : pickerList.map((r) => {
-                                            const monitorable = !!r.linkedinUrl;
-                                            return (
-                                                <label key={r.id} className="row" title={monitorable ? '' : 'Sem perfil do LinkedIn, não dá para monitorar posts'}
-                                                    style={{ alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0', fontWeight: 400, opacity: monitorable ? 1 : 0.55, cursor: monitorable ? 'pointer' : 'not-allowed' }}>
-                                                    <input type="checkbox" disabled={!monitorable} checked={monSelected.includes(r.id)}
-                                                        onChange={(e) => setMonSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))} />
-                                                    <span style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {r.name || 'Recrutador'} <span className="muted">{r.company || r.email || ''}</span>
-                                                    </span>
-                                                    <span className={`badge ${STATUS_BADGE[r.status] || 'neutral'}`} style={{ fontSize: 9 }}>{r.status}</span>
-                                                    {!monitorable && <span className="badge neutral" style={{ fontSize: 9 }}>sem LinkedIn</span>}
-                                                </label>
-                                            );
-                                        })}
-                            </div>
-                            <div className="hint">Mostra todos os recrutadores. Só os com LinkedIn são monitoráveis (os de email só servem como alvo de envio). Apify processa 10 por execução. Acima disso, em lotes.</div>
-                        </div>
-                    )}
-                    <div className="field">
-                        <label>Região</label>
-                        <select className="select" value={monRegion} onChange={(e) => setMonRegion(e.target.value)}>
-                            <option value="br">Só Brasil (heurística: .br, cidades BR, português)</option>
-                            <option value="global">Internacional (todos os países)</option>
-                        </select>
-                    </div>
-                    {monRegion === 'global' && (
-                        <div className="field">
-                            <label>Excluir países (um por linha)</label>
-                            <textarea className="input" rows={2} value={monExclude} onChange={(e) => setMonExclude(e.target.value)} placeholder="india&#10;usa" />
-                        </div>
-                    )}
-                    <div className="field">
-                        <label>Queries (uma por linha, use aspas)</label>
-                        <textarea className="input" rows={3} value={monQueries} onChange={(e) => setMonQueries(e.target.value)} />
-                    </div>
-                    <div className="grid-2">
-                        <div className="field">
-                            <label>Máx. posts / query</label>
-                            <input className="input" type="number" min="1" max="100" value={monMax} onChange={(e) => setMonMax(e.target.value)} />
-                        </div>
-                        <div className="field">
-                            <label>Páginas</label>
-                            <input className="input" type="number" min="1" max="40" value={monPages} onChange={(e) => setMonPages(e.target.value)} />
-                        </div>
-                    </div>
-                    <div className="field">
-                        <label>Período (recência)</label>
-                        <select className="select" value={monPeriod} onChange={(e) => setMonPeriod(e.target.value)}>
-                            <option value="any">Qualquer</option><option value="24h">24h</option>
-                            <option value="week">Última semana</option><option value="month">Último mês</option>
-                            <option value="3months">3 meses</option><option value="year">Último ano</option>
-                        </select>
-                    </div>
-                    <label className="row" style={{ alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 12, fontWeight: 400 }}>
-                        <input type="checkbox" checked={monOnlyJobs} onChange={(e) => setMonOnlyJobs(e.target.checked)} /> só posts de vaga (recomendado)
-                    </label>
-                    <button className="btn primary block sm" disabled={!!running} onClick={() => runScraper('monitoring')}>
-                        {running === 'monitoring' ? 'Enfileirando…' : (<><i className="ti ti-player-play" /> Rodar monitoramento</>)}
-                    </button>
-                    <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 8 }}>
-                        <select className="select" style={{ maxWidth: 130 }} value={schedInterval.monitoring}
-                            onChange={(e) => setSchedInterval((p) => ({ ...p, monitoring: Number(e.target.value) }))}>
-                            {INTERVALS.map((i) => <option key={i.v} value={i.v}>{i.l}</option>)}
-                        </select>
-                        <button className="btn ghost sm" onClick={() => createSchedule('monitoring')}><i className="ti ti-clock-plus" /> Agendar robô</button>
-                    </div>
+            {/* ---- Achou vaga? Quanto gastou? ---- */}
+            <div className="card kpi-faixa" style={{ marginTop: 14 }}>
+                <div className="kpi-cel">
+                    <div className="kpi-cel-label"><i className="ti ti-briefcase" /> Vagas novas (7 dias)</div>
+                    <div className="kpi-cel-num">{nf(s.novas7d)}</div>
+                    <div className="kpi-cel-sub">{nf(s.feed7d)} entraram no feed</div>
+                </div>
+                <div className="kpi-cel">
+                    <div className="kpi-cel-label"><i className="ti ti-users" /> Recrutadores nesta volta</div>
+                    <div className="kpi-cel-num">{nf(s.visitados)} <span className="kpi-cel-de">de {nf(s.monitorados)}</span></div>
+                    <div className="progress" style={{ marginTop: 8 }}><span style={{ width: `${cobertura}%` }} /></div>
+                    <div className="kpi-cel-sub">visitados nos últimos {d.diasEntreVisitas} dias</div>
+                </div>
+                <div className="kpi-cel">
+                    <div className="kpi-cel-label"><i className="ti ti-coin" /> Crédito da Apify (mês)</div>
+                    {d.apify ? (<>
+                        <div className="kpi-cel-num">{usd(d.apify.usado)} <span className="kpi-cel-de">de {usd(d.apify.limite)}</span></div>
+                        <div className={`progress ${credito >= 85 ? 'alerta' : ''}`} style={{ marginTop: 8 }}><span style={{ width: `${credito}%` }} /></div>
+                        <div className="kpi-cel-sub">sobram {usd(d.apify.restante)}</div>
+                    </>) : <div className="kpi-cel-sub" style={{ marginTop: 10 }}>não deu para consultar agora</div>}
+                </div>
+                <div className="kpi-cel">
+                    <div className="kpi-cel-label"><i className="ti ti-file-text" /> Posts lidos (7 dias)</div>
+                    <div className="kpi-cel-num">{nf(s.posts7d)}</div>
+                    <div className="kpi-cel-sub">em {nf(s.runs7d)} execuções</div>
                 </div>
             </div>
 
-            {/* ---- Robôs agendados (automação) ---- */}
-            <div className="card" style={{ marginTop: 14 }}>
-                <div className="row" style={{ alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                    <div className="section-title" style={{ margin: 0 }}><i className="ti ti-robot" /> Robôs agendados ({schedules.length})</div>
-                    {selSched.size > 0 && <span className="badge info" style={{ fontSize: 10 }}>{selSched.size} selecionado(s)</span>}
-                    <div className="spacer" />
-                    {schedules.length > 0 && (
-                        <>
-                            <button className="btn ghost sm" onClick={() => bulkSchedules('activate')}><i className="ti ti-player-play" /> Ativar {selSched.size ? 'sel.' : 'todos'}</button>
-                            <button className="btn ghost sm" onClick={() => bulkSchedules('pause')}><i className="ti ti-player-pause" /> Pausar {selSched.size ? 'sel.' : 'todos'}</button>
-                            <button className="btn ghost sm" onClick={() => bulkSchedules('delete')}><i className="ti ti-trash" /> Excluir {selSched.size ? 'sel.' : 'todos'}</button>
-                        </>
-                    )}
-                    <button className="btn ghost sm" onClick={load}><i className="ti ti-refresh" /></button>
-                </div>
-                {schedules.length === 0 ? (
-                    <div className="empty" style={{ padding: 22 }}><i className="ti ti-clock-off" />Nenhum robô agendado. Configure uma busca acima e clique "Agendar robô".</div>
-                ) : (
-                    <div className="dtable-wrap" style={{ marginTop: 10 }}>
-                        <table className="dtable">
-                            <thead><tr>
-                                <th style={{ width: 28 }}>
-                                    <input type="checkbox" title="Selecionar todos"
-                                        checked={schedules.length > 0 && selSched.size === schedules.length}
-                                        onChange={(e) => setSelSched(e.target.checked ? new Set(schedules.map((s) => s.id)) : new Set())} />
-                                </th>
-                                <th>Nome</th><th>Tipo</th><th>Frequência</th><th>Próximo</th><th>Último</th><th>Estado</th><th className="col-actions">Ações</th>
-                            </tr></thead>
-                            <tbody>
-                                {schedules.map((s) => (
-                                    <tr key={s.id}>
-                                        <td><input type="checkbox" checked={selSched.has(s.id)} onChange={() => toggleSel(s.id)} /></td>
-                                        <td style={{ fontWeight: 600 }}>{s.name}
-                                            <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>
-                                                {s.type === 'monitoring'
-                                                    ? `${s.params?.region === 'br' ? 'BR' : (s.params?.source || 'global')} · ${(s.params?.queries || []).length} queries`
-                                                    : ((s.params?.locations || []).join(', ') || '')}
-                                            </div>
-                                        </td>
-                                        <td><span className="badge neutral">{s.type === 'discovery' ? 'descoberta' : 'monitoramento'}</span></td>
-                                        <td>{fmtInterval(s.intervalMinutes)}</td>
-                                        <td className="muted" style={{ fontSize: 12 }}>{s.active ? fmtWhen(s.nextRunAt) : ''}</td>
-                                        <td className="muted" style={{ fontSize: 12 }}>{fmtWhen(s.lastRunAt)}</td>
-                                        <td>
-                                            {runningSched === s.id ? (
-                                                <span className="badge warn"><i className="ti ti-loader-2 spin" /> rodando</span>
-                                            ) : (
-                                                <button className={`badge ${s.active ? 'ok' : 'neutral'}`} style={{ cursor: 'pointer', border: 'none' }} onClick={() => toggleSchedule(s)}>
-                                                    {s.active ? 'ligado' : 'pausado'}
-                                                </button>
-                                            )}
-                                        </td>
-                                        <td className="col-actions">
-                                            <button className="btn ghost sm" title="Rodar agora" disabled={runningSched === s.id} onClick={() => runScheduleNow(s)}>
-                                                <i className={`ti ${runningSched === s.id ? 'ti-loader-2 spin' : 'ti-player-play'}`} />
-                                            </button>
-                                            <button className="btn ghost sm" title="Excluir" onClick={() => deleteSchedule(s)}><i className="ti ti-trash" /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+            {/* ---- Os robôs ---- */}
+            <div className="robos-grade">
+                {d.robots.map((robo) => {
+                    const tipo = tipoDe(robo);
+                    const ult = robo.ultima;
+                    const ocupado = salvando === robo.id;
+                    const rodando = ult && (ult.status === 'queued' || ult.status === 'running');
+                    return (
+                        <div key={robo.id} className={`card robo ${robo.active ? '' : 'desligado'}`}>
+                            <div className="robo-topo">
+                                <span className="robo-ico"><i className={`ti ${tipo === 'monitor' ? 'ti-radar' : 'ti-world-search'}`} /></span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div className="robo-nome">{ROTULO[tipo]}</div>
+                                    <div className="muted" style={{ fontSize: 12 }}>{robo.active ? `Ligado, ${aCada(robo.intervalMinutes)}` : 'Desligado'}</div>
+                                </div>
+                                <Liga ligado={robo.active} disabled={ocupado} rotulo={`Ligar ${ROTULO[tipo]}`}
+                                    onChange={(v) => alterar(robo, { active: v }, v ? 'Robô ligado.' : 'Robô desligado.')} />
+                            </div>
+                            <p className="robo-explica">{EXPLICA[tipo]}</p>
+
+                            <div className={`robo-ultima ${ult?.status === 'failed' ? 'falhou' : ''}`}>
+                                <i className={`ti ${rodando ? 'ti-loader-2 spin' : ult?.status === 'failed' ? 'ti-alert-triangle' : 'ti-circle-check'}`} />
+                                <div style={{ minWidth: 0 }}>
+                                    <div>{resumoRun(ult)}</div>
+                                    {ult && <div className="muted" style={{ fontSize: 11.5 }}>{haQuanto(ult.createdAt)}{robo.active && robo.nextRunAt && !rodando ? ` · próxima ${emQuanto(robo.nextRunAt)}` : ''}</div>}
+                                </div>
+                            </div>
+
+                            <div className="robo-acoes">
+                                <label className="muted" style={{ fontSize: 12 }}>Frequência</label>
+                                <select className="select" value={robo.intervalMinutes} disabled={ocupado}
+                                    onChange={(e) => alterar(robo, { intervalMinutes: Number(e.target.value) }, 'Frequência alterada.')}>
+                                    {[...new Set([...FREQUENCIAS, robo.intervalMinutes])].sort((a, b) => a - b)
+                                        .map((m) => <option key={m} value={m}>{aCada(m)}</option>)}
+                                </select>
+                                <button className="btn ghost sm" disabled={ocupado || rodando} onClick={() => rodarAgora(robo)}>
+                                    <i className="ti ti-player-play" /> Rodar agora
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+                {d.robots.length === 0 && (
+                    <div className="card empty" style={{ padding: 26 }}><i className="ti ti-robot-off" />Nenhum robô cadastrado.</div>
                 )}
             </div>
 
-            <div className="row" style={{ alignItems: 'flex-start', gap: 14, marginTop: 14 }}>
-                {/* ---- Base de recrutadores ---- */}
-                <div className="card" style={{ flex: 1.3, minWidth: 340 }}>
-                    <div className="row" style={{ alignItems: 'center' }}>
-                        <div className="section-title" style={{ margin: 0 }}><i className="ti ti-address-book" /> Recrutadores ({recruiters.length})</div>
-                        <button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={load}><i className="ti ti-refresh" /></button>
-                    </div>
-                    {recruiters.length === 0 ? (
-                        <div className="empty" style={{ padding: 22 }}><i className="ti ti-user-off" />Nenhum recrutador ainda. Rode a descoberta.</div>
-                    ) : recruiters.map((r) => (
-                        <div key={r.id} className="rank-row">
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>{r.name || 'Recrutador'}</div>
-                                <div className="muted" style={{ fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {r.email || 'sem email'}{r.title ? ` · ${r.title}` : ''}
+            {/* ---- O que aconteceu ---- */}
+            <div className="section-title" style={{ marginTop: 22 }}><i className="ti ti-history" /> Últimas execuções</div>
+            <div className="card lista-card">
+                {d.runs.length === 0 && <div className="empty" style={{ padding: 22 }}><i className="ti ti-clock-off" />Nenhuma execução ainda.</div>}
+                {d.runs.map((run) => {
+                    const tipo = run.params?.source === 'global' ? 'descoberta' : 'monitor';
+                    const avulsa = !run.params?.scheduleId;
+                    return (
+                        <div key={run.id}>
+                            <button className="linha" onClick={() => setAberto(aberto === run.id ? null : run.id)} aria-expanded={aberto === run.id}>
+                                <span className={`linha-ico ${run.status === 'done' ? 'ok' : run.status === 'failed' ? 'danger' : ''}`}>
+                                    <i className={`ti ${run.status === 'done' ? 'ti-circle-check' : run.status === 'failed' ? 'ti-alert-triangle' : 'ti-loader-2 spin'}`} />
+                                </span>
+                                <span className="linha-txt">
+                                    <span className="linha-titulo">{resumoRun(run)}</span>
+                                    <span className="linha-sub">{avulsa ? 'Busca avulsa' : ROTULO[tipo]}</span>
+                                </span>
+                                <span className="linha-para">{haQuanto(run.createdAt)}</span>
+                                <i className={`ti ${aberto === run.id ? 'ti-chevron-up' : 'ti-chevron-down'} linha-seta`} />
+                            </button>
+                            {aberto === run.id && (
+                                <div className="run-detalhe">
+                                    {DETALHES.filter(([k]) => run.stats?.[k] != null).map(([k, rotulo]) => (
+                                        <div key={k} className="run-num"><span>{rotulo}</span><b>{nf(run.stats[k])}</b></div>
+                                    ))}
+                                    {run.error && <div className="notice danger" style={{ gridColumn: '1 / -1' }}><i className="ti ti-alert-circle" />{run.error}</div>}
+                                    {!run.stats && !run.error && <div className="muted">Sem resultado ainda.</div>}
                                 </div>
-                            </div>
-                            <span className={`badge ${STATUS_BADGE[r.status] || 'warn'}`}>{r.status}</span>
-                            {r.status !== 'approved' && <button className="btn ghost sm" title="Aprovar" onClick={() => setStatus(r, 'approved')}><i className="ti ti-check" /></button>}
-                            {r.status !== 'rejected' && <button className="btn ghost sm" title="Rejeitar" onClick={() => setStatus(r, 'rejected')}><i className="ti ti-x" /></button>}
+                            )}
                         </div>
-                    ))}
-                </div>
-
-                {/* ---- Histórico de execuções (5 + ver mais; clique abre detalhes) ---- */}
-                <div className="card" style={{ flex: 1, minWidth: 300 }}>
-                    <div className="section-title"><i className="ti ti-history" /> Execuções recentes</div>
-                    {runs.length === 0 ? (
-                        <div className="empty" style={{ padding: 22 }}><i className="ti ti-clock-off" />Nenhuma execução ainda.</div>
-                    ) : runs.slice(0, runsAll ? runs.length : 5).map((run) => (
-                        <div key={run.id} className="rank-row" style={{ alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => setRunDetail(run)}>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>{run.type === 'discovery' ? 'Descoberta' : 'Monitoramento'}</div>
-                                <div className="muted" style={{ fontSize: 11.5 }}>{fmtDate(run.createdAt)}</div>
-                                <div className="muted" style={{ fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{run.status === 'failed' ? (run.error || 'erro') : fmtStats(run.stats)}</div>
-                            </div>
-                            <span className={`badge ${RUN_BADGE[run.status] || 'warn'}`}>{run.status}</span>
-                        </div>
-                    ))}
-                    {runs.length > 5 && (
-                        <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => setRunsAll((v) => !v)}>
-                            {runsAll ? 'ver menos' : `ver mais (${runs.length - 5})`}
-                        </button>
-                    )}
-                </div>
+                    );
+                })}
             </div>
 
-            {/* Modal de detalhes da execução */}
-            {runDetail && (
-                <div className="modal-overlay" onClick={() => setRunDetail(null)}>
-                    <div className="modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-head">
-                            <h3>{runDetail.type === 'discovery' ? 'Descoberta' : 'Monitoramento'} · {runDetail.status}</h3>
-                            <button className="close" onClick={() => setRunDetail(null)}><i className="ti ti-x" /></button>
-                        </div>
-                        <div className="modal-body" style={{ padding: 20 }}>
-                            <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>
-                                criado {fmtDate(runDetail.createdAt)}{runDetail.finishedAt ? ` · concluído ${fmtDate(runDetail.finishedAt)}` : ''}
-                            </div>
-                            {runDetail.error && <div className="notice danger"><i className="ti ti-alert-circle" />{runDetail.error}</div>}
-                            <div className="section-title" style={{ fontSize: 13 }}>Parâmetros</div>
-                            <pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--color-bg-secondary)', padding: 12, borderRadius: 10, marginBottom: 14 }}>{JSON.stringify(runDetail.params || {}, null, 2)}</pre>
-                            <div className="section-title" style={{ fontSize: 13 }}>Resultado</div>
-                            <pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--color-bg-secondary)', padding: 12, borderRadius: 10 }}>{JSON.stringify(runDetail.stats || {}, null, 2)}</pre>
-                        </div>
-                    </div>
+            {/* ---- Avançado ---- */}
+            <button className="btn ghost sm" style={{ marginTop: 18 }} onClick={() => setAvancado((v) => !v)} aria-expanded={avancado}>
+                <i className={`ti ${avancado ? 'ti-chevron-up' : 'ti-adjustments'}`} /> {avancado ? 'Fechar avançado' : 'Avançado: busca avulsa'}
+            </button>
+            {avancado && <BuscaAvulsa onRodou={carregar} />}
+        </div>
+    );
+}
+
+// Uma busca de uma vez só no LinkedIn inteiro, para testar uma ideia de query
+// sem criar robô. Mostra o custo máximo antes, porque cada post é cobrado.
+function BuscaAvulsa({ onRodou }) {
+    const toast = useToast();
+    const [query, setQuery] = useState('#vagati OR #vagasti');
+    const [posts, setPosts] = useState(30);
+    const [periodo, setPeriodo] = useState('week');
+    const [enviando, setEnviando] = useState(false);
+    const custo = `US$ ${(posts * 0.002).toFixed(2).replace('.', ',')}`;
+
+    async function buscar(e) {
+        e.preventDefault();
+        if (!query.trim() || enviando) return;
+        if (!window.confirm(`Buscar até ${posts} posts? Custa no máximo ${custo} de crédito da Apify.`)) return;
+        setEnviando(true);
+        try {
+            await api.adminRunScraper('monitoring', {
+                source: 'global', queries: [query.trim()], maxPosts: posts, postedLimit: periodo,
+                sortBy: 'date', contentType: 'all', region: 'br',
+            });
+            toast.show('Busca enviada. O resultado aparece em "Últimas execuções".');
+            onRodou();
+        } catch (err) { toast.show(err.message, 'error'); }
+        finally { setEnviando(false); }
+    }
+
+    return (
+        <form className="card" style={{ marginTop: 10 }} onSubmit={buscar}>
+            <div className="field">
+                <label>O que procurar no LinkedIn</label>
+                <input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder='#vagati OR "vaga desenvolvedor"' />
+                <div className="hint">Use OR entre termos e aspas para frase exata. Só entra vaga com email e do Brasil.</div>
+            </div>
+            <div className="grid-2">
+                <div className="field">
+                    <label>Quantos posts</label>
+                    <select className="select" value={posts} onChange={(e) => setPosts(Number(e.target.value))}>
+                        {[20, 30, 50, 100].map((n) => <option key={n} value={n}>{n} posts</option>)}
+                    </select>
                 </div>
-            )}
-        </>
+                <div className="field">
+                    <label>Postados nos últimos</label>
+                    <select className="select" value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
+                        <option value="24h">1 dia</option><option value="week">7 dias</option><option value="month">30 dias</option>
+                    </select>
+                </div>
+            </div>
+            <button className="btn primary sm" disabled={enviando || !query.trim()}>
+                <i className="ti ti-search" /> {enviando ? 'Enviando…' : `Buscar (até ${custo})`}
+            </button>
+        </form>
     );
 }

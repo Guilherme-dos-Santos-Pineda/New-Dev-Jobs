@@ -1,6 +1,6 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
-import { detectArea, detectLevel, detectModality, jobIsBR } from './classify.js';
+import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga } from './classify.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
@@ -19,7 +19,7 @@ export function passesFilters(job, profile) {
     // é ruído do scraper — que lê posts de recrutador anunciando de tudo.
     // Vem antes do `if (!profile)` de propósito: vale até para quem ainda não
     // preencheu o perfil.
-    if (detectArea(job) === 'nontech') return false;
+    if (areaDaVaga(job) === 'nontech') return false;
 
     // Vaga cujo "email" é telefone, link ou a palavra "informado" NUNCA entra.
     // Vem antes do `if (!profile)` pelo mesmo motivo do nontech: não é filtro
@@ -87,7 +87,7 @@ export function passesFilters(job, profile) {
     // vaga no dia do deploy. Ver config/areas.js.
     const areas = expandirAreas(parseArr(profile.Areas));
     if (areas.length) {
-        const area = detectArea(job);
+        const area = areaDaVaga(job);
         if (area !== 'other' && !areas.includes(area)) return false;
     }
     return true;

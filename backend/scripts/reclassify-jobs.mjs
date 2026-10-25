@@ -38,10 +38,10 @@ let ultimoId = 0;
 for (;;) {
     const rows = todas
         ? await sql`
-            select "Id", "JobTitle", "Description", "Skills", "Modality", "Location", "Email"
+            select "Id", "JobTitle", "Description", "Skills", "Modality", "Location", "Email", "AiClassification"
             from "Jobs" where "Id" > ${ultimoId} order by "Id" limit ${LOTE}`
         : await sql`
-            select "Id", "JobTitle", "Description", "Skills", "Modality", "Location", "Email"
+            select "Id", "JobTitle", "Description", "Skills", "Modality", "Location", "Email", "AiClassification"
             from "Jobs" where "ClassVersion" < ${CLASSIFY_VERSION} order by "Id" limit ${LOTE}`;
     if (!rows.length) break;
     ultimoId = Number(rows[rows.length - 1].Id);

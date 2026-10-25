@@ -1,136 +1,170 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { useToast } from './Toast.jsx';
-import { fmtDate } from '../utils.js';
+import { haQuanto } from '../lib/tempo.js';
 
+// =========================
+// Recrutadores (admin)
+// =========================
+// Antes a tela falava a língua do banco: status discovered/approved/rejected,
+// "órfão", "com/sem vaga", checkbox "só com email". Mas o que decide se um
+// recrutador importa é se o ROBÔ o visita, e isso é uma regra (tem vaga BR e
+// não foi bloqueado), não um status. Agora são três grupos com o nome do que
+// acontece com eles, e duas ações: bloquear e visitar agora.
+
+const PAGE_SIZE = 25;
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
-const STATUS_BADGE = { discovered: 'warn', approved: 'ok', rejected: 'danger' };
 
-// "há quanto tempo não vejo esse recrutador" (LastCheckedAt). null = nunca varrido.
-const staleAgo = (d) => {
-    if (!d) return 'nunca';
-    const ms = Date.now() - new Date(d);
-    const days = Math.floor(ms / 86400000);
-    if (days >= 1) return `há ${days}d`;
-    const h = Math.floor(ms / 3600000);
-    return h >= 1 ? `há ${h}h` : 'agora';
+const GRUPOS = [
+    ['monitorados', 'Monitorados', 'ti-radar'],
+    ['fora', 'Fora do monitoramento', 'ti-eye-off'],
+    ['bloqueados', 'Bloqueados', 'ti-ban'],
+    ['', 'Todos', 'ti-list'],
+];
+const ORDENS = [['jobs', 'Mais vagas de TI'], ['recent', 'Mais recentes'], ['stale', 'Visitados há mais tempo'], ['name', 'Nome']];
+
+// Por que está fora: a regra é "tem vaga BR de TI com email, ou foi incluído à mão".
+const situacao = (r) => {
+    if (r.status === 'rejected') return { rotulo: 'Bloqueado', classe: 'danger', dica: 'Você bloqueou. O robô não visita.' };
+    if (r.monitoravel) return { rotulo: 'Monitorado', classe: 'ok', dica: r.status === 'approved' && !r.techBrCount ? 'Incluído à mão.' : 'Tem vaga no Brasil, o robô visita toda semana.' };
+    if (!r.linkedinUrl) return { rotulo: 'Fora', classe: 'neutral', dica: 'Sem perfil do LinkedIn, não dá para visitar.' };
+    return { rotulo: 'Fora', classe: 'neutral', dica: 'Ainda não gerou vaga no Brasil.' };
 };
 
 export default function AdminRecruiters() {
     const toast = useToast();
     const [stats, setStats] = useState(null);
-    const [data, setData] = useState({ recruiters: [], total: 0, page: 1, pageSize: 25 });
+    const [data, setData] = useState({ recruiters: [], total: 0, page: 1 });
     const [loading, setLoading] = useState(true);
-    const [f, setF] = useState({ q: '', status: '', hasJobs: '', hasEmail: '', sort: 'jobs' });
-    const [page, setPage] = useState(1);
+    const [f, setF] = useState({ q: '', grupo: 'monitorados', sort: 'jobs' });
+    const ocupado = useRef(new Set());
 
-    async function load(p = page, filters = f) {
+    async function load(filtros = f, page = 1) {
         setLoading(true);
-        try {
-            const [s, d] = await Promise.all([
-                api.adminRecruiterStats(),
-                api.adminRecruiters({ ...filters, hasEmail: filters.hasEmail || undefined, page: p, pageSize: 25 }),
-            ]);
-            setStats(s); setData(d); setPage(d.page);
-        } catch (e) { toast.show(e.message, 'error'); }
+        try { setData(await api.adminRecruiters({ ...filtros, page, pageSize: PAGE_SIZE })); }
+        catch (e) { toast.show(e.message, 'error'); }
         finally { setLoading(false); }
     }
-    useEffect(() => { load(1); }, []);  
-
-    const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-    const apply = () => load(1);
-
-    async function setStatus(r, status) {
-        try { await api.adminUpdateRecruiter(r.id, status); setData((d) => ({ ...d, recruiters: d.recruiters.map((x) => (x.id === r.id ? { ...x, status } : x)) })); }
-        catch (e) { toast.show(e.message, 'error'); }
+    async function loadStats() {
+        try { setStats(await api.adminRecruiterStats()); } catch { /* números são extra */ }
     }
+    useEffect(() => { load(f, 1); loadStats(); }, []);
 
-    const totalPages = Math.max(1, Math.ceil((data.total || 0) / (data.pageSize || 25)));
-    const statCards = stats ? [
-        { l: 'Total', v: nf(stats.total), i: 'ti-address-book' },
-        { l: 'Com vagas', v: nf(stats.withJobs), i: 'ti-briefcase' },
-        { l: 'Sem vagas (órfãos)', v: nf(stats.withoutJobs), i: 'ti-user-question' },
-        { l: 'Com email válido', v: nf(stats.withEmail), i: 'ti-mail-check' },
-    ] : [];
+    const aplicar = (k, v) => { const novo = { ...f, [k]: v }; setF(novo); load(novo, 1); };
+
+    async function acao(r, fn, msg) {
+        if (ocupado.current.has(r.id)) return;
+        ocupado.current.add(r.id);
+        try { await fn(); toast.show(msg); await load(f, data.page); loadStats(); }
+        catch (e) { toast.show(e.message, 'error'); }
+        finally { ocupado.current.delete(r.id); }
+    }
+    const bloquear = (r) => acao(r, () => api.adminUpdateRecruiter(r.id, 'rejected'), `${r.name || 'Recrutador'} bloqueado. O robô não visita mais.`);
+    const desbloquear = (r) => acao(r, () => api.adminUpdateRecruiter(r.id, 'discovered'), 'Desbloqueado. Volta a ser monitorado se tiver vaga no Brasil.');
+    const incluir = (r) => acao(r, () => api.adminUpdateRecruiter(r.id, 'approved'), 'Incluído no monitoramento.');
+    const visitar = (r) => {
+        if (!window.confirm(`Ler agora os posts do último mês de ${r.name || 'este recrutador'}? Custa no máximo US$ 0,06.`)) return;
+        acao(r, () => api.adminRunScraper('monitoring', {
+            source: 'selected', recruiterIds: [Number(r.id)], maxPosts: 30,
+            postedLimit: 'month', sortBy: 'date', contentType: 'all', region: 'br',
+        }), 'Visita enviada. O resultado aparece em Robôs › Últimas execuções.');
+    };
+
+    const totalPages = Math.max(1, Math.ceil((data.total || 0) / PAGE_SIZE));
+    const cobertura = stats?.monitorados ? Math.round((stats.visitados / stats.monitorados) * 100) : 0;
 
     return (
         <>
-            <div className="cards-grid" style={{ marginBottom: 16 }}>
-                {statCards.map((c) => (
-                    <div key={c.l} className="card kpi">
-                        <div className="kpi-top"><span className="kpi-ico"><i className={`ti ${c.i}`} /></span><span className="kpi-label">{c.l}</span></div>
-                        <div className="kpi-num">{c.v}</div>
+            {stats && (
+                <div className="card kpi-faixa" style={{ marginBottom: 14 }}>
+                    <div className="kpi-cel">
+                        <div className="kpi-cel-label"><i className="ti ti-radar" /> Monitorados</div>
+                        <div className="kpi-cel-num">{nf(stats.monitorados)}</div>
+                        <div className="kpi-cel-sub">de {nf(stats.total)} na base</div>
                     </div>
-                ))}
+                    <div className="kpi-cel">
+                        <div className="kpi-cel-label"><i className="ti ti-refresh" /> Visitados nesta volta</div>
+                        <div className="kpi-cel-num">{nf(stats.visitados)} <span className="kpi-cel-de">{cobertura}%</span></div>
+                        <div className="progress" style={{ marginTop: 8 }}><span style={{ width: `${cobertura}%` }} /></div>
+                        <div className="kpi-cel-sub">nos últimos {stats.diasEntreVisitas} dias</div>
+                    </div>
+                    <div className="kpi-cel">
+                        <div className="kpi-cel-label"><i className="ti ti-user-plus" /> Novos (7 dias)</div>
+                        <div className="kpi-cel-num">{nf(stats.novos7d)}</div>
+                        <div className="kpi-cel-sub">achados pelos robôs</div>
+                    </div>
+                    <div className="kpi-cel">
+                        <div className="kpi-cel-label"><i className="ti ti-ban" /> Bloqueados</div>
+                        <div className="kpi-cel-num">{nf(stats.bloqueados)}</div>
+                        <div className="kpi-cel-sub">o robô ignora</div>
+                    </div>
+                </div>
+            )}
+
+            <div className="card" style={{ marginBottom: 14 }}>
+                <div className="toolbar" style={{ marginBottom: 12 }}>
+                    <div className="search"><i className="ti ti-search" />
+                        <input className="input" placeholder="Nome, empresa ou email e Enter" value={f.q}
+                            onChange={(e) => setF((p) => ({ ...p, q: e.target.value }))} onKeyDown={(e) => e.key === 'Enter' && load(f, 1)} />
+                    </div>
+                    <select className="select" style={{ maxWidth: 210 }} value={f.sort} onChange={(e) => aplicar('sort', e.target.value)} aria-label="Ordenar">
+                        {ORDENS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                </div>
+                <div className="chips">
+                    {GRUPOS.map(([g, l, ico]) => (
+                        <button key={g} className={`chip toggle ${f.grupo === g ? 'on' : ''}`} onClick={() => aplicar('grupo', g)}>
+                            <i className={`ti ${ico}`} /> {l}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            <div className="card">
-                <div className="toolbar">
-                    <div className="search"><i className="ti ti-search" />
-                        <input className="input" placeholder="Nome, empresa ou email…" value={f.q}
-                            onChange={(e) => set('q', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && apply()} />
-                    </div>
-                    <select className="select" style={{ maxWidth: 150 }} value={f.status} onChange={(e) => set('status', e.target.value)}>
-                        <option value="">Status</option><option value="discovered">Descoberto</option>
-                        <option value="approved">Aprovado</option><option value="rejected">Rejeitado</option>
-                    </select>
-                    <select className="select" style={{ maxWidth: 150 }} value={f.hasJobs} onChange={(e) => set('hasJobs', e.target.value)}>
-                        <option value="">Com/sem vaga</option><option value="true">Com vagas</option><option value="false">Sem vagas (órfão)</option>
-                    </select>
-                    <select className="select" style={{ maxWidth: 160 }} value={f.sort} onChange={(e) => set('sort', e.target.value)}>
-                        <option value="jobs">+ vagas</option><option value="emails">+ emails enviados</option>
-                        <option value="recent">+ recentes</option><option value="name">nome</option>
-                        <option value="stale">+ obsoletos (cadência)</option>
-                    </select>
-                    <label className="row" style={{ alignItems: 'center', gap: 6, fontSize: 13 }}>
-                        <input type="checkbox" checked={f.hasEmail === 'true'} onChange={(e) => set('hasEmail', e.target.checked ? 'true' : '')} /> só com email
-                    </label>
-                    <button className="btn primary sm" onClick={apply}><i className="ti ti-filter" /> Filtrar</button>
-                </div>
-
+            <div className="card lista-card">
                 {loading ? (
-                    <div><div className="skeleton sk-line" /><div className="skeleton sk-line" style={{ width: '70%' }} /></div>
+                    <div style={{ padding: 16 }}><div className="skeleton sk-line" /><div className="skeleton sk-line" style={{ width: '70%' }} /></div>
                 ) : data.recruiters.length === 0 ? (
-                    <div className="empty" style={{ padding: 30 }}><i className="ti ti-user-off" />Nenhum recrutador.</div>
-                ) : (
-                    <div className="dtable-wrap">
-                        <table className="dtable">
-                            <thead><tr><th>Nome</th><th>Empresa</th><th>Email</th><th>Vagas</th><th>Emails enviados</th><th>Verificado</th><th>Status</th><th className="col-actions">Ações</th></tr></thead>
-                            <tbody>
-                                {data.recruiters.map((r) => (
-                                    <tr key={r.id}>
-                                        <td style={{ fontWeight: 600 }}>
-                                            {r.linkedinUrl ? <a href={r.linkedinUrl} target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>{r.name || 'Recrutador'}</a> : (r.name || 'Recrutador')}
-                                            <div className="muted" style={{ fontSize: 11, fontWeight: 400 }}>
-                                                {r.title || ''}{r.source && r.source !== 'linkedin' ? `${r.title ? ' · ' : ''}${r.source}` : ''}
-                                                {!r.linkedinUrl && <span title="Sem perfil do LinkedIn, não monitorável"> · não monitorável</span>}
-                                            </div>
-                                        </td>
-                                        <td>{r.company || ''}</td>
-                                        <td>{r.email || <span className="muted">sem email</span>}</td>
-                                        <td>{r.jobsCount > 0 ? <span className="badge ok">{r.jobsCount}</span> : <span className="badge neutral">órfão</span>}</td>
-                                        <td className="mono">{nf(r.emailsSent)}</td>
-                                        <td className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }} title={r.lastCheckedAt ? fmtDate(r.lastCheckedAt) : 'nunca varrido'}>
-                                            {staleAgo(r.lastCheckedAt)}{r.checkCount ? ` · ${r.checkCount}x` : ''}
-                                        </td>
-                                        <td><span className={`badge ${STATUS_BADGE[r.status] || 'neutral'}`}>{r.status}</span></td>
-                                        <td className="col-actions">
-                                            {r.status !== 'approved' && <button className="btn ghost sm" title="Aprovar" onClick={() => setStatus(r, 'approved')}><i className="ti ti-check" /></button>}
-                                            {r.status !== 'rejected' && <button className="btn ghost sm" title="Rejeitar" onClick={() => setStatus(r, 'rejected')}><i className="ti ti-x" /></button>}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                    <div className="empty" style={{ padding: 30 }}><i className="ti ti-user-off" />Ninguém neste filtro.</div>
+                ) : data.recruiters.map((r) => {
+                    const sit = situacao(r);
+                    return (
+                        <div key={r.id} className="linha linha-recrutador">
+                            <span className="linha-txt">
+                                <span className="linha-titulo">
+                                    {r.linkedinUrl
+                                        ? <a href={r.linkedinUrl} target="_blank" rel="noopener">{r.name || 'Recrutador'} <i className="ti ti-external-link" style={{ fontSize: 12 }} /></a>
+                                        : (r.name || 'Recrutador')}
+                                </span>
+                                <span className="linha-sub">{[r.company, r.title].filter((x) => x && x !== r.name).join(' · ') || r.email || ''}</span>
+                            </span>
+                            <span className="rec-num" title="Vagas de TI no Brasil que ele já postou">
+                                <b>{nf(r.techBrCount)}</b> vaga{r.techBrCount === 1 ? '' : 's'} de TI
+                            </span>
+                            <span className="rec-num" title={r.lastCheckedAt ? 'Última visita do robô' : 'O robô ainda não visitou'}>
+                                {r.lastCheckedAt ? `visitado ${haQuanto(r.lastCheckedAt)}` : 'nunca visitado'}
+                            </span>
+                            <span className={`badge ${sit.classe}`} title={sit.dica}>{sit.rotulo}</span>
+                            <span className="rec-acoes">
+                                {r.monitoravel && r.status !== 'rejected' && (
+                                    <button className="btn ghost sm" title="Ler os posts dele agora" onClick={() => visitar(r)}><i className="ti ti-player-play" /> Visitar</button>
+                                )}
+                                {!r.monitoravel && r.status !== 'rejected' && r.linkedinUrl && (
+                                    <button className="btn ghost sm" title="Incluir no monitoramento mesmo sem vaga" onClick={() => incluir(r)}><i className="ti ti-plus" /> Monitorar</button>
+                                )}
+                                {r.status === 'rejected'
+                                    ? <button className="btn ghost sm" onClick={() => desbloquear(r)}><i className="ti ti-lock-open" /> Desbloquear</button>
+                                    : <button className="btn ghost sm" title="O robô para de visitar" onClick={() => bloquear(r)}><i className="ti ti-ban" /> Bloquear</button>}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
 
-                <div className="row" style={{ alignItems: 'center', marginTop: 12 }}>
-                    <span className="muted" style={{ fontSize: 12 }}>{nf(data.total)} recrutador(es) · página {data.page}/{totalPages}</span>
-                    <div className="spacer" />
-                    <button className="btn ghost sm" disabled={data.page <= 1} onClick={() => load(data.page - 1)}><i className="ti ti-chevron-left" /> anterior</button>
-                    <button className="btn ghost sm" disabled={data.page >= totalPages} onClick={() => load(data.page + 1)}>próxima <i className="ti ti-chevron-right" /></button>
-                </div>
+            <div className="row" style={{ alignItems: 'center', marginTop: 10 }}>
+                <span className="muted" style={{ fontSize: 12 }}>{nf(data.total)} recrutador(es) · página {data.page} de {totalPages}</span>
+                <div className="spacer" />
+                <button className="btn ghost sm" disabled={loading || data.page <= 1} onClick={() => load(f, data.page - 1)}><i className="ti ti-chevron-left" /> anterior</button>
+                <button className="btn ghost sm" disabled={loading || data.page >= totalPages} onClick={() => load(f, data.page + 1)}>próxima <i className="ti ti-chevron-right" /></button>
             </div>
         </>
     );

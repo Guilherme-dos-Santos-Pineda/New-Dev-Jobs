@@ -29,7 +29,8 @@ import { useT } from '../lib/i18n.jsx';
 // tela do admin (`AdminPromoPost`). Esta seção é do usuário.
 
 const AREA_LABEL = {
-    dev: 'Desenvolvimento', qa: 'QA', data: 'Dados', devops: 'DevOps',
+    dev: 'Desenvolvimento', frontend: 'Front-end', backend: 'Back-end', fullstack: 'Full-stack',
+    qa: 'QA', data: 'Dados', devops: 'Infra', erp: 'ERP / SAP',
     mobile: 'Mobile', design: 'Design', po: 'Produto', suporte: 'Suporte',
 };
 const NIVEL_LABEL = {

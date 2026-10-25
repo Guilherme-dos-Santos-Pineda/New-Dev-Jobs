@@ -211,3 +211,52 @@ test('area: marca de gênero entre parênteses não esconde o cargo', () => {
     assert.equal(detectArea(vaga('Engenheiro(a) de Dados - Importacao & Integracoes')), 'data');
     assert.equal(detectArea(vaga('Engenheiro(a) de Dados')), detectArea(vaga('Engenheiro de Dados')));
 });
+
+// =========================================================================
+// Título CLARO que não é de tech sai do feed; 'other' fica só para título vago.
+//
+// Medido em 25/10/2026: das ~1150 vagas do monitoramento novo, 510 caíram em
+// 'other' (que passa no feed) e eram quase todas de outra profissão. E o passo
+// das skills rodava para qualquer título não reconhecido, não só os vagos:
+// "Assistente Financeiro" virava 'data' porque a IA listou Power BI.
+// =========================================================================
+test('título claro de outra profissão vira nontech, mesmo fora da lista', () => {
+    for (const t of ['Esteticista', 'Vigia Noturno', 'Soldador', 'Accountant', 'Payroll Specialist', 'Orçamentista', 'Mecânico Automotivo']) {
+        assert.equal(detectArea(vaga(t)), 'nontech', `"${t}"`);
+    }
+});
+
+test('skills só decidem quando o título é vago', () => {
+    const comSkills = (JobTitle) => ({ JobTitle, Skills: ['Power BI', 'Excel', 'SQL'], Email: 'r@x.com.br', Description: '' });
+    assert.equal(detectArea(comSkills('Assistente Financeiro')), 'nontech');
+    assert.equal(detectArea(comSkills('Vaga')), 'data');
+});
+
+test('carreiras de TI que não são dev continuam no feed, cada uma na sua área', () => {
+    const casos = {
+        'Consultor SAP SD Sênior': 'erp', 'Senior Salesforce Developer': 'erp', 'Consultor TOTVS Protheus': 'erp',
+        'Analista de Segurança da Informação': 'devops', 'Analista de Redes': 'devops', 'Windows Server Administrator': 'devops',
+        'Gerente de Projetos': 'po', 'Business Analyst': 'po',
+        'Técnico de Suporte em TI N1': 'suporte', 'Arquiteto(a) de Soluções': 'dev', 'Technical Lead': 'dev',
+    };
+    for (const [t, area] of Object.entries(casos)) assert.equal(detectArea(vaga(t)), area, `"${t}"`);
+});
+
+test('nuvem genérica não rouba vaga de dev', () => {
+    assert.equal(detectArea(vaga('Desenvolvedor Java AWS')), 'backend');
+    assert.equal(detectArea(vaga('Desenvolvedor Front-end React e Salesforce Marketing Cloud')), 'frontend');
+    assert.equal(detectArea(vaga('Redes Sociais')), 'nontech');
+});
+
+// País: post em espanhol que citava "Brasil" numa lista passava como BR, e
+// vagas de Guadalajara e Costa Rica chegavam ao feed (25/10/2026).
+test('vaga de fora do Brasil não passa como BR', async () => {
+    const { jobIsBR } = await import('../services/classify.js');
+    assert.equal(jobIsBR({ Email: 'rh@horizonte.com.mx', Location: 'Guadalajara', Description: 'Vaga no Brasil e México' }), false);
+    assert.equal(jobIsBR({ Email: 'rh@infotree.com', Location: 'Escazú, Costa Rica', Description: '' }), false);
+    assert.equal(jobIsBR({ Email: 'rh@x.com', Location: '', Description: 'Ofrecemos sueldo competitivo. Experiencia de 3 años de trabajo con Java.' }), false);
+    // e o que é brasileiro continua
+    assert.equal(jobIsBR({ Email: 'vagas@runtalent.it', Location: 'São Paulo/SP', Description: '' }), true);
+    assert.equal(jobIsBR({ Email: 'a@vagas.abler.in', Location: 'Blumenau/SC', Description: '' }), true);
+    assert.equal(jobIsBR({ Email: 'a@mazza.tech', Location: 'Av. Faria Lima', Description: 'Vaga de desenvolvedor, experiência com currículo' }), true);
+});

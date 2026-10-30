@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from './Toast.jsx';
 import { useT } from '../lib/i18n.jsx';
+import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
 import { AREA_OPTIONS, LEVEL_OPTIONS } from '../utils.js';
 
 // =========================
@@ -24,17 +25,19 @@ import { AREA_OPTIONS, LEVEL_OPTIONS } from '../utils.js';
 // 2. O CURRÍCULO É OPCIONAL AQUI, mas oferecido com o caminho do LinkedIn
 //    pronto. Ele serve a dois fins de uma vez: vira o anexo das candidaturas e
 //    as skills saem dele sem a pessoa digitar nada.
-// 3. SÓ TRÊS PERGUNTAS. Eram cinco (mais palavras obrigatórias e bloqueadas),
+// 3. QUATRO PERGUNTAS, a última é COMO ENVIAR. Eram cinco (com palavras obrigatórias e bloqueadas),
 //    e o feedback de 29/10/2026 foi "muita informação na hora de configurar".
 //    Palavra é ajuste fino: quem nunca viu o feed não sabe o que bloquear.
 //    Ficou no perfil, em "Filtros avançados", para depois de ver as vagas.
+//    "Como enviar" entrou no lugar porque sem ela a pessoa não sabia que existia
+//    envio automático: é a escolha que mais muda o que o produto faz por ela.
 // 4. TODA TELA DIZ QUE DÁ PARA MUDAR DEPOIS. O medo de errar a configuração
 //    inicial trava mais gente do que a configuração em si.
 
-const PASSOS = ['area', 'nivel', 'curriculo'];
+const PASSOS = ['area', 'nivel', 'curriculo', 'envio'];
 
 export default function WizardInicial({ onPronto, onPular }) {
-    const { refreshUser } = useAuth();
+    const { user, refreshUser, googleConfigured } = useAuth();
     const toast = useToast();
     const { t } = useT();
 
@@ -45,6 +48,7 @@ export default function WizardInicial({ onPronto, onPular }) {
     const [temCv, setTemCv] = useState(false);
     const [lendoCv, setLendoCv] = useState(false);
     const [salvando, setSalvando] = useState(false);
+    const [modoEnvio, setModoEnvio] = useState('auto'); // 'auto' (conectar Gmail) | 'proprio'
     const salvandoRef = useRef(false); // trava síncrona contra duplo-clique
     const inputArquivo = useRef(null);
 
@@ -93,6 +97,14 @@ export default function WizardInicial({ onPronto, onPular }) {
                 areas, levels: niveis, skills,
             });
             await refreshUser();
+            // Escolheu o automático: vai direto ao consentimento do Google e, na
+            // volta, cai nas vagas (lib/voltarParaVagas.js).
+            if (modoEnvio === 'auto' && !user?.googleConnected && googleConfigured) {
+                const { url } = await api.googleAuthUrl();
+                marcarVoltaParaVagas();
+                window.location.href = url;
+                return;
+            }
             toast.show(t('Pronto! Seu perfil está configurado.'));
             onPronto?.();
         } catch (e) {
@@ -197,6 +209,25 @@ export default function WizardInicial({ onPronto, onPular }) {
                         </>
                     )}
 
+                    {atual === 'envio' && (
+                        <>
+                            <h2>{t('Como você quer mandar seu currículo?')}</h2>
+                            <p className="wizard-sub">{t('Nada sai sem você mandar. Dá para trocar depois.')}</p>
+                            <div className="wizard-grade wizard-grade-2">
+                                <button type="button" className={`wizard-cartao ${modoEnvio === 'auto' ? 'on' : ''}`} onClick={() => setModoEnvio('auto')}>
+                                    <i className="ti ti-bolt" aria-hidden="true" />
+                                    <span className="wc-t">{t('Automático')} <span className="badge ok">{t('recomendado')}</span></span>
+                                    <span className="wc-d">{t('Você conecta o Gmail e, com um clique, a gente manda seu currículo para as melhores vagas do dia, com o seu nome. Só pedimos permissão para enviar, nunca para ler.')}</span>
+                                </button>
+                                <button type="button" className={`wizard-cartao ${modoEnvio === 'proprio' ? 'on' : ''}`} onClick={() => setModoEnvio('proprio')}>
+                                    <i className="ti ti-hand-click" aria-hidden="true" />
+                                    <span className="wc-t">{t('Eu mesmo envio')}</span>
+                                    <span className="wc-d">{t('Para cada vaga, a gente abre o email pronto no seu Gmail. Você anexa o currículo e manda.')}</span>
+                                </button>
+                            </div>
+                        </>
+                    )}
+
                 </div>
 
                 <div className="wizard-pe">
@@ -209,7 +240,9 @@ export default function WizardInicial({ onPronto, onPular }) {
                     <button className="btn primary" onClick={proximo} disabled={!podeAvancar || salvando || lendoCv}>
                         {salvando
                             ? t('Salvando…')
-                            : ultimo ? <>{t('Ver minhas vagas')} <i className="ti ti-arrow-right" /></> : <>{t('Continuar')} <i className="ti ti-arrow-right" /></>}
+                            : ultimo
+                                ? (modoEnvio === 'auto' && !user?.googleConnected ? <><i className="ti ti-brand-google" /> {t('Conectar Gmail')}</> : <>{t('Ver minhas vagas')} <i className="ti ti-arrow-right" /></>)
+                                : <>{t('Continuar')} <i className="ti ti-arrow-right" /></>}
                     </button>
                 </div>
             </div>

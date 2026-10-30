@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { deveVoltarParaVagas } from '../lib/voltarParaVagas.js';
 
 const GOOGLE_MSG = {
     connected: ['Conta Google conectada com sucesso', 'info'],
@@ -42,6 +43,7 @@ export default function EmailSettings() {
     const { user, googleConfigured, refreshUser } = useAuth();
     const toast = useToast();
     const [params, setParams] = useSearchParams();
+    const navigate = useNavigate();
 
     // ---- template ----
     const [subject, setSubject] = useState('');
@@ -85,6 +87,8 @@ export default function EmailSettings() {
             refreshUser();
             params.delete('google');
             setParams(params, { replace: true });
+            // Conectou a partir das vagas? Volta para elas (lib/voltarParaVagas.js).
+            if (deveVoltarParaVagas() && g === 'connected') navigate('/app', { replace: true });
         }
          
     }, []);

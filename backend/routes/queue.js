@@ -42,7 +42,13 @@ router.post('/', requireAuth, validate(queueSchema), async (req, res) => {
         jobIds = requested.map(String).filter((id) => matchIds.has(id));
         if (!jobIds.length) return res.status(400).json({ error: 'Selecione ao menos uma vaga válida' });
     } else {
-        jobIds = matches.filter((m) => m.matchScore >= MIN_AUTO_MATCH).map((m) => m.id);
+        // Recentes primeiro (faixas de semana/mês), depois compatibilidade: é a
+        // mesma ordem da tela inicial. Só por compatibilidade, o automático
+        // mandava currículo para vaga de 135 dias atrás, provavelmente fechada.
+        const faixa = (d) => { const dias = (Date.now() - new Date(d)) / 86400000; return dias <= 7 ? 0 : dias <= 30 ? 1 : 2; };
+        jobIds = matches.filter((m) => m.matchScore >= MIN_AUTO_MATCH)
+            .sort((a, b) => faixa(a.createdAt) - faixa(b.createdAt) || b.matchScore - a.matchScore)
+            .map((m) => m.id);
         if (!jobIds.length) return res.status(400).json({ error: `Nenhuma vaga com match ≥ ${MIN_AUTO_MATCH}% para envio automático. Ajuste sua área/skills no perfil ou use a seleção manual.` });
     }
 

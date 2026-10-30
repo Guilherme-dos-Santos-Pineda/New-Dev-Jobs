@@ -19,6 +19,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 dotenv.config({ path: resolve(ROOT, '.env') });
 const { default: sql } = await import('../lib/sql.js');
+// As regras do grátis seguem a chave dos planos pagos (config/planosPagos.js):
+// desligados, são 20/dia com escolha vaga a vaga; ligados, 7/dia sem escolha.
+const { planOf } = await import('../config/plans.js');
+const { PLANOS_PAGOS_ATIVOS } = await import('../config/planosPagos.js');
+const FREE = planOf('free');
 
 const API = process.env.PROVA_API || 'https://newdevjobs.xyz';
 const SB = process.env.SUPABASE_URL;
@@ -152,7 +157,9 @@ try {
         const ms = r.data.matches || [];
         feeds[c.perfil.nome] = ms;
         checa(!ms.some((m) => m.email !== undefined), `SEGURANCA: /jobs/matches nao devolve email de contato (${c.perfil.nome})`);
-        checa(!ms.some((m) => m.description !== undefined), `SEGURANCA: plano free nao recebe a descricao (${c.perfil.nome})`);
+        // A descrição vai para todos, LIMPA (semContato): o post traz o email do
+        // recrutador no texto, e ele não pode vazar pela listagem.
+        checa(!ms.some((m) => /[\w.+-]+@[\w-]+\.[\w.]+/.test(m.description || '')), `SEGURANCA: descricao do feed sem email de contato (${c.perfil.nome})`);
         checa(ms.every((m, i) => i === 0 || ms[i - 1].matchScore >= m.matchScore), `feed ordenado por match (${c.perfil.nome})`);
         console.log(`   ${c.perfil.nome.padEnd(24)} ${String(ms.length).padStart(4)} vagas · melhor ${ms[0]?.matchScore ?? '-'}% · ${(r.bytes / 1024).toFixed(0)} kB`);
     }
@@ -237,8 +244,8 @@ try {
         checa(d.jaEnviadas === 0, 'conta nova ve a lista inteira', `${d.jaEnviadas} sumiram`);
         checa((d.vagas || []).every((v) => v.applied === undefined),
             'a lista nao carrega mais flag de "enviado" (vaga enviada simplesmente sai)');
-        checa(d.limiteDiario === 7, 'conta free tem cota diaria de 7', `veio ${d.limiteDiario}`);
-        checa(d.maxCandidaturas === 7 && d.usadoHoje === 0, 'conta nova pode usar os 7 do dia',
+        checa(d.limiteDiario === FREE.dailyLimit, `conta free tem cota diaria de ${FREE.dailyLimit}`, `veio ${d.limiteDiario}`);
+        checa(d.maxCandidaturas === Math.min(7, FREE.dailyLimit) && d.usadoHoje === 0, 'conta nova pode usar os destaques do dia',
             `max=${d.maxCandidaturas} usado=${d.usadoHoje}`);
 
         // As travas de envio continuam valendo — inclusive para o plano free, que
@@ -302,7 +309,7 @@ try {
         const m = r.data.metrics || {};
         checa(m.compatible === (feeds[c.perfil.nome] || []).length,
             `dashboard e feed contam a mesma coisa (${c.perfil.nome})`, `${m.compatible} vs ${(feeds[c.perfil.nome] || []).length}`);
-        checa(m.dailyLimit === 7 && m.remainingToday === 7, `limite do free correto (${c.perfil.nome})`, `${m.remainingToday}/${m.dailyLimit}`);
+        checa(m.dailyLimit === FREE.dailyLimit && m.remainingToday === FREE.dailyLimit, `limite do free correto (${c.perfil.nome})`, `${m.remainingToday}/${m.dailyLimit}`);
         checa(Array.isArray(r.data.sparkSent) && r.data.sparkSent.length === 7, `sparkline de 7 dias (${c.perfil.nome})`);
     }
 
@@ -310,8 +317,24 @@ try {
     console.log('\n8) ENVIO — as travas seguram?');
     const c0 = vivas[0];
     const man = await api(c0.token, 'POST', '/queue', { mode: 'manual', jobIds: (feeds[c0.perfil.nome] || []).slice(0, 3).map((m) => m.id) });
-    checa(man.status === 402, 'plano free NAO pode selecionar vagas a mao', `HTTP ${man.status}`);
-    checa(man.data?.upgrade === true, 'a recusa avisa que e caso de upgrade');
+    if (FREE.allowManual) {
+        // Planos pagos desligados: o grátis escolhe vaga a vaga, mas SEM Google/CV
+        // nada sai; a recusa vem da falta de conta conectada, não do plano.
+        checa(man.status !== 200 && man.status !== 201, 'sem Google/CV a selecao manual NAO enfileira', `HTTP ${man.status}`);
+    } else {
+        checa(man.status === 402, 'plano free NAO pode selecionar vagas a mao', `HTTP ${man.status}`);
+        checa(man.data?.upgrade === true, 'a recusa avisa que e caso de upgrade');
+    }
+
+    // POST /applications envia NA HORA: tem de respeitar o feed e a cota (antes
+    // aceitava qualquer vaga da base, sem teto).
+    const [fora] = await sql`select "Id" from "Jobs" where "Area" = 'nontech' and "Email" like '%@%.%' limit 1`;
+    if (fora) {
+        const ap = await api(c0.token, 'POST', '/applications', { jobId: Number(fora.Id) });
+        checa([402, 403].includes(ap.status), 'POST /applications recusa vaga fora do feed', `HTTP ${ap.status}`);
+    }
+    const fbMine = await api(c0.token, 'GET', '/jobs/feedback/mine');
+    checa(fbMine.status === 200 && typeof fbMine.data?.disponivel === 'boolean', '/jobs/feedback/mine responde', `HTTP ${fbMine.status}`);
 
     const auto = await api(c0.token, 'POST', '/queue', { mode: 'auto' });
     checa(auto.status === 403, 'sem Google/CV o envio e BARRADO (nenhum email sai)', `HTTP ${auto.status}`);
@@ -328,7 +351,13 @@ try {
     console.log('\n9) COBRANCA (so leitura — nada e cobrado)');
     const planos = await api(c0.token, 'GET', '/billing/plans');
     checa(planos.status === 200, '/billing/plans responde');
-    checa(planos.data?.stripeEnabled === true, 'Stripe esta configurado no servidor');
+    if (PLANOS_PAGOS_ATIVOS) {
+        checa(planos.data?.stripeEnabled === true, 'Stripe esta configurado no servidor');
+    } else {
+        checa((planos.data?.plans || []).every((x) => x.id === 'free'), 'planos pagos desligados: catalogo so tem o gratis');
+        const co = await api(c0.token, 'POST', '/billing/checkout', { plan: 'starter' });
+        checa(co.status === 403, 'planos pagos desligados: checkout recusa', `HTTP ${co.status}`);
+    }
     for (const p of (planos.data?.plans || []).filter((x) => x.id !== 'free')) {
         checa(p.purchasable === true, `plano ${p.id} tem preco configurado (STRIPE_PRICE_*)`, `purchasable=${p.purchasable}`);
     }

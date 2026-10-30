@@ -1,6 +1,7 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
 import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga } from './classify.js';
+import { semDislikeSql, feedbackDisponivel } from './jobFeedback.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
@@ -100,6 +101,9 @@ export function shapeJob(job, profile, appliedSet) {
         skills: parseArr(job.Skills), description: job.Description, createdAt: job.CreatedAt,
         matchScore: match.score, matchedSkills: match.matched, missingSkills: match.missing,
         applied: appliedSet.has(job.Id),
+        // Classificação persistida: a tela mostra área, nível e modalidade em
+        // cada vaga para a pessoa decidir sem abrir o post.
+        area: job.Area ?? null, level: job.Level ?? null, mods: parseArr(job.Mods), location: job.Location ?? null,
     };
 }
 
@@ -224,6 +228,8 @@ async function buscarCandidatas(userId, profile) {
     // mostrar. Filtrando aqui, o teto passa a valer sobre o resultado de verdade.
     const exigidas = parseArr(profile?.RequiredKeywords).filter(Boolean).map(paraLike);
     const bloqueadas = parseArr(profile?.BlockedWords).filter(Boolean).map(paraLike);
+    // 👎 do usuário: some do feed dele (vazio enquanto a migration 0017 não existe).
+    const semDislike = semDislikeSql(userId, await feedbackDisponivel());
 
     return sql`
         select j.* from "Jobs" j
@@ -238,6 +244,7 @@ async function buscarCandidatas(userId, profile) {
               select 1 from "Applications" a
               where a."UserId" = ${userId} and a."JobId" = j."Id"
           )
+          ${semDislike}
           ${dias ? sql`and j."CreatedAt" >= now() - make_interval(days => ${dias})` : sql``}
           ${profile ? (region === 'intl'
               ? sql`and j."IsBR" is not true`

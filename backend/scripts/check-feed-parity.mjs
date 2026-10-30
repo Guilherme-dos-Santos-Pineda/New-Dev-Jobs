@@ -17,6 +17,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '.');
 dotenv.config({ path: resolve(ROOT, '../../.env') });
 const { default: sql } = await import('../lib/sql.js');
 const { getMatches, invalidateMatches, passesFilters } = await import('../services/jobsQuery.js');
+const { feedbackDisponivel } = await import('../services/jobFeedback.js');
 
 const todas = await sql`select * from "Jobs" order by "CreatedAt" desc, "Id" desc`;
 console.log(`base: ${todas.length} vagas\n`);
@@ -26,6 +27,8 @@ let falhas = 0;
 for (const u of users) {
     const [profile] = await sql`select * from "Profiles" where "UserId"=${u.Id}`;
     const aplicadas = new Set((await sql`select "JobId" from "Applications" where "UserId"=${u.Id}`).map(r=>String(r.JobId)));
+    // 👎 do usuário sai do feed, igual a "já enviada" (migration 0017; sem ela, nada).
+    if (await feedbackDisponivel()) for (const r of await sql`select "JobId" from "JobFeedback" where "UserId"=${u.Id} and "Voto"=-1`) aplicadas.add(String(r.JobId));
     // Referencia: caminho ANTIGO (varredura completa em JS)
     const ref = new Set(todas
         .filter(j => j.Email && !aplicadas.has(String(j.Id)))

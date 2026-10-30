@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import lazyWithReload from './lib/lazyWithReload.js';
+import { PLANOS_PAGOS_ATIVOS } from './lib/flags.js';
 
 // Páginas carregadas sob demanda — cada rota vira um chunk separado, então o
 // bundle inicial não carrega o Admin (pesado) nem telas que o usuário pode
@@ -45,7 +46,8 @@ export default function App() {
                     <Route path="candidaturas" element={<Applications />} />
                     <Route path="feedback" element={<Feedback />} />
                     <Route path="perfil" element={<Profile />} />
-                    <Route path="assinatura" element={<Subscription />} />
+                    {/* Com os planos pagos desligados a página nem existe: link antigo cai nas vagas. */}
+                    <Route path="assinatura" element={PLANOS_PAGOS_ATIVOS ? <Subscription /> : <Navigate to="/app" replace />} />
                     <Route path="admin" element={<Admin />} />
                     {/* compat: rotas antigas */}
                     <Route path="vagas" element={<Navigate to="/app" replace />} />

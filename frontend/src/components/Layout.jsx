@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { api } from '../api.js';
+import { PLANOS_PAGOS_ATIVOS } from '../lib/flags.js';
 import { prefetch } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
 import Logo from './Logo.jsx';
@@ -46,12 +47,15 @@ function toggleTheme() {
     localStorage.setItem('theme', dark ? 'dark' : 'light');
 }
 
+// "Vagas" e não "Dashboard": a tela inicial é a lista das vagas de hoje, e o
+// nome do menu tem de dizer o que a pessoa vai encontrar ao clicar.
 const baseTabs = [
-    { to: '/app', label: 'Dashboard', icon: 'ti-layout-dashboard', end: true },
+    { to: '/app', label: 'Vagas', icon: 'ti-briefcase', end: true },
     { to: '/app/candidaturas', label: 'Candidaturas', icon: 'ti-send' },
     { to: '/app/feedback', label: 'Feedback', icon: 'ti-message-2' },
     { to: '/app/perfil', label: 'Perfil', icon: 'ti-user' },
-    { to: '/app/assinatura', label: 'Assinatura', icon: 'ti-crown' },
+    // Some enquanto os planos pagos estão desligados (lib/flags.js).
+    ...(PLANOS_PAGOS_ATIVOS ? [{ to: '/app/assinatura', label: 'Assinatura', icon: 'ti-crown' }] : []),
 ];
 
 function ThemeButton() {

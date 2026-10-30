@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>newdevjobs: candidaturas automáticas para devs</title>
+    <title>New Dev Jobs: vagas de TI com o contato do recrutador</title>
 
     <!-- SEO -->
-    <meta name="description" content="Vagas de dev que não viram anúncio, com o contato do recrutador já resolvido. Seu currículo sai da sua própria conta Gmail. 7 candidaturas grátis por dia.">
-    <meta name="keywords" content="candidaturas automáticas, vagas para desenvolvedor, vagas dev, emprego programador, vagas no LinkedIn, automação de candidatura, vagas de TI Brasil, enviar currículo automático">
+    <meta name="description" content="Vagas de tecnologia que recrutadores postam no LinkedIn, com o email deles. Você escolhe e manda seu currículo em um clique, do seu Gmail. Grátis, sem cartão.">
+    <meta name="keywords" content="vagas de TI, vagas para desenvolvedor, vagas dev, emprego programador, vagas no LinkedIn, automação de candidatura, vagas de TI Brasil, enviar currículo automático">
     <meta name="author" content="newdevjobs">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="theme-color" content="#F1F0EB">
@@ -23,18 +23,18 @@
     <meta property="og:site_name" content="newdevjobs">
     <meta property="og:locale" content="pt_BR">
     <meta property="og:locale:alternate" content="en_US">
-    <meta property="og:title" content="newdevjobs: candidaturas automáticas para devs">
-    <meta property="og:description" content="Vagas de dev que não viram anúncio, com o contato já resolvido. Seu currículo sai da sua própria conta Gmail. 7 candidaturas grátis por dia.">
+    <meta property="og:title" content="New Dev Jobs: vagas de TI com o contato do recrutador">
+    <meta property="og:description" content="Vagas de tecnologia que recrutadores postam no LinkedIn, com o email deles. Você escolhe e manda seu currículo em um clique, do seu Gmail. Grátis, sem cartão.">
     <meta property="og:url" content="https://newdevjobs.xyz/">
     <meta property="og:image" content="https://newdevjobs.xyz/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="newdevjobs: candidaturas automáticas para devs">
+    <meta property="og:image:alt" content="New Dev Jobs: vagas de TI com o contato do recrutador">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="newdevjobs: candidaturas automáticas para devs">
-    <meta name="twitter:description" content="Vagas de dev que não viram anúncio. Seu currículo sai da sua própria conta Gmail. 7 candidaturas grátis por dia.">
+    <meta name="twitter:title" content="New Dev Jobs: vagas de TI com o contato do recrutador">
+    <meta name="twitter:description" content="Vagas de tecnologia que recrutadores postam no LinkedIn, com o email deles. Você escolhe e manda seu currículo em um clique, do seu Gmail. Grátis, sem cartão.">
     <meta name="twitter:image" content="https://newdevjobs.xyz/og-image.png">
 
     <!-- Dados estruturados -->
@@ -47,11 +47,9 @@
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "inLanguage": "pt-BR",
-      "description": "Vagas de dev que não viram anúncio, com o contato do recrutador já resolvido. Seu currículo sai da sua própria conta Gmail.",
+      "description": "Vagas de tecnologia que recrutadores postam no LinkedIn, com o email deles. Você escolhe e manda seu currículo em um clique, do seu Gmail. Grátis, sem cartão.",
       "offers": [
-        { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "BRL" },
-        { "@type": "Offer", "name": "Starter", "price": "80", "priceCurrency": "BRL" },
-        { "@type": "Offer", "name": "Pro", "price": "189", "priceCurrency": "BRL" }
+        { "@type": "Offer", "name": "Grátis", "price": "0", "priceCurrency": "BRL" }
       ],
       "publisher": {
         "@type": "Organization",
@@ -498,6 +496,14 @@
        PLANS
        ============================================ */
     .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+    /* Sem isto o display:grid acima vence o atributo hidden e os planos pagos
+       aparecem mesmo escondidos (ver backend/config/planosPagos.js). */
+    .plans[hidden] { display: none; }
+    .gratis-lista { list-style: none; padding: 0; margin: 8px auto 0; max-width: 520px; display: grid; gap: 12px; }
+    .gratis-lista li { display: flex; align-items: flex-start; gap: 10px; font-size: 16px; line-height: 1.5; }
+    .gratis-lista i { color: var(--color-success, #14704A); font-size: 19px; margin-top: 2px; }
+    .gratis-honesto { text-align: center; color: var(--color-text-secondary, #666); font-size: 14.5px; margin: 26px auto 18px; max-width: 520px; }
+    .gratis-btn { display: block; margin: 0 auto 34px; }
     .plan {
         background: var(--color-surface);
         border: 1px solid var(--color-border-light);
@@ -748,7 +754,7 @@
 
             <ul class="nav-links">
                 <li><a href="#como-funciona" data-i18n="nav.how">como funciona</a></li>
-                <li><a href="#precos" data-i18n="nav.pricing">preços</a></li>
+                <li><a href="#precos" data-i18n="nav.pricing">é grátis</a></li>
                 <li><a href="docs.html" data-i18n="nav.docs">documentação</a></li>
             </ul>
 
@@ -768,13 +774,13 @@
         <!-- ==================== HERO ==================== -->
         <section class="hero">
             <div class="hero-copy">
-                <h1 data-i18n="hero.h1">Seu currículo chega no recrutador<br>enquanto você faz outra coisa.</h1>
-                <p class="hero-sub" data-i18n="hero.sub">Configure seu perfil uma vez. A partir daí o New Dev Jobs encontra as vagas compatíveis com a sua stack e envia sua candidatura pela sua própria conta Gmail, com o seu nome no remetente.</p>
+                <h1 data-i18n="hero.h1">Vagas de TI com o email<br>do recrutador.</h1>
+                <p class="hero-sub" data-i18n="hero.sub">Recrutadores postam vagas no LinkedIn todo dia, e muitas nunca chegam aos sites de vaga. A gente lê esses posts, separa as vagas de tecnologia no Brasil e te mostra com o contato de quem está contratando. Você escolhe e manda seu currículo em um clique.</p>
                 <div class="hero-actions">
-                    <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-rocket" aria-hidden="true"></i> começar com 7 candidaturas grátis</button>
+                    <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-search" aria-hidden="true"></i> ver as vagas, é grátis</button>
                     <button class="btn-s" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})" data-i18n="hero.cta2">ver como funciona</button>
                 </div>
-                <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> 7 por dia, todo dia. Sem cartão de crédito.</p>
+                <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> Grátis, sem cartão de crédito. Nada é enviado sem você clicar.</p>
 
             </div>
 
@@ -815,28 +821,28 @@
 
         <!-- ==================== COMO FUNCIONA ==================== -->
         <section class="section" id="como-funciona">
-            <h2 class="sec-h" data-i18n="how.h">Configure uma vez.<br><strong>Candidate-se sempre.</strong></h2>
-            <p class="sec-sub" data-i18n="how.sub">Três passos e sua busca entra em piloto automático.</p>
+            <h2 class="sec-h" data-i18n="how.h">Como <strong>funciona.</strong></h2>
+            <p class="sec-sub" data-i18n="how.sub">Você vê as vagas no primeiro minuto. Sem configuração complicada.</p>
             <div class="steps">
                 <div class="step">
                     <span class="step-n mono">01</span>
                     <div class="step-body">
-                        <h3 data-i18n="how.s1.h">Monte seu perfil técnico</h3>
-                        <p data-i18n="how.s1.p">Informe sua stack, nível de senioridade, modalidade e pretensão. Faça upload do seu currículo em PDF.</p>
+                        <h3 data-i18n="how.s1.h">Diga o que você procura</h3>
+                        <p data-i18n="how.s1.p">Sua área (front-end, dados, QA, suporte, SAP...) e seu nível. Se quiser, suba o currículo e a gente lê suas habilidades.</p>
                     </div>
                 </div>
                 <div class="step">
                     <span class="step-n mono">02</span>
                     <div class="step-body">
-                        <h3 data-i18n="how.s2.h">Conecte seu Gmail</h3>
-                        <p data-i18n="how.s2.p">Autorize apenas o escopo de envio. Você aparece como remetente para o recrutador. Nunca lemos seus emails.</p>
+                        <h3 data-i18n="how.s2.h">Veja as vagas do dia</h3>
+                        <p data-i18n="how.s2.p">Cada vaga mostra empresa, nível, modalidade e o post original. Com 👍 e 👎 você tira da lista o que não serve.</p>
                     </div>
                 </div>
                 <div class="step">
                     <span class="step-n mono">03</span>
                     <div class="step-body">
-                        <h3 data-i18n="how.s3.h">Receba candidaturas automáticas</h3>
-                        <p data-i18n="how.s3.p">Cada vaga recebe uma nota de 0 a 100 comparando sua stack, senioridade, modalidade e palavras-chave com o anúncio. Só as compatíveis viram email, e o email sai da sua conta.</p>
+                        <h3 data-i18n="how.s3.h">Mande seu currículo</h3>
+                        <p data-i18n="how.s3.p">Um clique abre o email pronto no seu Gmail, endereçado ao recrutador. Se preferir, conecte o Gmail e a gente envia direto, com o seu nome. Até 20 por dia.</p>
                     </div>
                 </div>
             </div>
@@ -865,14 +871,14 @@
                 <div class="vs-col vs-col-forte">
                     <div class="vs-tag" data-i18n="vs.depois">com o New Dev Jobs</div>
                     <ol class="vs-lista">
-                        <li data-i18n="vs.d1">você configura o perfil uma vez</li>
+                        <li data-i18n="vs.d1">você diz o que procura, em um minuto</li>
                         <li data-i18n="vs.d2">a gente encontra as vagas que não viram anúncio</li>
                         <li data-i18n="vs.d3">o contato do recrutador já vem junto</li>
                         <li data-i18n="vs.d4">calcula a compatibilidade com o seu perfil</li>
-                        <li data-i18n="vs.d5">manda o currículo pelo seu Gmail</li>
+                        <li data-i18n="vs.d5">você escolhe e manda o currículo em um clique</li>
                         <li data-i18n="vs.d6">registra tudo no seu painel</li>
                     </ol>
-                    <p class="vs-fim" data-i18n="vs.d.fim">Uma vez. Depois roda sozinho.</p>
+                    <p class="vs-fim" data-i18n="vs.d.fim">Você decide cada envio. A gente faz o trabalho chato.</p>
                 </div>
             </div>
             </div>
@@ -890,7 +896,7 @@
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-cpu" aria-hidden="true"></i></div>
                     <h3 data-i18n="feat.2.h">score de compatibilidade</h3>
-                    <p data-i18n="feat.2.p">Stack, senioridade, modalidade e palavras-chave viram uma nota de 0 a 100. Abaixo do seu corte, a vaga não vira email.</p>
+                    <p data-i18n="feat.2.p">Stack, senioridade e modalidade viram uma nota de 0 a 100. Você vê o quanto cada vaga combina antes de mandar.</p>
                 </div>
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-mail-forward" aria-hidden="true"></i></div>
@@ -899,8 +905,8 @@
                 </div>
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-chart-line" aria-hidden="true"></i></div>
-                    <h3 data-i18n="feat.4.h">dashboard completo</h3>
-                    <p data-i18n="feat.4.p">Acompanhe envios, matches e histórico. Pause, filtre ou ajuste a qualquer momento.</p>
+                    <h3 data-i18n="feat.4.h">você no controle</h3>
+                    <p data-i18n="feat.4.p">Nada sai sem você clicar. O 👎 tira da sua lista o que não serve, e o histórico mostra tudo que você já mandou.</p>
                 </div>
             </div>
             </div>
@@ -908,9 +914,20 @@
 
         <!-- ==================== PREÇOS ==================== -->
         <section class="section" id="precos">
-            <h2 class="sec-h" data-i18n="price.h">Simples e<br><strong>transparente.</strong></h2>
-            <p class="sec-sub" data-i18n="price.sub">Comece grátis. Faça upgrade quando precisar de mais.</p>
-            <div class="plans">
+            <h2 class="sec-h" data-i18n="price.h">É grátis.<br><strong>Sem pegadinha.</strong></h2>
+            <p class="sec-sub" data-i18n="price.sub">Quem procura emprego não tem dinheiro sobrando. Por isso, hoje, tudo é grátis: sem cartão e sem plano para assinar.</p>
+            <ul class="gratis-lista">
+                <li data-i18n="gratis.1"><i class="ti ti-check" aria-hidden="true"></i>até 20 currículos por dia</li>
+                <li data-i18n="gratis.2"><i class="ti ti-check" aria-hidden="true"></i>você escolhe cada vaga, nada sai sem você clicar</li>
+                <li data-i18n="gratis.3"><i class="ti ti-check" aria-hidden="true"></i>o email sai do seu Gmail, com o seu nome</li>
+                <li data-i18n="gratis.4"><i class="ti ti-check" aria-hidden="true"></i>sem cartão de crédito</li>
+            </ul>
+            <p class="gratis-honesto" data-i18n="gratis.honesto">A gente não promete emprego. A gente encurta o caminho até quem está contratando.</p>
+            <button class="btn-p gratis-btn" onclick="go('/signup')" data-i18n="gratis.btn">ver as vagas</button>
+            <!-- Planos pagos ESCONDIDOS enquanto PLANOS_PAGOS_ATIVOS = false
+                 (backend/config/planosPagos.js). Para voltar a cobrar: tire o
+                 hidden daqui e esconda a lista grátis acima. -->
+            <div class="plans" hidden>
                 <div class="plan">
                     <div class="plan-label">free</div>
                     <div class="plan-price">R$0</div>
@@ -968,9 +985,9 @@
 
         <!-- ==================== CTA ==================== -->
         <div class="cta-bar">
-            <h2 data-i18n="cta.h">As vagas continuam saindo<br>com ou sem você.</h2>
-            <p data-i18n="cta.p">Leva menos de 5 minutos para configurar. Depois são 7 candidaturas por dia, sem cartão de crédito.</p>
-            <button class="btn-white" onclick="go('/signup')" data-i18n="cta.btn">começar agora, é grátis</button>
+            <h2 data-i18n="cta.h">Comece pelas vagas.<br>Leva um minuto.</h2>
+            <p data-i18n="cta.p">Diga sua área e veja as vagas de tecnologia de hoje, com o contato do recrutador. Grátis, sem cartão.</p>
+            <button class="btn-white" onclick="go('/signup')" data-i18n="cta.btn">ver as vagas agora</button>
             <p style="margin-top:16px;font-size:13px;">
                 <a href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG" target="_blank" rel="noopener" style="color:var(--color-cta-bar-sub);text-decoration:underline;text-underline-offset:3px;" data-i18n="cta.community"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Venha fazer parte da comunidade no WhatsApp</a>
             </p>
@@ -1001,16 +1018,22 @@
         // PT é o conteúdo original do HTML (capturado uma vez e restaurado ao voltar);
         // o dicionário abaixo só traz as traduções EN. Chave = atributo data-i18n.
         const I18N_EN = {
-            title: 'newdevjobs: automated job applications',
+            'gratis.btn': 'see the jobs',
+            'gratis.honesto': 'We don’t promise you a job. We shorten the path to the people who are hiring.',
+            'gratis.4': '<i class="ti ti-check" aria-hidden="true"></i>no credit card',
+            'gratis.3': '<i class="ti ti-check" aria-hidden="true"></i>the email goes out from your Gmail, with your name',
+            'gratis.2': '<i class="ti ti-check" aria-hidden="true"></i>you choose every job, nothing goes out without your click',
+            'gratis.1': '<i class="ti ti-check" aria-hidden="true"></i>up to 20 résumés a day',
+            title: 'New Dev Jobs: tech jobs with the recruiter’s contact',
             'nav.how': 'how it works',
-            'nav.pricing': 'pricing',
+            'nav.pricing': 'it’s free',
             'nav.docs': 'docs',
             'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">sign in</span>',
-            'hero.h1': 'Your resume reaches the recruiter<br>while you do something else.',
-            'hero.sub': 'Set up your profile once. From then on New Dev Jobs finds the openings that match your stack and sends your application from your own Gmail account, with your name as the sender.',
-            'hero.cta1': '<i class="ti ti-rocket" aria-hidden="true"></i> start with 7 free applications',
+            'hero.h1': 'Tech jobs with the<br>recruiter’s email.',
+            'hero.sub': 'Recruiters post jobs on LinkedIn every day, and many never reach the job boards. We read those posts, pick the tech jobs in Brazil and show them to you with the hiring person’s contact. You choose and send your résumé in one click.',
+            'hero.cta1': '<i class="ti ti-search" aria-hidden="true"></i> see the jobs, it’s free',
             'hero.cta2': 'see how it works',
-            'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> 7 a day, every day. No credit card.',
+            'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> Free, no credit card. Nothing is sent without your click.',
             'carta.rot': 'The email that goes out from your account',
             'carta.de': 'From',
             'carta.para': 'To',
@@ -1033,32 +1056,32 @@
             'vs.a6': 'note somewhere that you applied',
             'vs.a.fim': 'Every day, for every job.',
             'vs.depois': 'with New Dev Jobs',
-            'vs.d1': 'you set up your profile once',
+            'vs.d1': 'you tell us what you are looking for, in one minute',
             'vs.d2': 'we find the openings that never become listings',
             'vs.d3': 'the recruiter contact comes with it',
             'vs.d4': 'we score it against your profile',
-            'vs.d5': 'we send your resume from your Gmail',
+            'vs.d5': 'you pick and send your résumé in one click',
             'vs.d6': 'everything lands on your dashboard',
-            'vs.d.fim': 'Once. Then it runs on its own.',
-            'how.h': 'Set it up once.<br><strong>Apply forever.</strong>',
-            'how.sub': 'Three steps and your search goes on autopilot.',
-            'how.s1.h': 'Build your tech profile',
-            'how.s1.p': 'Tell us your stack, seniority, work model and salary range. Upload your resume as a PDF.',
-            'how.s2.h': 'Connect your Gmail',
-            'how.s2.p': 'Authorize the send scope only. You appear as the sender to the recruiter. We never read your emails.',
-            'how.s3.h': 'Get automatic applications',
-            'how.s3.p': 'Every job gets a 0 to 100 score comparing your stack, seniority, work model and keywords against the posting. Only the compatible ones become an email, and the email comes from your account.',
+            'vs.d.fim': 'You decide every send. We do the boring part.',
+            'how.h': 'How it <strong>works.</strong>',
+            'how.sub': 'You see the jobs in the first minute. No complicated setup.',
+            'how.s1.h': 'Tell us what you are looking for',
+            'how.s1.p': 'Your field (front-end, data, QA, support, SAP...) and your level. If you want, upload your résumé and we read your skills.',
+            'how.s2.h': 'See today’s jobs',
+            'how.s2.p': 'Each job shows company, level, work model and the original post. With 👍 and 👎 you remove what doesn’t fit.',
+            'how.s3.h': 'Send your résumé',
+            'how.s3.p': 'One click opens the ready email in your Gmail, addressed to the recruiter. If you prefer, connect Gmail and we send it directly, with your name. Up to 20 a day.',
             'feat.h': '<strong>Everything</strong> you need<br>to stand out.',
             'feat.1.h': 'jobs off the radar',
             'feat.1.p': 'Openings that never show up on a job board reach you with the recruiter contact already sorted out. You do not have to search, and you do not have to hunt for an email.',
             'feat.2.h': 'compatibility score',
-            'feat.2.p': 'Stack, seniority, work model and keywords turn into a 0 to 100 score. Below your cutoff, the job never becomes an email.',
+            'feat.2.p': 'Stack, seniority and work model become a score from 0 to 100. You see how well each job fits before sending.',
             'feat.3.h': 'email from your Gmail',
             'feat.3.p': 'Sent from your account. The recruiter sees your name, not the name of a tool.',
-            'feat.4.h': 'full dashboard',
-            'feat.4.p': 'Track sends, matches and history. Pause, filter or adjust at any time.',
-            'price.h': 'Simple and<br><strong>transparent.</strong>',
-            'price.sub': 'Start free. Upgrade when you need more.',
+            'feat.4.h': 'you are in control',
+            'feat.4.p': 'Nothing goes out without your click. 👎 removes what doesn’t fit, and the history shows everything you sent.',
+            'price.h': 'It’s free.<br><strong>No catch.</strong>',
+            'price.sub': 'People looking for a job don’t have money to spare. So, today, everything is free: no card and no plan to subscribe.',
             'price.free.per': 'free forever',
             'price.free.1': '<i class="ti ti-check" aria-hidden="true"></i>7 applications per day, about 210 a month',
             'price.free.5': '<i class="ti ti-check" aria-hidden="true"></i>send from your own Gmail, nothing to connect',
@@ -1085,9 +1108,9 @@
             'privacy.2': 'we never read, delete or modify your emails',
             'privacy.3': 'you can revoke access at any time',
             'privacy.4': 'no passwords stored on our servers',
-            'cta.h': 'Those openings keep coming<br>with or without you.',
-            'cta.p': 'It takes under 5 minutes to set up. After that it is 7 applications a day, no credit card.',
-            'cta.btn': 'start now, it\'s free',
+            'cta.h': 'Start with the jobs.<br>It takes one minute.',
+            'cta.p': 'Tell us your field and see today’s tech jobs, with the recruiter’s contact. Free, no card.',
+            'cta.btn': 'see the jobs now',
             'footer.docs': 'docs',
             'footer.terms': 'terms of use',
             'footer.privacy': 'privacy',
@@ -1097,13 +1120,13 @@
 
             // --- Metadados do <head>. Não têm data-i18n (não são elementos de
             // conteúdo), então o gerador de /en/ os aplica por chave fixa.
-            'meta.description': 'Dev jobs that never become a listing, with the recruiter contact already sorted out. Your resume goes out from your own Gmail account. 7 free applications per day.',
-            'meta.keywords': 'automated job applications, developer jobs, software engineer jobs, apply to jobs automatically, LinkedIn job posts, resume automation, tech jobs',
-            'meta.ogTitle': 'newdevjobs: automated job applications',
-            'meta.ogDescription': 'Dev jobs that never become a listing, with the contact already sorted out. Your resume goes out from your own Gmail account. 7 free applications per day.',
-            'meta.ogImageAlt': 'newdevjobs: automated job applications',
-            'meta.twitterDescription': 'Dev jobs that never become a listing. Your resume goes out from your own Gmail account. 7 free applications per day.',
-            'meta.jsonldDescription': 'Dev jobs that never become a listing, with the recruiter contact already sorted out. Your resume goes out from your own Gmail account.',
+            'meta.description': 'Tech jobs that recruiters post on LinkedIn, with their email. You pick and send your résumé in one click, from your Gmail. Free, no card.',
+            'meta.keywords': 'tech jobs Brazil, developer jobs, software engineer jobs, apply to jobs automatically, LinkedIn job posts, resume automation, tech jobs',
+            'meta.ogTitle': 'New Dev Jobs: tech jobs with the recruiter’s contact',
+            'meta.ogDescription': 'Tech jobs that recruiters post on LinkedIn, with their email. You pick and send your résumé in one click, from your Gmail. Free, no card.',
+            'meta.ogImageAlt': 'New Dev Jobs: tech jobs with the recruiter’s contact',
+            'meta.twitterDescription': 'Tech jobs that recruiters post on LinkedIn, with their email. You pick and send your résumé in one click, from your Gmail. Free, no card.',
+            'meta.jsonldDescription': 'Tech jobs that recruiters post on LinkedIn, with their email. You pick and send your résumé in one click, from your Gmail. Free, no card.',
         };
 
         // Cada idioma tem a SUA URL: '/' em português, '/en/' em inglês (gerado no

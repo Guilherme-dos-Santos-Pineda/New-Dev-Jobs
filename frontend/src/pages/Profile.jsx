@@ -29,7 +29,7 @@ export default function Profile() {
     const navigate = useNavigate();
     const [params] = useSearchParams();
     const initialSection = (params.get('google') || params.get('tab') === 'email') ? 'email'
-        : (params.get('section') || 'skills');
+        : (params.get('section') || 'work');
     const [section, setSection] = useState(initialSection);
 
     const [form, setForm] = useState(EMPTY);
@@ -176,12 +176,17 @@ export default function Profile() {
     // postingDays fora da conta enquanto o filtro esta desligado: senao o resumo
     // anuncia "filtros ativos" por causa de um filtro que nao filtra nada.
     const hasFilters = form.requiredKeywords.length || form.blockedWords.length || form.blockedDomains.length || (FILTRO_DATA_ATIVO && form.postingDays);
+    // Ordem e nomes pelo que a pessoa quer fazer, não pelo que o banco guarda.
+    // Feedback de 29/10/2026: "muita informação na hora de configurar". Só área
+    // e currículo contam como pendência; o resto é opcional e diz isso. Antes
+    // modalidade, senioridade e Gmail apareciam como "falta", e a lista de
+    // pendências parecia não acabar nunca.
     const sections = [
-        { id: 'skills', label: 'Skills & Keywords', icon: 'ti-tags', complete: form.skills.length > 0 },
-        { id: 'work', label: 'Preferências de Trabalho', icon: 'ti-briefcase', complete: form.modalities.length > 0 && form.seniorities.length > 0 },
-        { id: 'filters', label: 'Filtros', icon: 'ti-filter', optional: true, complete: !!hasFilters },
-        { id: 'contact', label: 'Contato & Currículo', icon: 'ti-address-book', complete: !!cvName },
-        { id: 'email', label: 'Email & Templates', icon: 'ti-mail-cog', complete: !!user.googleConnected },
+        { id: 'work', label: 'O que você procura', icon: 'ti-search', complete: form.areas.length > 0 },
+        { id: 'contact', label: 'Currículo e contato', icon: 'ti-file-cv', complete: !!cvName },
+        { id: 'skills', label: 'Suas habilidades', icon: 'ti-tags', optional: true, complete: form.skills.length > 0 },
+        { id: 'email', label: 'Como enviar', icon: 'ti-mail-cog', optional: true, complete: !!user.googleConnected },
+        { id: 'filters', label: 'Filtros avançados', icon: 'ti-filter', optional: true, complete: !!hasFilters },
     ];
     // Fora do checklist de propósito: apagar não é um passo da configuração, e
     // contá-la como "pendente" colocaria um alerta permanente ao lado de uma ação
@@ -241,7 +246,7 @@ export default function Profile() {
                 <div>
                     {section === 'skills' && (
                         <div className="card">
-                            <div className="sec-card-head"><h2>Skills &amp; Keywords</h2></div>
+                            <div className="sec-card-head"><h2>{t('Suas habilidades')}</h2><span className="badge warn">Opcional</span></div>
                             <div className="why"><i className="ti ti-info-circle" />Essas keywords calculam o match de cada vaga com seu perfil. Quanto mais precisas, melhores os resultados.</div>
 
                             {/* Os CAMPOS vêm primeiro. Antes as duas caixas de ajuda
@@ -326,8 +331,8 @@ export default function Profile() {
 
                     {section === 'work' && (
                         <div className="card">
-                            <div className="sec-card-head"><h2>Preferências de Trabalho</h2></div>
-                            <div className="why"><i className="ti ti-info-circle" />Pode escolher <b>vários</b>. Ex.: remoto + híbrido + presencial, sendo pleno e sênior.</div>
+                            <div className="sec-card-head"><h2>{t('O que você procura')}</h2></div>
+                            <div className="why"><i className="ti ti-info-circle" />{t('Só a área é obrigatória. Pode marcar várias opções em cada linha.')}</div>
                             <div className="field">
                                 <label>Onde se candidatar (país das vagas)</label>
                                 <select className="select" value={form.region} onChange={(e) => set('region', e.target.value)}>
@@ -364,6 +369,13 @@ export default function Profile() {
                                     ))}
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {section === 'filters' && (
+                        <div className="card">
+                            <div className="sec-card-head"><h2>{t('Filtros avançados')}</h2><span className="badge warn">Opcional</span></div>
+                            <div className="why"><i className="ti ti-info-circle" />{t('Não precisa mexer aqui para começar. Use quando já tiver visto as vagas e quiser tirar algum tipo da sua lista.')}</div>
                             <div className="grid-2">
                                 <div className="field">
                                     <label>Pretensão mínima (R$)</label>
@@ -376,13 +388,6 @@ export default function Profile() {
                                         onChange={(e) => set('salaryMax', e.target.value)} placeholder="8000" />
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {section === 'filters' && (
-                        <div className="card">
-                            <div className="sec-card-head"><h2>Filtros</h2><span className="badge warn">Opcional</span></div>
-                            <div className="why"><i className="ti ti-info-circle" />Refine quais vagas aparecem. Esses filtros descartam automaticamente vagas que não combinam.</div>
 
                             <div className="field">
                                 <label>Keywords obrigatórias <span className="badge ok">eliminatório</span></label>
@@ -433,7 +438,7 @@ export default function Profile() {
 
                     {section === 'contact' && (
                         <div className="card">
-                            <div className="sec-card-head"><h2>Contato &amp; Currículo</h2></div>
+                            <div className="sec-card-head"><h2>{t('Currículo e contato')}</h2></div>
                             <div className="grid-2">
                                 <div className="field">
                                     <label>Telefone</label>

@@ -57,6 +57,10 @@ regra existente, não acrescente uma nova que a contradiga.
 - Aplicar: `node backend/scripts/apply-migration.mjs supabase/migrations/<arquivo>.sql` (escrita em prod é feita pelo dono — eu não rodo).
 
 ## Planos e preço (o que pode ser anunciado)
+- **Os planos pagos estão DESLIGADOS desde 29/10/2026** (decisão do dono, até ter tração), pela chave `PLANOS_PAGOS_ATIVOS` em [backend/config/planosPagos.js](backend/config/planosPagos.js), espelhada em `frontend/src/lib/flags.js`. Motivo: feedback de usuários de que a ferramenta parecia "feita para tirar dinheiro de desempregado". Desligada: o grátis tem **20 envios/dia e escolha vaga a vaga** (`FREE_SEM_PLANOS_PAGOS`), `/billing/plans` só devolve o grátis, `/billing/checkout` recusa (403), o app esconde Assinatura e a landing esconde os planos (`<div class="plans" hidden>`).
+  - **Para voltar a cobrar**: `true` nos DOIS arquivos e tire o `hidden` da landing (e esconda a lista grátis). Ligar num lugar só deixa o app oferecendo plano que o backend recusa.
+  - `.plans[hidden] { display: none }` existe porque o `display: grid` da classe vence o atributo `hidden`: sem a regra, os planos apareciam "escondidos".
+  - Quem já tem plano pago (concessão) não perde nada nos dois estados.
 - **Só entra em `features` (backend/config/plans.js) o que EXISTE no código.** O Pro vendia "tracking de abertura", "multi-contas" e "agendamento automático" por R$189: nenhum dos três tinha uma linha de implementação, eram string no `plans.js` e `<li>` na landing. Antes de acrescentar um item, aponte a função que o entrega.
 - A landing (`pages/index.html`) e o app leem a mesma lista: o app vem de `/billing/plans`, a landing é HTML escrito à mão. **Mudou `plans.js`? Confira a landing também**, senão as duas divergem.
 - `priority` não ordena nada ainda. Não vire feature de venda enquanto a fila não usar.
@@ -90,8 +94,17 @@ regra existente, não acrescente uma nova que a contradiga.
   - **Plano pago sem `StripeCustomerId` é concessão, não venda.** Misturar faz cortesia parecer faturamento.
   - Marco em 26/09/2026: 17 contas, 9 perfil, 6 skills, 6 currículo, 3 Gmail, 3 enviaram, **0 vendas**. Maior degrau: criar conta → salvar perfil (perde 8).
 - `Onboarding.jsx` **diz o que o produto faz antes de pedir qualquer coisa**. O checklist antigo abria com "Conclua sua configuração", que só faz sentido para quem já entendeu que o sistema manda email por você.
-- **Três passos, não quatro**: área e skills são a mesma tela; pedir duas vezes faz a lista parecer maior do que é. E **só o próximo passo tem botão em destaque** — lista toda clicável divide a atenção de quem já não sabe por onde começar.
-- **Antes da configuração terminar, o painel só mostra os KPIs da BASE** (vagas coletadas, recrutadores, empresas). Os pessoais são zero, e uma parede de zeros lê como "não funciona" bem na hora de decidir se vale continuar. Cuidado ao classificar: "Vagas compatíveis" PARECE métrica da base mas depende do perfil — dá zero justamente para quem não configurou.
+- **O assistente do primeiro acesso (`WizardInicial`) pergunta TRÊS coisas: área, nível, currículo.** Eram cinco (mais palavras obrigatórias e bloqueadas), e o feedback de 29/10/2026 foi "muita informação na hora de configurar". Palavra é ajuste fino: quem nunca viu o feed não sabe o que bloquear. Ficou no perfil, em "Filtros avançados".
+- **O perfil é ordenado pelo que a pessoa quer fazer**: "O que você procura", "Currículo e contato", "Suas habilidades", "Como enviar", "Filtros avançados". Só área e currículo contam como pendência; o resto diz "opcional". Modalidade, senioridade e Gmail apareciam como "falta" e a lista de pendências parecia não acabar.
+
+## Tela inicial: vagas de hoje
+- **O dashboard é a lista das vagas da pessoa, com um botão "Enviar currículo" em cada uma.** O painel antigo tinha onze blocos (KPIs, ranking, central de atividades, mural de feedback, tour, checklist, banner, destaques) e a busca escondida num modal; os usuários diziam não entender para que servia. O menu chama "Vagas", não "Dashboard". Ranking, feedback e destaques continuam existindo, fora da tela inicial.
+- **Recente primeiro**: a API ordena por compatibilidade, e o topo virava vaga de 135 dias atrás. A tela ordena por faixa de frescor (semana, mês, resto) e, dentro dela, por compatibilidade.
+- **A lista é congelada ao carregar**: enviar ou dar 👎 marca a linha em vez de recalcular, senão a vaga some debaixo do dedo junto com o "desfazer".
+- **"Enviar" tem dois caminhos**: com Gmail conectado + currículo + `allowManual`, `POST /applications` envia na hora; sem isso, `POST /jobs/:id/compose` abre o email pronto no Gmail da pessoa (a aba abre ANTES do await, senão vira popup bloqueado). **Nada sai sem clique**: nenhum robô envia sozinho (o `SendMode` é gravado e nunca lido), e a landing promete isso.
+- **👍/👎 em cada vaga** (`services/jobFeedback.js`, migration `0017`). O 👎 pede um motivo e **tira a vaga do feed daquela pessoa na hora** (feed, diagnóstico do admin e `check:feed` cortam igual). No admin de vagas, contagem de 👍/👎 por vaga e o filtro "Com 👎": vaga com vários "não é de TI" é candidata ao "Não é TI".
+  - **Funciona antes da migration**: `feedbackDisponivel()` checa a tabela; sem ela os botões somem e o feed segue igual. Consultar tabela inexistente derrubaria o feed de todos.
+  - **`semDislikeSql` é SÍNCRONA de propósito.** Fragmento do postgres.js é "thenable": devolvido por função `async`, o `await` do chamador EXECUTA o fragmento sozinho ("syntax error at or near $3") e o feed cai. A primeira versão fez isso; nenhum teste ou lint pega, só rodar.
 
 ## Prova real (ponta a ponta)
 - **O harness falha alto:** há `catch` explícito (o `finally` chamava `process.exit()` antes de a exceção subir, e um crash virava "todas passaram" com metade das verificações) e um piso mínimo — rodada curta é falha.
@@ -219,7 +232,8 @@ regra existente, não acrescente uma nova que a contradiga.
 
 ## Segurança (invariantes)
 - Admin = allowlist `ADMIN_EMAILS` **ou** `Users.Role='admin'`. **Sem fallback aberto.**
-- `/jobs` e `/jobs/matches` **nunca** devolvem o email de contato (envio é server-side); plano free também não recebe a descrição.
+- `/jobs` e `/jobs/matches` **nunca** devolvem o email de contato (envio é server-side). A descrição vai para todos **limpa por `semContato()`** (sem email, telefone e link): antes o plano free não recebia descrição nenhuma, e com os planos pagos desligados ninguém conseguiria ler a vaga antes de enviar.
+- **`POST /applications` envia na hora e por isso confere tudo**: cota diária, vaga no feed do usuário, `allowManual`, e um envio por vez por usuário (cadeado em memória; o processo é um só). `applyToJob` não confere o teto (quem conferia era só o worker), e a rota aceitava qualquer vaga da base: dava para passar do limite e mandar para vaga fora do feed.
   - **Única exceção: `POST /jobs/:id/compose`** (o "enviar você mesmo"). Ela existe porque a permissão do Gmail era o maior buraco do funil (de 9 perfis salvos, só 4 conectaram), e é estreita de propósito: **uma vaga por vez**, **só se estiver no feed daquele usuário** (senão vira caminho paralelo para qualquer vaga da base, igual ao risco do `/highlights/apply`) e **gastando 1 do mesmo teto diário** do envio automático. Assim a taxa de coleta continua 7/dia no free, não 1500.
   - A cota é conferida e gravada **na mesma transação**, depois de `for update` na linha do usuário. Checar e depois inserir em dois passos soltos é corrida: 20 pedidos em paralelo passavam todos pela checagem antes de qualquer um gravar. Coberto por `backend/test/composeLogic.test.js` e medido na prova (20 paralelos → exatamente 6 liberados).
   - A URL do Gmail é montada **no navegador** (`gmailComposeUrl` em `frontend/src/utils.js`), não no servidor: o endereço do recrutador não precisa viver em log de servidor. E `window.open` é chamado **antes** do `await`, senão o navegador bloqueia como popup.

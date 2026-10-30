@@ -8,3 +8,8 @@
 // o filtro funcionar; ligar so la filtra sem a pessoa conseguir configurar.
 // O motivo de estar desligada esta escrito em backend/config/filtroData.js.
 export const FILTRO_DATA_ATIVO = false;
+
+// ESPELHA backend/config/planosPagos.js (o motivo está escrito lá). Desligada:
+// some a página de assinatura e todo convite a pagar. Ao religar, mude NOS DOIS
+// e reexiba a seção de preços da landing.
+export const PLANOS_PAGOS_ATIVOS = false;

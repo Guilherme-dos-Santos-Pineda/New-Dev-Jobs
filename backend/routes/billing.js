@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { PLANS } from '../config/plans.js';
+import { PLANOS_PAGOS_ATIVOS } from '../config/planosPagos.js';
 import { planUsage } from '../services/usage.js';
 import { stripe, stripeConfigured, planFromPriceId, priceIdForPlan } from '../services/stripeClient.js';
 import { checkoutModeForPrice, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
@@ -18,10 +19,13 @@ import { checkoutModeForPrice, mapCharge, computeExpiry, decideCheckoutSession }
 const router = Router();
 
 // GET /api/billing/plans — catálogo público (tela de preços/upgrade)
+// Com os planos pagos desligados (config/planosPagos.js) o catálogo só tem o
+// grátis: a tela não tem o que oferecer e a landing deixa de mostrar preço.
 router.get('/plans', (_req, res) => {
     res.json({
-        stripeEnabled: stripeConfigured,
-        plans: Object.entries(PLANS).map(([id, p]) => ({
+        stripeEnabled: stripeConfigured && PLANOS_PAGOS_ATIVOS,
+        pagosAtivos: PLANOS_PAGOS_ATIVOS,
+        plans: Object.entries(PLANS).filter(([id]) => PLANOS_PAGOS_ATIVOS || id === 'free').map(([id, p]) => ({
             id, label: p.label, dailyLimit: p.dailyLimit, allowManual: p.allowManual, priority: p.priority,
             price: p.price, period: p.period, popular: p.popular, desc: p.desc, features: p.features,
             purchasable: id !== 'free' && Boolean(priceIdForPlan(id)),
@@ -37,6 +41,9 @@ router.get('/me', requireAuth, async (req, res) => {
 // POST /api/billing/checkout  { plan } — cria a sessão de checkout (assinatura)
 const checkoutSchema = z.object({ plan: z.enum(['starter', 'pro']) });
 router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res) => {
+    // A trava é aqui, não só no botão: com a chave desligada ninguém compra,
+    // nem chamando a API direto.
+    if (!PLANOS_PAGOS_ATIVOS) return res.status(403).json({ error: 'Os planos pagos estão desativados. Tudo é grátis por enquanto.' });
     if (!stripeConfigured) return res.status(503).json({ error: 'Pagamentos indisponíveis no momento.' });
     const price = priceIdForPlan(req.body.plan);
     if (!price) return res.status(503).json({ error: `Preço do plano ${req.body.plan} não configurado (STRIPE_PRICE_*).` });

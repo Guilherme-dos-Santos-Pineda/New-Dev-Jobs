@@ -3,6 +3,7 @@ import { getMatches } from './jobsQuery.js';
 import { expandirAreas } from '../config/areas.js';
 import { LIKE_EMAIL } from './emailContato.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
+import { semDislikeSql, feedbackDisponivel } from './jobFeedback.js';
 
 // =========================
 // Por que esta pessoa vê poucas vagas? (só admin)
@@ -36,6 +37,7 @@ const textoDaVaga = () => sql`lower(coalesce(j."JobTitle",'') || ' ' || coalesce
 
 /** Uma contagem sobre Jobs, com os filtros acumulados até certo ponto. */
 async function contar(userId, extra) {
+    const semDislike = semDislikeSql(userId, await feedbackDisponivel()); // o 👎 corta igual ao feed
     const [r] = await sql`
         select count(*)::int as n from "Jobs" j
         where j."Email" is not null and j."Email" like ${LIKE_EMAIL}
@@ -44,6 +46,7 @@ async function contar(userId, extra) {
               select 1 from "Applications" a
               where a."UserId" = ${userId} and a."JobId" = j."Id"
           )
+          ${semDislike}
           ${extra}`;
     return r.n;
 }

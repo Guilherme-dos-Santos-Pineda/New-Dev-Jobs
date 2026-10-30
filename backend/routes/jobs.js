@@ -3,6 +3,9 @@ import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getMatches, shapeJob, countCandidatable } from '../services/jobsQuery.js';
 import { composeForJob, ComposeError } from '../services/compose.js';
+import { semContato } from '../services/highlights.js';
+import { invalidateMatches } from '../services/jobsQuery.js';
+import { feedbackDisponivel, votar, meusLikes, MOTIVOS } from '../services/jobFeedback.js';
 
 const router = Router();
 
@@ -31,15 +34,44 @@ router.get('/matches', requireAuth, async (req, res) => {
     const candidatable = await countCandidatable(req.user.Id);
     // Segurança: NUNCA devolve o email de contato (evita coletar contatos sem usar a
     // plataforma). No plano free também oculta a descrição (o post traz o email no texto).
-    const isFree = (req.user.Plan || 'free') === 'free';
+    //
     // A descrição vai TRUNCADA na listagem. A tela mostra uma descrição por vez
     // (ao expandir a vaga), então mandar o texto inteiro de todas era pagar ~2 MB
     // de tráfego para exibir alguns kB — e no celular isso é o carregamento
     // inteiro da tela. Quem expande busca o texto completo em GET /jobs/:id.
+    //
+    // O plano free recebia a descrição VAZIA, porque o post traz o email no
+    // texto. Com os planos pagos desligados todo mundo é free, e ninguém
+    // conseguiria ler a vaga antes de mandar o currículo. semContato() tira
+    // email, telefone e link (é o que os destaques já usam), então a descrição
+    // vai para todos, limpa.
     const safe = matches.map(({ email, description, ...m }) => (
-        isFree ? m : { ...m, description: description ? description.slice(0, PREVIEW_CHARS) : description }
+        { ...m, description: description ? semContato(description).slice(0, PREVIEW_CHARS) : description }
     ));
     res.json({ matches: safe, total: matches.length, candidatable, filtered: Math.max(0, candidatable - matches.length) });
+});
+
+// GET /api/jobs/feedback/mine — os 👍 do usuário, e se o recurso está ligado
+// (a tabela vem da migration 0017; sem ela a tela esconde os botões).
+// Fica ANTES de /:id, senão "feedback" seria lido como id de vaga.
+router.get('/feedback/mine', requireAuth, async (req, res) => {
+    if (!(await feedbackDisponivel())) return res.json({ disponivel: false, likes: [], motivos: MOTIVOS });
+    res.json({ disponivel: true, likes: await meusLikes(req.user.Id), motivos: MOTIVOS });
+});
+
+// POST /api/jobs/:id/feedback  { voto: 1 | -1 | 0, motivo? }
+// O 👎 tira a vaga do feed desta pessoa (invalida o memo para sumir na hora).
+router.post('/:id/feedback', requireAuth, async (req, res) => {
+    if (!(await feedbackDisponivel())) return res.status(503).json({ error: 'Avaliação de vagas ainda não está disponível.' });
+    const voto = Number(req.body?.voto);
+    if (![1, -1, 0].includes(voto)) return res.status(400).json({ error: 'Voto inválido.' });
+    const jobId = Number(req.params.id);
+    if (!Number.isInteger(jobId) || jobId <= 0) return res.status(400).json({ error: 'Vaga inválida.' });
+    const [existe] = await sql`select 1 from "Jobs" where "Id" = ${jobId}`;
+    if (!existe) return res.status(404).json({ error: 'Vaga não encontrada' });
+    await votar(req.user.Id, jobId, voto, req.body?.motivo);
+    invalidateMatches(req.user.Id);
+    res.json({ ok: true, voto });
 });
 
 // POST /api/jobs/:id/compose  — email pronto para o usuário mandar do Gmail dele
@@ -75,10 +107,10 @@ router.get('/:id', requireAuth, async (req, res) => {
     const appliedSet = new Set(appliedRows.map((r) => r.JobId));
     // Segurança: NUNCA devolve o email de contato; no plano free também oculta a
     // descrição (o post traz o email no texto). Mesmo critério do /matches.
-    const isFree = (req.user.Plan || 'free') === 'free';
+    // Descrição LIMPA (sem email, telefone e link) para todos. Mesmo critério
+    // do /matches.
     const { email, description, ...rest } = shapeJob(job, profile, appliedSet);
-    const safe = isFree ? rest : { ...rest, description };
-    res.json({ job: safe });
+    res.json({ job: { ...rest, description: description ? semContato(description) : description } });
 });
 
 export default router;

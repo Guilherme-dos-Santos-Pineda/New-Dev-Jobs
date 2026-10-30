@@ -15,6 +15,7 @@ import { PLANS } from '../config/plans.js';
 import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
 import { condicaoMonitoravel, DIAS_ENTRE_VISITAS } from '../services/recrutadorMonitoravel.js';
 import { REMOVIDA_PELO_ADMIN, detectArea } from '../services/classify.js';
+import { feedbackDisponivel, MOTIVOS } from '../services/jobFeedback.js';
 
 const router = Router();
 
@@ -516,6 +517,8 @@ function shapeJob(j) {
         area: j.Area, level: j.Level, isBR: j.IsBR, recruiterName: j.recruiter_name ?? undefined,
         recruiterUrl: j.recruiter_url ?? undefined,
         removida: j.AiClassification === REMOVIDA_PELO_ADMIN,
+        likes: j.likes ?? undefined, dislikes: j.dislikes ?? undefined,
+        motivos: j.motivos ? String(j.motivos).split(',').map((m) => MOTIVOS[m] || m) : undefined,
     };
 }
 
@@ -539,6 +542,9 @@ router.get('/jobs', requireAdmin, async (req, res) => {
         sem_email: sql`and (j."Email" is null or j."Email" not like '%@%.%')`,
         removidas: sql`and j."AiClassification" = ${REMOVIDA_PELO_ADMIN}`,
     };
+    // 👎 dos usuários (migration 0017): vaga reprovada é candidata a "Não é TI".
+    const comFeedback = await feedbackDisponivel();
+    if (comFeedback) grupos.reprovadas = sql`and exists (select 1 from "JobFeedback" f where f."JobId" = j."Id" and f."Voto" = -1)`;
     const grupo = grupos[req.query.grupo] || sql``;
     const area = req.query.area || null;
     const dias = { hoje: 1, '7d': 7, '30d': 30 }[req.query.periodo] || null;
@@ -553,6 +559,10 @@ router.get('/jobs', requireAdmin, async (req, res) => {
     const [{ total }] = await sql`select count(*)::int as total from "Jobs" j ${where}`;
     const rows = await sql`
         select j.*, r."Name" as recruiter_name, r."LinkedinUrl" as recruiter_url
+            ${comFeedback ? sql`,
+            (select count(*)::int from "JobFeedback" f where f."JobId" = j."Id" and f."Voto" = 1) as likes,
+            (select count(*)::int from "JobFeedback" f where f."JobId" = j."Id" and f."Voto" = -1) as dislikes,
+            (select string_agg(distinct f."Motivo", ',') from "JobFeedback" f where f."JobId" = j."Id" and f."Voto" = -1) as motivos` : sql``}
         from "Jobs" j left join "Recruiters" r on r."Id" = j."RecruiterId"
         ${where}
         order by j."CreatedAt" desc, j."Id" desc
@@ -570,6 +580,7 @@ router.get('/jobs', requireAdmin, async (req, res) => {
                count(*) filter (where coalesce(j."Area", 'other') = 'other')::int as sem_area,
                count(*) filter (where j."Email" is null or j."Email" not like '%@%.%')::int as sem_email,
                count(*) filter (where j."AiClassification" = ${REMOVIDA_PELO_ADMIN})::int as removidas
+               ${comFeedback ? sql`, count(*) filter (where exists (select 1 from "JobFeedback" f where f."JobId" = j."Id" and f."Voto" = -1))::int as reprovadas` : sql``}
         from "Jobs" j ${base}`;
     res.json({ jobs: rows.map(shapeJob), total, page, pageSize, contagens: c });
 });

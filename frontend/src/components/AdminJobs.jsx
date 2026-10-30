@@ -22,6 +22,7 @@ const GRUPOS = [
     ['fora_br', 'Fora do Brasil', 'ti-world'],
     ['sem_area', 'Sem área definida', 'ti-help-circle'],
     ['sem_email', 'Sem email', 'ti-mail-off'],
+    ['reprovadas', 'Com 👎 dos usuários', 'ti-thumb-down'],
     ['removidas', 'Removidas por você', 'ti-trash'],
     ['', 'Todas', 'ti-list'],
 ];
@@ -85,7 +86,7 @@ export default function AdminJobs() {
                     </select>
                 </div>
                 <div className="chips">
-                    {GRUPOS.map(([g, l, ico]) => (
+                    {GRUPOS.filter(([g]) => g !== 'reprovadas' || c.reprovadas != null).map(([g, l, ico]) => (
                         <button key={g} className={`chip toggle ${f.grupo === g ? 'on' : ''}`} onClick={() => aplicar('grupo', g)}>
                             <i className={`ti ${ico}`} /> {l}{contagemDe(g) != null ? <b className="chip-n">{nf(contagemDe(g))}</b> : null}
                         </button>
@@ -109,6 +110,11 @@ export default function AdminJobs() {
                         </span>
                         <span className={`badge ${j.area === 'nontech' ? 'danger' : j.area === 'other' || !j.area ? 'neutral' : 'info'}`}>{nomeArea(j.area)}</span>
                         {j.isBR === false && <span className="badge warn">fora do BR</span>}
+                        {(j.likes > 0 || j.dislikes > 0) && (
+                            <span className="badge neutral" title={j.motivos?.length ? `Motivos do 👎: ${j.motivos.join(', ')}` : ''}>
+                                👍 {j.likes || 0} · 👎 {j.dislikes || 0}
+                            </span>
+                        )}
                         {j.removida ? (
                             <button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); mudar(j, false); }}>
                                 <i className="ti ti-arrow-back-up" /> Restaurar
@@ -156,6 +162,10 @@ export default function AdminJobs() {
                                             : aberta.recruiterName}</span></div>
                                 )}
                                 {aberta.level && <div className="det-campo"><span className="det-rotulo">Nível</span><span className="det-valor">{aberta.level}</span></div>}
+                                {aberta.dislikes > 0 && (
+                                    <div className="det-campo larga"><span className="det-rotulo">O que os usuários disseram</span>
+                                        <span className="det-valor">👍 {aberta.likes || 0} · 👎 {aberta.dislikes}{aberta.motivos?.length ? ` (${aberta.motivos.join(', ')})` : ''}</span></div>
+                                )}
                             </div>
                             <div className="det-secao">
                                 <span className="det-rotulo">Post original</span>

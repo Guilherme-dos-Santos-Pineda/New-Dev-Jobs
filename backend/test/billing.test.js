@@ -127,10 +127,21 @@ test('planOf: retorna o plano certo e cai no free p/ desconhecido', () => {
     assert.equal(planOf('inexistente').label, 'Free');
     assert.equal(planOf(undefined).label, 'Free');
 });
-test('planOf: apenas planos pagos permitem envio manual', () => {
-    assert.equal(planOf('free').allowManual, false);
+// Com os planos pagos LIGADOS, escolher vaga a vaga é recurso pago. Com eles
+// desligados (config/planosPagos.js), o grátis é o produto inteiro: 20 por dia
+// e escolha manual. Os pagos nunca perdem nada nos dois estados.
+test('planOf: o grátis segue a chave dos planos pagos', async () => {
+    const { PLANOS_PAGOS_ATIVOS, FREE_SEM_PLANOS_PAGOS } = await import('../config/planosPagos.js');
+    if (PLANOS_PAGOS_ATIVOS) {
+        assert.equal(planOf('free').allowManual, false);
+        assert.equal(planOf('free').dailyLimit, 7);
+    } else {
+        assert.equal(planOf('free').allowManual, true);
+        assert.equal(planOf('free').dailyLimit, FREE_SEM_PLANOS_PAGOS.dailyLimit);
+    }
     assert.equal(planOf('starter').allowManual, true);
     assert.equal(planOf('pro').allowManual, true);
+    assert.ok(planOf('starter').dailyLimit > planOf('free').dailyLimit, 'pago nunca fica abaixo do grátis');
 });
 
 // =========================

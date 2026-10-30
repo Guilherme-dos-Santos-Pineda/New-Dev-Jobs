@@ -2,370 +2,276 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { useToast } from '../components/Toast.jsx';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
-import { scoreClass, fmtDate } from '../utils.js';
-import FeedbackSection from '../components/FeedbackSection.jsx';
-import SearchSendModal from '../components/SearchSendModal.jsx';
-import Sparkline from '../components/Sparkline.jsx';
-import CommunityBanner from '../components/CommunityBanner.jsx';
-import Onboarding from '../components/Onboarding.jsx';
-import TourInicial from '../components/TourInicial.jsx';
+import { scoreClass, gmailComposeUrl, LIMITE_URL, AREA_OPTIONS } from '../utils.js';
+import { haQuanto } from '../lib/tempo.js';
 import WizardInicial from '../components/WizardInicial.jsx';
-import HighlightsSection from '../components/HighlightsSection.jsx';
 
-// O X do banner de envio precisa valer depois do recarregamento. Guardar só
-// "dispensei" no estado do React some no F5, e o banner de um lote JÁ CONCLUÍDO
-// voltava para sempre, porque a API continua devolvendo o último lote.
+// =========================
+// Vagas de hoje (a tela inicial)
+// =========================
+// Feedback real de usuários (29/10/2026): "muita informação", "não entendo para
+// que serve", "parece feito para tirar dinheiro de desempregado". O painel
+// antigo tinha onze blocos (KPIs, ranking, central de atividades, mural de
+// feedback, tour, checklist, banner...) e a busca de vagas escondida num modal.
 //
-// A chave guarda a ASSINATURA do lote, não um booleano: quando um lote novo
-// roda os números mudam, a assinatura deixa de bater e o banner volta a
-// aparecer, que é o comportamento certo. Um booleano esconderia o próximo
-// envio também.
-const CHAVE_FILA_DISPENSADA = 'fila-dispensada';
-const assinaturaDaFila = (q) => (q ? `${q.total}:${q.sent}:${q.failed}:${q.skipped}` : '');
-function filaFoiDispensada(q) {
-    try { return !!q && localStorage.getItem(CHAVE_FILA_DISPENSADA) === assinaturaDaFila(q); }
-    catch { return false; }
-}
+// Agora a tela responde UMA pergunta: "quais vagas são para mim hoje?". Cada
+// vaga tem o que a pessoa precisa para decidir (cargo, empresa, área, nível,
+// modalidade, compatibilidade, o post) e uma ação principal: Enviar currículo.
+// 👍/👎 ensinam o que serve; o 👎 tira a vaga da lista na hora.
+//
+// A lista é CONGELADA ao carregar: enviar ou dar 👎 marca a linha em vez de
+// recalcular, senão a vaga some debaixo do dedo e leva junto o botão de desfazer.
 
-const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
-const fmtSaved = (min) => {
-    if (!min) return '0 min';
-    const h = Math.floor(min / 60);
-    return h >= 1 ? `${h}h${min % 60 ? ` ${min % 60}m` : ''}` : `${min} min`;
-};
-const timeAgo = (d) => {
-    const s = (Date.now() - new Date(d)) / 1000;
-    if (s < 60) return 'agora';
-    if (s < 3600) return `há ${Math.floor(s / 60)} min`;
-    if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
-    return `há ${Math.floor(s / 86400)} d`;
-};
+const POR_PAGINA = 20;
+const AREA_NOME = Object.fromEntries(AREA_OPTIONS.map((a) => [a.value, a.label]));
+const NIVEL_NOME = { estagio: 'Estágio', junior: 'Júnior', pleno: 'Pleno', senior: 'Sênior', lead: 'Tech Lead', manager: 'Gerência' };
+const MOD_NOME = { remoto: 'Remoto', hibrido: 'Híbrido', presencial: 'Presencial' };
 
 export default function Dashboard() {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const { t } = useT();
-    // Cada recurso é cacheado: ao voltar para a home (ou após prefetch no hover do
-    // menu) os dados aparecem na hora e revalidam em silêncio. As três chamadas
-    // continuam em paralelo, agora deduplicadas pelo cache.
-    const { data, loading, refresh: refreshDash } = useCachedResource('dashboard', () => api.getDashboard());
+    const toast = useToast();
     const { data: profData } = useCachedResource('profile', () => api.getProfile());
-    const { data: rankData, refresh: refreshRank } = useCachedResource('ranking', () => api.getRanking());
     const profile = profData?.profile;
-    const ranking = rankData?.ranking || [];
-    const rankMetric = rankData?.metric || '';
 
-    // O wizard aparece para quem ainda NAO escolheu area: sem area o feed nao
-    // tem o que filtrar, e foi onde 8 das 17 contas pararam.
-    // `wizardFeito` e so para esta sessao (terminou ou pulou): o dado de
-    // verdade e o perfil, que chega pelo profData no proximo carregamento.
-    // Declarado AQUI, antes do JSX que usa: `no-use-before-define` ja derrubou
-    // o app inteiro uma vez por causa disso.
+    // Sem área escolhida o feed não tem o que filtrar: o assistente vem antes.
+    // Declarado antes do JSX que usa (no-use-before-define já derrubou o app).
     const [wizardFeito, setWizardFeito] = useState(false);
     const mostraWizard = !wizardFeito && !!profData && !(profile?.areas?.length);
 
-    const [searchOpen, setSearchOpen] = useState(false);
-    const [queue, setQueue] = useState(null);
-    const pollRef = useRef(null);
+    const [lista, setLista] = useState(null);       // congelada ao carregar
+    const [estado, setEstado] = useState({});       // id -> 'enviado' | 'aberto' | 'removido'
+    const [likes, setLikes] = useState(new Set());
+    const [feedbackLigado, setFeedbackLigado] = useState(false);
+    const [motivos, setMotivos] = useState({});
+    const [pedindoMotivo, setPedindoMotivo] = useState(null);
+    const [aberta, setAberta] = useState(null);     // id com o post expandido
+    const [textoCompleto, setTextoCompleto] = useState({});
+    const [mostrar, setMostrar] = useState(POR_PAGINA);
+    const [ocupado, setOcupado] = useState(null);
+    const trava = useRef(false);
 
-    function refreshData() { refreshDash(); refreshRank(); }
-
-    function stopPolling() { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } }
-    async function refreshQueue() {
-        if (document.hidden) return; // não bate a API com a aba em segundo plano
+    async function carregar() {
         try {
-            const { status } = await api.queueStatus();
-            setQueue(status);
-            if (!status.active) { stopPolling(); refreshData(); }
-        } catch { /* ignore */ }
+            const r = await api.getMatches();
+            // A API ordena só por compatibilidade, e o topo virava vaga de 135
+            // dias atrás, provavelmente fechada. Aqui o recente vem primeiro (faixas
+            // de semana/mês) e, dentro da faixa, o mais compatível.
+            const faixa = (d) => { const dias = (Date.now() - new Date(d)) / 86400000; return dias <= 7 ? 0 : dias <= 30 ? 1 : 2; };
+            setLista((r.matches || []).slice().sort((a, b) => faixa(a.createdAt) - faixa(b.createdAt) || b.matchScore - a.matchScore));
+            setEstado({});
+            setMostrar(POR_PAGINA);
+        } catch (e) { toast.show(e.message, 'error'); setLista([]); }
     }
-    function startPolling() { stopPolling(); refreshQueue(); pollRef.current = setInterval(refreshQueue, 3000); }
-
+    useEffect(() => { if (!mostraWizard && profData) carregar(); }, [mostraWizard, !!profData]);
     useEffect(() => {
-        // Só faz polling se já houver fila ativa/pendente (ex.: page reload no meio
-        // de um envio). Sem fila, fazemos uma única leitura para mostrar o banner.
-        (async () => {
-            try {
-                const { status } = await api.queueStatus();
-                setQueue(status);
-                if (status.active || status.pending > 0) startPolling();
-            } catch { /* ignore */ }
-        })();
-        return stopPolling;  
+        api.jobFeedbackMine().then((r) => {
+            setFeedbackLigado(!!r.disponivel);
+            setLikes(new Set(r.likes || []));
+            setMotivos(r.motivos || {});
+        }).catch(() => {});
     }, []);
 
-    const m = data?.metrics;
+    const restam = Math.max(0, user?.usage?.remainingToday ?? 0);
+    const limite = user?.usage?.dailyLimit ?? 0;
+    const usadas = user?.usage?.usedToday ?? 0;
+    // Envio DIRETO: sai do Gmail conectado, com o currículo anexado. Sem isso,
+    // "Enviar" abre o email pronto no Gmail da pessoa (ela anexa e envia).
+    const envioDireto = !!user?.googleConnected && !!user?.hasCv && !!user?.planLimits?.allowManual;
 
-    // Configuração incompleta muda o que o painel mostra: ver oito KPIs zerados
-    // antes de entender o produto parece defeito, não painel.
-    const configurado = !!profile?.areas?.length && !!profile?.skills?.length
-        && !!profile?.hasCv && !!user?.googleConnected;
+    async function enviar(vaga) {
+        if (trava.current || restam <= 0) return;
+        trava.current = true;
+        setOcupado(vaga.id);
+        // A aba abre ANTES do await: window.open depois de resposta de rede perde
+        // o vínculo com o clique e o navegador bloqueia como popup.
+        const aba = envioDireto ? null : window.open('', '_blank');
+        try {
+            if (envioDireto) {
+                await api.apply(vaga.id);
+                setEstado((s) => ({ ...s, [vaga.id]: 'enviado' }));
+                toast.show(t('Currículo enviado para {empresa}.', { empresa: vaga.company || t('o recrutador') }));
+            } else {
+                const email = await api.composeJob(vaga.id);
+                const url = gmailComposeUrl(email);
+                if (aba && url.length <= LIMITE_URL) aba.location = url; else aba?.close();
+                setEstado((s) => ({ ...s, [vaga.id]: 'aberto' }));
+                toast.show(t('Abrimos o email no seu Gmail. Anexe o currículo e envie.'));
+            }
+            refreshUser().catch(() => {});
+        } catch (e) {
+            aba?.close();
+            toast.show(e.message, 'error');
+        } finally {
+            trava.current = false;
+            setOcupado(null);
+        }
+    }
 
-    // Antes de a configuração terminar, mostramos só os números da BASE, os
-    // pessoais são todos zero e uma parede de zeros lê como "não funciona", bem na
-    // hora em que a pessoa está decidindo se vale continuar. Os da base fazem o
-    // trabalho contrário: provam que existe vaga de verdade esperando.
-    //
-    // Oito cartões iguais não são um painel, são uma lista: se tudo tem o mesmo
-    // peso, nada foi priorizado. Os três que mudam o que a pessoa FAZ agora ficam
-    // grandes; os de contexto viram uma faixa compacta, que se lê de relance.
-    const kpisFortes = m ? (configurado ? [
-        {
-            label: t('Envios restantes hoje'), icon: 'ti-gauge', tom: m.remainingToday === 0 ? 'warn' : '',
-            value: nf(m.remainingToday),
-            // Com a cota zerada, o rodapé para de repetir o limite e passa a
-            // dizer O QUE FICOU DE FORA. Perda pesa cerca de duas vezes um ganho
-            // equivalente (Kahneman e Tversky, 1979), e este é o único momento
-            // do produto em que a pessoa sente o teto: "de 7 do plano" não dói,
-            // "23 compatíveis ficaram sem envio" dói. O número já existe, é o
-            // mesmo `compatible` do cartão ao lado.
-            sub: (m.remainingToday === 0 && m.compatible > 0)
-                ? t('{n} compatíveis ficaram sem envio hoje', { n: nf(m.compatible) })
-                : `${t('de')} ${nf(m.dailyLimit)} ${t('do plano')}`,
-            barra: m.dailyLimit ? (m.dailyLimit - m.remainingToday) / m.dailyLimit : 0,
-        },
-        { label: t('Vagas compatíveis'), icon: 'ti-checklist', value: nf(m.compatible), sub: t('prontas para enviar') },
-        { label: t('Currículos enviados'), icon: 'ti-send', tom: 'ok', value: nf(m.sentTotal), sub: `+${nf(m.sentWeek)} ${t('na semana')}`, spark: data.sparkSent, color: 'var(--color-success)' },
-    ] : [
-        { label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}`, spark: data.sparkJobs },
-        { label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
-        { label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
-    ]) : [];
+    async function votar(vaga, voto, motivo) {
+        setPedindoMotivo(null);
+        try {
+            await api.jobFeedback(vaga.id, voto, motivo);
+            if (voto === -1) setEstado((s) => ({ ...s, [vaga.id]: 'removido' }));
+            if (voto === 0) setEstado((s) => { const n = { ...s }; delete n[vaga.id]; return n; });
+            setLikes((l) => { const n = new Set(l); voto === 1 ? n.add(String(vaga.id)) : n.delete(String(vaga.id)); return n; });
+        } catch (e) { toast.show(e.message, 'error'); }
+    }
 
-    const kpisContexto = (m && configurado) ? [
-        { label: t('Vagas hoje'), icon: 'ti-briefcase', value: nf(m.jobsToday), sub: `${nf(m.jobsTotal)} ${t('no total')}` },
-        { label: t('Recrutadores'), icon: 'ti-address-book', value: nf(m.recruiters), sub: `${nf(m.recruitersApproved)} ${t('aprovados')}` },
-        { label: t('Empresas monitoradas'), icon: 'ti-building', value: nf(m.companies), sub: t('com vagas coletadas') },
-        { label: t('Match acima de 90%'), icon: 'ti-target', value: nf(m.matchesAbove90), sub: `${t('match médio')} ${m.avgMatch}%` },
-        { label: t('Tempo economizado'), icon: 'ti-clock-bolt', value: fmtSaved(m.timeSavedMin), sub: t('pela automação') },
-    ] : [];
+    async function abrirPost(id) {
+        if (aberta === id) { setAberta(null); return; }
+        setAberta(id);
+        if (textoCompleto[id] !== undefined) return;
+        try {
+            const { job } = await api.getJob(id);
+            setTextoCompleto((d) => ({ ...d, [id]: job?.description || '' }));
+        } catch { setTextoCompleto((d) => ({ ...d, [id]: null })); }
+    }
 
-    const q = queue;
-    const qActive = q && (q.active || q.pending > 0);
+    const nome = user?.name?.split(' ')[0] || '';
+    const visiveis = (lista || []).slice(0, mostrar);
 
     return (
-        <div className="page">
-            <div className="page-head row" style={{ alignItems: 'flex-start' }}>
-                <div>
-                    <h1>{t('Olá, {name}', { name: user?.name?.split(' ')[0] || 'dev' })}</h1>
-                    <p>{t('Seu radar de oportunidades.')}</p>
-                </div>
-                <div className="spacer" />
-                <button className="btn primary" onClick={() => setSearchOpen(true)}>
-                    <i className="ti ti-radar-2" /> {t('Procurar Vagas')}
-                </button>
+        <div className="page vagas-hoje">
+            <div className="page-head">
+                <h1>{nome ? t('Vagas para você, {name}', { name: nome }) : t('Vagas para você')}</h1>
+                <p>
+                    {t('Vagas de tecnologia que recrutadores postaram no LinkedIn, já com o contato deles.')}{' '}
+                    <Link to="/app/perfil" className="link-sutil">{t('Ajustar o que eu procuro')}</Link>
+                </p>
             </div>
 
-            {/* Banner da fila de envio */}
-            {q && q.total > 0 && !filaFoiDispensada(q) && (
-                <div className="card queue-banner fade-in" style={{ marginBottom: 20 }}>
-                    <div className="qb-ico"><i className={`ti ${qActive ? 'ti-send' : 'ti-circle-check'}`} /></div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600 }}>
-                            {qActive ? 'Enviando candidaturas…' : 'Envios concluídos'}
-                            <span className="muted" style={{ fontWeight: 400 }}> · {q.sent} de {q.total}</span>
-                        </div>
-                        <div className="progress" style={{ marginTop: 8 }}><span style={{ width: `${Math.round((q.sent + q.failed + q.skipped) / q.total * 100)}%` }} /></div>
-                        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                            {qActive
-                                ? <>próximo envio em ~{q.nextInSeconds ?? '…'}s · espaçamento anti-bloqueio{q.failed ? ` · ${q.failed} falhou` : ''}</>
-                                : <>{q.sent} enviadas{q.skipped ? `, ${q.skipped} já feitas` : ''}{q.failed ? `, ${q.failed} falharam` : ''}</>}
-                        </div>
+            {mostraWizard && (
+                <WizardInicial onPronto={() => setWizardFeito(true)} onPular={() => setWizardFeito(true)} />
+            )}
+
+            {!mostraWizard && (<>
+                {/* Como o envio funciona, em uma linha, e a cota do dia. */}
+                <div className="card vh-barra">
+                    <div className="vh-modo">
+                        <i className={`ti ${envioDireto ? 'ti-circle-check' : 'ti-mail-forward'}`} />
+                        <span>
+                            {envioDireto
+                                ? t('Ao clicar em Enviar, o email sai do seu Gmail com o currículo anexado.')
+                                : t('Ao clicar em Enviar, abrimos o email pronto no seu Gmail. Você anexa o currículo e envia.')}
+                            {!envioDireto && (
+                                <> <Link to={user?.googleConnected ? '/app/perfil' : '/app/perfil?section=email'} className="link-sutil">
+                                    {user?.googleConnected ? t('Anexe seu currículo para enviarmos direto') : t('Prefere que a gente envie direto?')}
+                                </Link></>
+                            )}
+                        </span>
                     </div>
-                    {qActive
-                        ? <button className="btn sm" onClick={async () => { await api.queueStop(); refreshQueue(); }}><i className="ti ti-player-stop" /> Parar</button>
-                        : (
-                            <button className="btn ghost sm" aria-label={t('Dispensar')} onClick={() => {
-                                try { localStorage.setItem(CHAVE_FILA_DISPENSADA, assinaturaDaFila(q)); } catch { /* modo privado */ }
-                                setQueue(null);
-                            }}><i className="ti ti-x" /></button>
-                        )}
+                    <div className="vh-cota" title={t('Envios de hoje')}>
+                        <b>{restam}</b> {t('de {n} envios livres hoje', { n: limite })}
+                    </div>
                 </div>
-            )}
 
-            {/* Primeiro acesso, em três camadas com papéis distintos:
-                  wizard     PERGUNTA a configuração (quem ainda não tem área)
-                  tour       explica O QUE CADA PARTE É (uma vez, dispensável)
-                  checklist  mostra O QUE FALTA (fica até terminar)
-
-                O wizard vem primeiro e sozinho de propósito: de 17 contas, 8
-                nunca salvaram um perfil, e empilhar tour + checklist em cima
-                de quem ainda não respondeu nada é o que fazia fechar a aba.
-                Quem pula cai no tour, que é o comportamento antigo. */}
-            {!loading && mostraWizard && (
-                <WizardInicial
-                    onPronto={() => { setWizardFeito(true); refreshDash(); }}
-                    onPular={() => setWizardFeito(true)}
-                />
-            )}
-            {!loading && !mostraWizard && <TourInicial profile={profile} user={user} />}
-            {!loading && !mostraWizard && <Onboarding profile={profile} user={user} />}
-
-            {/* Comunidade no WhatsApp (dispensável) */}
-            <CommunityBanner style={{ marginBottom: 22 }} />
-
-            {/* KPIs */}
-            <div className="painel-numeros">
-                {loading ? (
-                    <>
-                        <div className="kpi-primarios">
-                            {[0, 1, 2].map((i) => <div key={i} className="skeleton sk-card" style={{ height: 152 }} />)}
-                        </div>
-                        <div className="skeleton sk-card" style={{ height: 88 }} />
-                    </>
-                ) : (
-                    <>
-                        <div className="kpi-primarios">
-                            {kpisFortes.map((k, i) => (
-                                <div key={k.label} className={`card kpi kpi-forte fade-in d${i + 1}`}>
-                                    <div className="kpi-top">
-                                        <span className={`kpi-ico ${k.tom || ''}`}><i className={`ti ${k.icon}`} /></span>
-                                        <span className="kpi-label">{k.label}</span>
-                                    </div>
-                                    <div className="kpi-num">{k.value}</div>
-                                    {k.barra != null ? <div className="kpi-barra"><span style={{ width: `${Math.round(k.barra * 100)}%` }} /></div> : null}
-                                    {k.spark ? <div className="spark"><Sparkline data={k.spark} color={k.color} /></div> : null}
-                                    <div className="kpi-foot"><span className="muted">{k.sub}</span></div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {kpisContexto.length > 0 && (
-                            <div className="card kpi-faixa fade-in d3">
-                                {kpisContexto.map((k) => (
-                                    <div key={k.label} className="kpi-cel">
-                                        <span className="kpi-cel-label"><i className={`ti ${k.icon}`} /> {k.label}</span>
-                                        <div className="kpi-cel-num">{k.value}</div>
-                                        <div className="kpi-cel-sub">{k.sub}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
+                {restam <= 0 && (
+                    <div className="notice info" style={{ marginTop: 12 }}>
+                        <i className="ti ti-moon" />{t('Você usou os {n} envios de hoje. Amanhã tem mais, e as vagas continuam aqui.', { n: limite })}
+                    </div>
                 )}
-            </div>
 
-            {/* Skeleton dos blocos abaixo dos KPIs (espelha o layout final) */}
-            {loading && (
-                <>
-                    <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
-                        <div className="skeleton sk-card" style={{ flex: 1.1, minWidth: 300, height: 190 }} />
-                        <div className="skeleton sk-card" style={{ flex: 1, minWidth: 300, height: 190 }} />
+                {lista === null ? (
+                    <div className="card" style={{ marginTop: 14, padding: 18 }}>
+                        <div className="skeleton sk-line" /><div className="skeleton sk-line" style={{ width: '70%' }} /><div className="skeleton sk-line" style={{ width: '85%' }} />
                     </div>
-                    <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
-                        <div className="skeleton sk-card" style={{ flex: 1, minWidth: 300, height: 210 }} />
-                        <div className="skeleton sk-card" style={{ flex: 1, minWidth: 300, height: 210 }} />
+                ) : lista.length === 0 ? (
+                    <div className="card empty" style={{ marginTop: 14, padding: 34 }}>
+                        <i className="ti ti-mood-search" />
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('Nenhuma vaga combina com você agora.')}</div>
+                        <div className="muted" style={{ fontSize: 13, marginBottom: 14 }}>{t('Entram vagas novas todos os dias. Se quiser ver mais, afrouxe os filtros.')}</div>
+                        <Link to="/app/perfil" className="btn sm">{t('Ajustar o que eu procuro')}</Link>
                     </div>
-                </>
-            )}
-
-            {/* Próxima melhor oportunidade + Central de atividades */}
-            {!loading && data && (
-                <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
-                    <div className="card feature-card fade-in" style={{ flex: 1.1, minWidth: 300, display: 'flex', flexDirection: 'column' }}>
-                        <div className="kpi-label" style={{ fontSize: 12.5 }}><i className="ti ti-bolt" /> {t('Próxima melhor oportunidade')}</div>
-                        {data.nextBest ? (
-                            <>
-                                <div style={{ fontSize: 19, fontWeight: 700, marginTop: 10, lineHeight: 1.25 }}>{data.nextBest.title || 'Vaga'}</div>
-                                <div style={{ opacity: 0.9, marginTop: 4 }}>{data.nextBest.company || 'empresa não informada'}</div>
-                                <div className="row" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                                    <span className="feature-badge"><i className="ti ti-target" /> {data.nextBest.matchScore}% match</span>
-                                    {(data.nextBest.skills || []).map((s) => <span key={s} className="feature-badge">{s}</span>)}
-                                </div>
-                                <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-                                    <button className="btn" onClick={() => setSearchOpen(true)}><i className="ti ti-send" /> {t('Candidatar agora')}</button>
-                                </div>
-                            </>
-                        ) : (
-                            <div style={{ marginTop: 16, opacity: 0.9 }}>Sem vagas compatíveis no momento. Rode "Procurar Vagas" ou ajuste seu perfil.</div>
-                        )}
-                    </div>
-
-                    <div className="card fade-in d2" style={{ flex: 1, minWidth: 300 }}>
-                        <div className="section-title"><i className="ti ti-activity" /> {t('Central de atividades')}</div>
-                        {(!data.activities || data.activities.length === 0) ? (
-                            <div className="empty" style={{ padding: 22 }}><i className="ti ti-activity-heartbeat" />Sem atividade ainda.</div>
-                        ) : (
-                            <div className="timeline">
-                                {data.activities.map((a, i) => (
-                                    <div key={i} className="tl-item">
-                                        <div className={`tl-dot ${a.type}`}><i className={`ti ${a.icon}`} /></div>
-                                        <div className="tl-body">
-                                            <div className="tl-title">{a.text}</div>
-                                            <div className="tl-time">{timeAgo(a.at)}</div>
+                ) : (<>
+                    <div className="vh-contagem muted">{t('{n} vagas combinam com o seu perfil', { n: lista.length.toLocaleString('pt-BR') })}</div>
+                    <div className="card lista-card">
+                        {visiveis.map((v) => {
+                            const st = estado[v.id];
+                            if (st === 'removido') {
+                                return (
+                                    <div key={v.id} className="vh-removida">
+                                        <span>{t('Vaga tirada da sua lista. Obrigado, isso melhora o que a gente te mostra.')}</span>
+                                        <button className="btn ghost sm" onClick={() => votar(v, 0)}>{t('Desfazer')}</button>
+                                    </div>
+                                );
+                            }
+                            const curtiu = likes.has(String(v.id));
+                            return (
+                                <div key={v.id} className={`vh-vaga ${st ? 'feita' : ''}`}>
+                                    <div className="vh-topo">
+                                        <div className="vh-info">
+                                            <div className="vh-titulo">{v.title || t('Vaga')}</div>
+                                            <div className="vh-sub">
+                                                {[v.company, v.location, haQuanto(v.createdAt)].filter(Boolean).join(' · ')}
+                                            </div>
+                                            <div className="vh-chips">
+                                                {v.area && v.area !== 'other' && <span className="chip muted">{AREA_NOME[v.area] || v.area}</span>}
+                                                {v.level && <span className="chip muted">{NIVEL_NOME[v.level] || v.level}</span>}
+                                                {(v.mods || []).map((m) => <span key={m} className="chip muted">{MOD_NOME[m] || m}</span>)}
+                                                <span className={`score ${scoreClass(v.matchScore)}`} title={t('O quanto a vaga combina com as suas skills')}>{v.matchScore}%</span>
+                                            </div>
+                                        </div>
+                                        <div className="vh-acoes">
+                                            {st === 'enviado' ? (
+                                                <span className="badge ok"><i className="ti ti-check" /> {t('Enviado')}</span>
+                                            ) : st === 'aberto' ? (
+                                                <span className="badge info"><i className="ti ti-external-link" /> {t('Aberto no Gmail')}</span>
+                                            ) : (
+                                                <button className="btn primary sm" disabled={restam <= 0 || ocupado === v.id} onClick={() => enviar(v)}>
+                                                    <i className={`ti ${ocupado === v.id ? 'ti-loader-2 spin' : 'ti-send'}`} /> {t('Enviar currículo')}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
 
-            {/* Ranking + Candidaturas recentes */}
-            {!loading && data && (
-                <div className="row" style={{ alignItems: 'stretch', marginBottom: 20 }}>
-                    <div className="card fade-in" style={{ flex: 1, minWidth: 300 }}>
-                        <div className="section-title"><i className="ti ti-trophy" /> {t('Ranking de usuários')}</div>
-                        <p className="muted" style={{ fontSize: 12, marginTop: -8, marginBottom: 12 }}>Top 10 por {rankMetric}</p>
-                        {ranking.length === 0 ? (
-                            <div className="empty" style={{ padding: 20 }}><i className="ti ti-trophy-off" />Ninguém enviou e-mails hoje ainda.</div>
-                        ) : ranking.map((r) => (
-                            <div key={r.position} className="rank-row">
-                                <span className={`rank-pos ${r.position <= 3 ? 'top' : ''}`}>{r.position}</span>
-                                <span className="rank-name">{r.name}{r.me && <span className="badge ok" style={{ marginLeft: 8 }}>você</span>}</span>
-                                <span className="rank-sent">{r.sent} e-mails</span>
-                            </div>
-                        ))}
-                    </div>
+                                    <div className="vh-rodape">
+                                        <button className="btn ghost sm" onClick={() => abrirPost(v.id)} aria-expanded={aberta === v.id}>
+                                            <i className={`ti ${aberta === v.id ? 'ti-chevron-up' : 'ti-file-text'}`} /> {aberta === v.id ? t('Fechar') : t('Ver a vaga')}
+                                        </button>
+                                        {feedbackLigado && (
+                                            <span className="vh-votos">
+                                                <span className="muted" style={{ fontSize: 12 }}>{t('Serve para você?')}</span>
+                                                <button className={`btn ghost sm vh-voto ${curtiu ? 'on' : ''}`} aria-pressed={curtiu} title={t('Sim, quero mais vagas assim')}
+                                                    onClick={() => votar(v, curtiu ? 0 : 1)}>👍</button>
+                                                <button className="btn ghost sm vh-voto" title={t('Não, tirar da minha lista')}
+                                                    onClick={() => setPedindoMotivo(pedindoMotivo === v.id ? null : v.id)}>👎</button>
+                                            </span>
+                                        )}
+                                    </div>
 
-                    <div className="card fade-in d2" style={{ flex: 1, minWidth: 300 }}>
-                        <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
-                            <div className="section-title" style={{ margin: 0 }}><i className="ti ti-history" /> {t('Candidaturas recentes')}</div>
-                            <div className="spacer" />
-                            <Link to="/app/candidaturas" className="btn sm ghost">{t('ver todas')} <i className="ti ti-arrow-right" /></Link>
-                        </div>
-                        {(!data.recent || data.recent.length === 0) ? (
-                            <div className="empty" style={{ padding: 20 }}>
-                                <i className="ti ti-inbox" />Nenhuma candidatura ainda.
-                                <div style={{ marginTop: 12 }}><button className="btn primary sm" onClick={() => setSearchOpen(true)}><i className="ti ti-radar-2" /> Procurar vagas</button></div>
-                            </div>
-                        ) : data.recent.map((r) => (
-                            <div key={r.id} className="rank-row">
-                                <div className="job-logo" style={{ width: 32, height: 32, fontSize: 15 }}><i className="ti ti-building" /></div>
-                                <div style={{ minWidth: 0 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title || 'Vaga'}</div>
-                                    <div className="muted" style={{ fontSize: 12 }}>{r.company} · {fmtDate(r.createdAt)}</div>
+                                    {pedindoMotivo === v.id && (
+                                        <div className="vh-motivos">
+                                            <span className="muted" style={{ fontSize: 12.5 }}>{t('O que não serve?')}</span>
+                                            {Object.entries(motivos).map(([k, rotulo]) => (
+                                                <button key={k} className="chip toggle" onClick={() => votar(v, -1, k)}>{t(rotulo)}</button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {aberta === v.id && (
+                                        <div className="det-descricao vh-post">
+                                            {textoCompleto[v.id] ?? v.description ?? t('Carregando…')}
+                                        </div>
+                                    )}
                                 </div>
-                                <span className={`score ${scoreClass(r.matchScore)}`} style={{ marginLeft: 'auto' }}>{r.matchScore}%</span>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
-                </div>
-            )}
-
-            {/* Vagas remotas do dia + post pronto para divulgar */}
-            <HighlightsSection onQueued={startPolling} />
-
-            {/* Feedback */}
-            <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
-                <div className="section-title" style={{ margin: 0 }}><i className="ti ti-message-2" /> {t('Últimos feedbacks')}</div>
-                <div className="spacer" />
-                <Link to="/app/feedback" className="btn sm ghost">{t('ver todos / avaliar')} <i className="ti ti-arrow-right" /></Link>
-            </div>
-            <FeedbackSection limit={5} compact title={false} />
-
-            {/* onManualSent: o envio "por conta própria" não passa pela fila, então
-                não há o que pollar. O que muda é a cota do dia e o total de
-                candidaturas, e esses vêm do dashboard. */}
-            {searchOpen && (
-                <SearchSendModal
-                    onClose={() => setSearchOpen(false)}
-                    onStarted={startPolling}
-                    onManualSent={() => { refreshDash(); refreshRank(); }}
-                />
-            )}
+                    {lista.length > mostrar && (
+                        <button className="btn ghost block" style={{ marginTop: 12 }} onClick={() => setMostrar((n) => n + POR_PAGINA)}>
+                            {t('Mostrar mais vagas')}
+                        </button>
+                    )}
+                    <div className="muted" style={{ fontSize: 12.5, textAlign: 'center', marginTop: 16 }}>
+                        {usadas > 0 && <>{t('Você mandou {n} hoje.', { n: usadas })} </>}
+                        <Link to="/app/candidaturas" className="link-sutil">{t('Ver tudo que você já enviou')}</Link>
+                    </div>
+                </>)}
+            </>)}
         </div>
     );
 }

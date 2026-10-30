@@ -138,6 +138,9 @@ export const api = {
     // DELA, sem conectar conta nenhuma. Gasta uma unidade da cota do dia e tira
     // a vaga do feed, igual a um envio de verdade.
     composeJob: (id) => request('POST', `/jobs/${id}/compose`),
+    // 👍/👎 numa vaga (voto 1, -1 ou 0 para desfazer). O 👎 tira a vaga do feed.
+    jobFeedback: (id, voto, motivo) => request('POST', `/jobs/${id}/feedback`, { voto, motivo }),
+    jobFeedbackMine: () => request('GET', '/jobs/feedback/mine'),
     queueStart: (mode, jobIds) => request('POST', '/queue', { mode, jobIds }),
     queueStatus: () => request('GET', '/queue'),
     queueStop: () => request('POST', '/queue/stop'),

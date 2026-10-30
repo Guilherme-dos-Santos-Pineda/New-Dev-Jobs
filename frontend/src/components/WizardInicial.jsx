@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from './Toast.jsx';
 import { useT } from '../lib/i18n.jsx';
-import { AREA_OPTIONS, LEVEL_OPTIONS, normalizeKeyword } from '../utils.js';
+import { AREA_OPTIONS, LEVEL_OPTIONS } from '../utils.js';
 
 // =========================
 // Wizard de primeiro acesso
@@ -24,13 +24,14 @@ import { AREA_OPTIONS, LEVEL_OPTIONS, normalizeKeyword } from '../utils.js';
 // 2. O CURRÍCULO É OPCIONAL AQUI, mas oferecido com o caminho do LinkedIn
 //    pronto. Ele serve a dois fins de uma vez: vira o anexo das candidaturas e
 //    as skills saem dele sem a pessoa digitar nada.
-// 3. PALAVRA EXIGIDA É "OU", NÃO "E", e a tela diz isso. Um usuário real pôs
-//    dez palavras achando que estreitava a busca; na verdade alargava. Sem
-//    explicar, o filtro faz o contrário do que a pessoa acha.
+// 3. SÓ TRÊS PERGUNTAS. Eram cinco (mais palavras obrigatórias e bloqueadas),
+//    e o feedback de 29/10/2026 foi "muita informação na hora de configurar".
+//    Palavra é ajuste fino: quem nunca viu o feed não sabe o que bloquear.
+//    Ficou no perfil, em "Filtros avançados", para depois de ver as vagas.
 // 4. TODA TELA DIZ QUE DÁ PARA MUDAR DEPOIS. O medo de errar a configuração
 //    inicial trava mais gente do que a configuração em si.
 
-const PASSOS = ['area', 'nivel', 'curriculo', 'exigidas', 'bloqueadas'];
+const PASSOS = ['area', 'nivel', 'curriculo'];
 
 export default function WizardInicial({ onPronto, onPular }) {
     const { refreshUser } = useAuth();
@@ -43,9 +44,6 @@ export default function WizardInicial({ onPronto, onPular }) {
     const [skills, setSkills] = useState([]);
     const [temCv, setTemCv] = useState(false);
     const [lendoCv, setLendoCv] = useState(false);
-    const [exigidas, setExigidas] = useState([]);
-    const [bloqueadas, setBloqueadas] = useState([]);
-    const [rascunho, setRascunho] = useState('');
     const [salvando, setSalvando] = useState(false);
     const salvandoRef = useRef(false); // trava síncrona contra duplo-clique
     const inputArquivo = useRef(null);
@@ -86,13 +84,6 @@ export default function WizardInicial({ onPronto, onPular }) {
         }
     }
 
-    function addPalavra(lista, set) {
-        const limpa = normalizeKeyword(rascunho);
-        if (!limpa) return;
-        if (!lista.includes(limpa)) set([...lista, limpa]);
-        setRascunho('');
-    }
-
     async function finalizar() {
         if (salvandoRef.current) return;
         salvandoRef.current = true;
@@ -100,8 +91,6 @@ export default function WizardInicial({ onPronto, onPular }) {
         try {
             await api.updateProfile({
                 areas, levels: niveis, skills,
-                requiredKeywords: exigidas, blockedWords: bloqueadas,
-                modalities: [],
             });
             await refreshUser();
             toast.show(t('Pronto! Seu perfil está configurado.'));
@@ -115,7 +104,7 @@ export default function WizardInicial({ onPronto, onPular }) {
 
     function proximo() {
         if (ultimo) finalizar();
-        else { setRascunho(''); setPasso((n) => n + 1); }
+        else setPasso((n) => n + 1);
     }
 
     // Só a área é obrigatória: é ela que decide o feed. O resto melhora o
@@ -208,35 +197,6 @@ export default function WizardInicial({ onPronto, onPular }) {
                         </>
                     )}
 
-                    {atual === 'exigidas' && (
-                        <>
-                            <h2>{t('Alguma palavra que a vaga PRECISA ter?')}</h2>
-                            {/* Um usuário real pôs dez palavras achando que estreitava. Sem
-                                esta frase, o filtro faz o contrário do que a pessoa espera. */}
-                            <p className="wizard-sub">{t('Basta UMA delas aparecer na vaga. Quanto mais palavras você põe, MAIS vagas aparecem, não menos.')}</p>
-                            <ListaPalavras
-                                itens={exigidas} onRemover={(k) => setExigidas(exigidas.filter((x) => x !== k))}
-                                rascunho={rascunho} setRascunho={setRascunho}
-                                onAdd={() => addPalavra(exigidas, setExigidas)}
-                                exemplo={t('ex.: React, .NET, Python')} t={t}
-                            />
-                            <p className="wizard-nota">{t('Pode deixar vazio. Aí você recebe tudo da sua área.')}</p>
-                        </>
-                    )}
-
-                    {atual === 'bloqueadas' && (
-                        <>
-                            <h2>{t('E alguma que você NÃO quer ver?')}</h2>
-                            <p className="wizard-sub">{t('Se a palavra aparecer na vaga, ela some do seu feed. Aqui basta uma para descartar.')}</p>
-                            <ListaPalavras
-                                itens={bloqueadas} onRemover={(k) => setBloqueadas(bloqueadas.filter((x) => x !== k))}
-                                rascunho={rascunho} setRascunho={setRascunho}
-                                onAdd={() => addPalavra(bloqueadas, setBloqueadas)}
-                                exemplo={t('ex.: React Native, estágio, PJ')} t={t}
-                            />
-                            <p className="wizard-nota">{t('Cuidado para não bloquear demais: palavra comum tira vaga boa junto.')}</p>
-                        </>
-                    )}
                 </div>
 
                 <div className="wizard-pe">
@@ -253,33 +213,6 @@ export default function WizardInicial({ onPronto, onPular }) {
                     </button>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function ListaPalavras({ itens, onRemover, rascunho, setRascunho, onAdd, exemplo, t }) {
-    return (
-        <div className="wizard-palavras">
-            <div className="row" style={{ gap: 8 }}>
-                <input className="input" value={rascunho} placeholder={exemplo}
-                    onChange={(e) => setRascunho(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAdd(); } }} />
-                <button type="button" className="btn" onClick={onAdd} disabled={!rascunho.trim()}>
-                    <i className="ti ti-plus" /> {t('Adicionar')}
-                </button>
-            </div>
-            {itens.length > 0 && (
-                <div className="wizard-tags">
-                    {itens.map((k) => (
-                        <span key={k} className="tag">
-                            {k}
-                            <button type="button" onClick={() => onRemover(k)} aria-label={t('Remover')}>
-                                <i className="ti ti-x" />
-                            </button>
-                        </span>
-                    ))}
-                </div>
-            )}
         </div>
     );
 }

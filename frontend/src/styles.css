@@ -2009,3 +2009,126 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .wizard-grade-2 .wizard-cartao { min-height: 170px; }
 .wizard-grade-2 .wc-t { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 560px) { .wizard-grade.wizard-grade-2 { grid-template-columns: 1fr; } }
+
+/* ============================================
+   Menu do nome (substitui os 4 ícones soltos do rodapé)
+   ============================================ */
+.menu-usuario { position: relative; }
+.menu-usuario .user-chip {
+    width: 100%; background: none; cursor: pointer; font: inherit; color: inherit; text-align: left;
+    border: 1px solid transparent; border-radius: var(--radius); padding: 6px 8px;
+}
+.menu-usuario .user-chip:hover, .menu-usuario .user-chip[aria-expanded="true"] { background: var(--color-bg-secondary); border-color: var(--color-border-light); }
+.menu-usuario .user-chip-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.menu-usuario .user-chip > .ti { color: var(--color-text-tertiary); font-size: 14px; }
+.menu-usuario.compacto .user-chip { width: auto; padding: 4px; border-radius: 50%; }
+/* A regra antiga do sidebar recolhido escondia TODO span do chip, avatar junto. */
+.app-shell.collapsed .sidebar-foot .menu-usuario .user-chip .avatar { display: flex; }
+.menu-usuario-pop {
+    position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 60; min-width: 236px;
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);
+    box-shadow: var(--shadow-lg, 0 12px 32px rgba(0,0,0,.18)); padding: 6px; display: flex; flex-direction: column;
+}
+.mobile-bar .menu-usuario-pop { left: auto; right: 0; bottom: auto; top: calc(100% + 8px); }
+.menu-usuario-pop button {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; text-align: left;
+    background: none; border: 0; border-radius: var(--radius); cursor: pointer; font: inherit; font-size: 13.5px; color: var(--color-text);
+}
+.menu-usuario-pop button:hover { background: var(--color-bg-secondary); }
+.menu-usuario-pop button .ti { font-size: 17px; color: var(--color-text-secondary); width: 18px; }
+.menu-usuario-pop .mu-sair, .menu-usuario-pop .mu-sair .ti { color: var(--color-danger); }
+.mu-quem { display: flex; flex-direction: column; padding: 8px 10px 10px; border-bottom: 1px solid var(--color-border-light); margin-bottom: 4px; }
+.mu-quem b { font-size: 13.5px; }
+.mu-quem span { font-size: 12px; color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; }
+.mu-sep { height: 1px; background: var(--color-border-light); margin: 4px 0; }
+
+/* ============================================
+   Perfil em página única
+   ============================================ */
+.perfil-simples > div { display: flex; flex-direction: column; gap: 16px; }
+.perfil-simples > div > .card { margin: 0; }
+.mais-opcoes { margin-top: 10px; }
+.mais-titulo { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin: 0 2px 8px; }
+.mais-titulo span { font-weight: 400; color: var(--color-text-tertiary); margin-left: 6px; }
+.mais-item { border: 1px solid var(--color-border-light); background: var(--color-surface); border-radius: var(--radius); margin-bottom: 8px; }
+.mais-item.aberto { border-color: var(--color-border); }
+.mais-item > .card { border: 0; box-shadow: none; margin: 0; }
+.mais-cab {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 16px; text-align: left;
+    background: none; border: 0; cursor: pointer; font: inherit; font-size: 14px; font-weight: 500; color: var(--color-text);
+}
+.mais-cab > .ti:first-child { font-size: 17px; color: var(--color-text-secondary); }
+.mais-cab span { flex: 1; }
+.mais-seta { color: var(--color-text-tertiary); }
+
+/* ============================================
+   Vidro (estilo "Liquid Glass") nas barras e no menu do nome
+   ============================================
+   O pedido foi o expo-glass-effect, que é do React Native (iOS 26) e não roda
+   na web. O equivalente aqui é CSS: transparência + desfoque forte do que passa
+   por trás + um brilho fino na borda de cima, que é o que faz parecer vidro e
+   não só "translúcido". Só onde o conteúdo PASSA por trás (barras fixas e o
+   menu flutuante); na lateral do desktop o vidro não teria o que desfocar.
+   Sem suporte a backdrop-filter, cai no fundo sólido de antes. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root { --vidro-fundo: rgba(250, 249, 246, 0.58); --vidro-borda: rgba(255, 255, 255, 0.65); --vidro-brilho: rgba(255, 255, 255, 0.55); }
+    :root.dark { --vidro-fundo: rgba(20, 21, 23, 0.55); --vidro-borda: rgba(255, 255, 255, 0.10); --vidro-brilho: rgba(255, 255, 255, 0.08); }
+
+    .menu-usuario-pop {
+        background: var(--vidro-fundo);
+        -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%);
+        border: 1px solid var(--vidro-borda);
+        box-shadow: inset 0 1px 0 var(--vidro-brilho), 0 18px 40px -12px rgba(15, 23, 42, 0.35);
+    }
+
+    @media (max-width: 900px) {
+        .mobile-bar {
+            background: var(--vidro-fundo);
+            -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--vidro-borda);
+            box-shadow: inset 0 -1px 0 var(--vidro-brilho);
+        }
+        .bottom-nav {
+            background:
+                linear-gradient(180deg, var(--vidro-brilho), transparent 55%),
+                var(--vidro-fundo);
+            -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
+            border: 1px solid var(--vidro-borda);
+            border-radius: 26px;
+            box-shadow:
+                inset 0 1px 0 var(--vidro-brilho),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+                0 14px 34px -10px rgba(15, 23, 42, 0.32);
+        }
+        /* Pílula do item ativo: uma gota de vidro dentro do vidro. */
+        .bottom-nav a.active {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.18));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 8px -2px rgba(15, 23, 42, 0.18);
+            border-radius: 18px;
+        }
+        :root.dark .bottom-nav a.active {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 8px -2px rgba(0, 0, 0, 0.5);
+        }
+    }
+}
+
+/* Símbolo da marca sobre um quadrado escuro. O verde neon solto sobre o fundo
+   claro do tema ficava apagado ("ícone verde com fundo branco, tá feio",
+   02/11/2026); é o mesmo tratamento do favicon e do ícone do iPhone. */
+.brand-mark-img {
+    box-sizing: content-box; background: #111214; padding: 4px 6px; border-radius: 9px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Pré-visualização do email de uma vaga */
+.vh-ver-email { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: 13px; }
+.email-previa { max-width: 620px; }
+.ep-cab { padding: 16px 24px; border-bottom: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 7px; font-size: 13.5px; }
+.ep-cab > div { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.ep-cab > div > span:first-child { width: 58px; flex-shrink: 0; color: var(--color-text-tertiary); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+.ep-cab .muted { font-size: 12px; }
+.ep-corpo { padding: 18px 24px; white-space: pre-wrap; font-size: 14px; line-height: 1.65; color: var(--color-text); max-height: 46vh; overflow-y: auto; }
+.ep-anexo { margin: 0 24px 18px; padding: 10px 12px; border: 1px solid var(--color-border-light); border-radius: var(--radius); font-size: 13px; display: flex; align-items: center; gap: 8px; background: var(--color-bg-secondary); }
+.ep-sem-anexo { color: var(--color-warn); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.email-previa .modal-foot { justify-content: space-between; }

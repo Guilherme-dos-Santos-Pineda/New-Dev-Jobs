@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { api } from '../api.js';
@@ -13,28 +13,16 @@ import BugReportModal from './BugReportModal.jsx';
 const prefetchByPath = {
     '/app': () => {
         import('../pages/Dashboard.jsx');
-        prefetch('dashboard', () => api.getDashboard());
         prefetch('profile', () => api.getProfile());
-        prefetch('ranking', () => api.getRanking());
     },
     '/app/candidaturas': () => {
         import('../pages/Applications.jsx');
         prefetch('applications:1', () => api.getApplications({ page: 1, pageSize: 24 }));
     },
-    '/app/feedback': () => {
-        import('../pages/Feedback.jsx');
-        prefetch('feedback:0', () => api.getFeedback());
-    },
     '/app/perfil': () => {
         import('../pages/Profile.jsx');
         prefetch('profile', () => api.getProfile());
     },
-    '/app/assinatura': () => {
-        import('../pages/Subscription.jsx');
-        prefetch('billing:plans', () => api.getPlans());
-        prefetch('billing:history', () => api.billingHistory());
-    },
-    '/app/admin': () => { import('../pages/Admin.jsx'); },
 };
 
 function warm(path) {
@@ -47,33 +35,75 @@ function toggleTheme() {
     localStorage.setItem('theme', dark ? 'dark' : 'light');
 }
 
-// "Vagas" e não "Dashboard": a tela inicial é a lista das vagas de hoje, e o
-// nome do menu tem de dizer o que a pessoa vai encontrar ao clicar.
+// =========================
+// Navegação: TRÊS itens, e o resto num menu no nome
+// =========================
+// Feedback de usuários (02/11/2026): "confuso e cheio de informação". O menu
+// tinha Dashboard, Candidaturas, Feedback (um mural de depoimentos, que numa
+// ferramenta de vaga ninguém sabe para que serve), Perfil e Assinatura, e o
+// rodapé tinha quatro botões só de ícone (bug, idioma, tema, sair). Clicar no
+// nome não fazia nada, e foi o primeiro lugar onde o dono clicou procurando
+// essas opções.
+//
+// Agora o menu diz as três coisas que a pessoa faz aqui: ver vagas, ver o que
+// mandou, ajustar o perfil. Todo o resto mora no menu do nome.
 const baseTabs = [
     { to: '/app', label: 'Vagas', icon: 'ti-briefcase', end: true },
-    { to: '/app/candidaturas', label: 'Candidaturas', icon: 'ti-send' },
-    { to: '/app/feedback', label: 'Feedback', icon: 'ti-message-2' },
-    { to: '/app/perfil', label: 'Perfil', icon: 'ti-user' },
-    // Some enquanto os planos pagos estão desligados (lib/flags.js).
-    ...(PLANOS_PAGOS_ATIVOS ? [{ to: '/app/assinatura', label: 'Assinatura', icon: 'ti-crown' }] : []),
+    { to: '/app/candidaturas', label: 'Enviadas', icon: 'ti-send' },
+    { to: '/app/perfil', label: 'Meu perfil', icon: 'ti-user' },
 ];
 
-function ThemeButton() {
-    return (
-        <button className="icon-btn" onClick={toggleTheme} aria-label="Alternar tema">
-            <i className="ti ti-sun icon-sun" />
-            <i className="ti ti-moon icon-moon" />
-        </button>
-    );
-}
+function MenuUsuario({ user, onBug, onSair, compacto }) {
+    const { t, lang, setLang } = useT();
+    const navigate = useNavigate();
+    const [aberto, setAberto] = useState(false);
+    const ref = useRef(null);
+    const initials = (user?.name || user?.email || '?')
+        .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('');
 
-function LangButton() {
-    const { lang, setLang } = useT();
+    // Fecha ao clicar fora ou apertar Esc.
+    useEffect(() => {
+        if (!aberto) return;
+        const fora = (e) => { if (ref.current && !ref.current.contains(e.target)) setAberto(false); };
+        const esc = (e) => { if (e.key === 'Escape') setAberto(false); };
+        document.addEventListener('mousedown', fora);
+        document.addEventListener('keydown', esc);
+        return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc); };
+    }, [aberto]);
+
+    const ir = (to) => { setAberto(false); navigate(to); };
+    const escuro = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+
     return (
-        <button className="icon-btn" style={{ fontWeight: 600, fontSize: 12 }}
-            onClick={() => setLang(lang === 'pt' ? 'en' : 'pt')} title="Idioma / Language" aria-label="Idioma">
-            {lang === 'pt' ? 'PT' : 'EN'}
-        </button>
+        <div className={`menu-usuario ${compacto ? 'compacto' : ''}`} ref={ref}>
+            <button className="user-chip" onClick={() => setAberto((v) => !v)} aria-expanded={aberto} aria-haspopup="menu">
+                <span className="avatar">{initials}</span>
+                {!compacto && <span className="user-chip-nome">{user?.name || user?.email}</span>}
+                {!compacto && <i className={`ti ${aberto ? 'ti-chevron-down' : 'ti-chevron-up'}`} />}
+            </button>
+            {aberto && (
+                <div className="menu-usuario-pop" role="menu">
+                    <div className="mu-quem">
+                        <b>{user?.name || t('Você')}</b>
+                        <span>{user?.email}</span>
+                    </div>
+                    <button role="menuitem" onClick={() => ir('/app/perfil')}><i className="ti ti-user" /> {t('Meu perfil')}</button>
+                    <button role="menuitem" onClick={() => ir('/app/feedback')}><i className="ti ti-message-2" /> {t('Depoimentos')}</button>
+                    {PLANOS_PAGOS_ATIVOS && <button role="menuitem" onClick={() => ir('/app/assinatura')}><i className="ti ti-crown" /> {t('Assinatura')}</button>}
+                    {user?.isAdmin && <button role="menuitem" onClick={() => ir('/app/admin')}><i className="ti ti-shield-cog" /> Admin</button>}
+                    <div className="mu-sep" />
+                    <button role="menuitem" onClick={() => { setAberto(false); onBug(); }}><i className="ti ti-bug" /> {t('Relatar um problema')}</button>
+                    <button role="menuitem" onClick={() => setLang(lang === 'pt' ? 'en' : 'pt')}>
+                        <i className="ti ti-language" /> {lang === 'pt' ? 'English' : 'Português'}
+                    </button>
+                    <button role="menuitem" onClick={() => { toggleTheme(); setAberto(false); }}>
+                        <i className={`ti ${escuro ? 'ti-sun' : 'ti-moon'}`} /> {escuro ? t('Tema claro') : t('Tema escuro')}
+                    </button>
+                    <div className="mu-sep" />
+                    <button role="menuitem" className="mu-sair" onClick={onSair}><i className="ti ti-logout" /> {t('Sair')}</button>
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -89,13 +119,7 @@ export default function Layout() {
         return next;
     });
 
-    const initials = (user?.name || user?.email || '?')
-        .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('');
-
-    const tabs = user?.isAdmin
-        ? [...baseTabs, { to: '/app/admin', label: 'Admin', icon: 'ti-shield-cog' }]
-        : baseTabs;
-
+    const tabs = baseTabs;
     const doLogout = () => { logout(); navigate('/login'); };
     const [bugAberto, setBugAberto] = useState(false);
 
@@ -120,27 +144,15 @@ export default function Layout() {
                     ))}
                 </nav>
                 <div className="sidebar-foot">
-                    <div className="user-chip">
-                        <div className="avatar">{initials}</div>
-                        <span>{user?.name || user?.email}</span>
-                    </div>
-                    <div className="sidebar-foot-actions">
-                        <button className="icon-btn" title={tr('Relatar um problema')} onClick={() => setBugAberto(true)}><i className="ti ti-bug" /></button>
-                        <LangButton />
-                        <ThemeButton />
-                        <button className="icon-btn" title={tr('Sair')} onClick={doLogout}><i className="ti ti-logout" /></button>
-                    </div>
+                    <MenuUsuario user={user} onBug={() => setBugAberto(true)} onSair={doLogout} compacto={collapsed} />
                 </div>
             </aside>
 
-            {/* Top bar (mobile) */}
+            {/* Top bar (mobile): só a marca e o menu do nome. */}
             <header className="mobile-bar">
                 <NavLink to="/app" end className="brand"><Logo /></NavLink>
                 <div className="spacer" />
-                <button className="icon-btn" title={tr('Relatar um problema')} onClick={() => setBugAberto(true)}><i className="ti ti-bug" /></button>
-                <LangButton />
-                <ThemeButton />
-                <button className="icon-btn" title={tr('Sair')} onClick={doLogout}><i className="ti ti-logout" /></button>
+                <MenuUsuario user={user} onBug={() => setBugAberto(true)} onSair={doLogout} compacto />
             </header>
 
             {/* Conteúdo */}

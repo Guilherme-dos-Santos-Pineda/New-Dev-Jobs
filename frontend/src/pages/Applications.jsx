@@ -36,8 +36,8 @@ export default function Applications() {
         <div className="page">
             <div className="page-head row" style={{ alignItems: 'flex-start' }}>
                 <div>
-                    <h1>{t('Candidaturas')}</h1>
-                    <p>{t('Histórico de currículos enviados automaticamente.')}</p>
+                    <h1>{t('Enviadas')}</h1>
+                    <p>{t('Tudo que você já mandou, e para quem.')}</p>
                 </div>
                 <div className="spacer" />
                 {!loading && total > 0 && (
@@ -50,8 +50,8 @@ export default function Applications() {
             ) : apps.length === 0 ? (
                 <div className="card empty">
                     <i className="ti ti-send" />
-                    {t('Você ainda não se candidatou a nenhuma vaga.')}
-                    <div style={{ marginTop: 14 }}><Link to="/app" className="btn primary sm"><i className="ti ti-radar-2" /> {t('Procurar vagas')}</Link></div>
+                    {t('Você ainda não mandou seu currículo para nenhuma vaga.')}
+                    <div style={{ marginTop: 14 }}><Link to="/app" className="btn primary sm"><i className="ti ti-briefcase" /> {t('Ver as vagas')}</Link></div>
                 </div>
             ) : (
                 <div className="card lista-card">

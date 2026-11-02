@@ -3,6 +3,7 @@ import { getMatches } from './jobsQuery.js';
 import { expandirAreas } from '../config/areas.js';
 import { LIKE_EMAIL } from './emailContato.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
+import { niveisAceitos } from '../config/niveis.js';
 import { semDislikeSql, feedbackDisponivel } from './jobFeedback.js';
 
 // =========================
@@ -59,7 +60,7 @@ export async function diagnosticoDoFeed(userId) {
     const [perfil] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
 
     const areas = expandirAreas(parseArr(perfil?.Areas));
-    const niveis = perfil?.StrictLevel ? parseArr(perfil?.Levels) : [];
+    const niveis = niveisAceitos(perfil);
     const mods = parseArr(perfil?.Modalities).map((m) => String(m).toLowerCase());
     const exigidas = parseArr(perfil?.RequiredKeywords).filter(Boolean).map(paraLike);
     const bloqueadas = parseArr(perfil?.BlockedWords).filter(Boolean).map(paraLike);

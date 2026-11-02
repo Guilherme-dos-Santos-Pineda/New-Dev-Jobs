@@ -392,7 +392,7 @@ export default function Profile() {
                                 </div>
                                 <label className="row" style={{ alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 400 }}>
                                     <input type="checkbox" checked={form.strictLevel} onChange={(e) => set('strictLevel', e.target.checked)} />
-                                    Descartar vagas fora dessas senioridades
+                                    Só essas senioridades (sem isso, mostramos também um nível acima e um abaixo)
                                 </label>
                             </div>
 

@@ -5,6 +5,7 @@ import { semDislikeSql, feedbackDisponivel } from './jobFeedback.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
+import { niveisAceitos } from '../config/niveis.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -59,12 +60,11 @@ export function passesFilters(job, profile) {
         if ((Date.now() - created) / 86400000 > profile.PostingDays) return false;
     }
 
-    if (profile.StrictLevel) {
-        const levels = parseArr(profile.Levels);
-        if (levels.length) {
-            const lvl = nivelDaVaga(job);
-            if (lvl && !levels.includes(lvl)) return false;
-        }
+    // Nível escolhido sempre filtra, com folga de um degrau (config/niveis.js).
+    const levels = niveisAceitos(profile);
+    if (levels.length) {
+        const lvl = nivelDaVaga(job);
+        if (lvl && !levels.includes(lvl)) return false;
     }
 
     // Modalidade (remoto / híbrido / presencial). O usuário escolhe no perfil e
@@ -220,7 +220,7 @@ async function buscarCandidatas(userId, profile) {
     const region = profile?.Region || 'br';
     const areas = expandirAreas(parseArr(profile?.Areas));
     const mods = parseArr(profile?.Modalities).map((m) => String(m).toLowerCase());
-    const levels = profile?.StrictLevel ? parseArr(profile?.Levels) : [];
+    const levels = niveisAceitos(profile);
     // Palavras exigidas/bloqueadas também vão para o SQL. Não é otimização de
     // sobra: eram o filtro que mais cortava (um perfil de segurança guardava 421
     // de 1500 vagas), então deixá-las em JS fazia o teto de linhas ser gasto com

@@ -2,7 +2,7 @@
 // Motor de matching perfil x vaga
 // =========================
 
-import { detectArea } from './classify.js';
+import { detectArea, nivelDaVaga } from './classify.js';
 
 function parseSkills(value) {
     if (!value) return [];
@@ -28,17 +28,6 @@ const SENIORITY_RANK = {
     lead: 4,
     manager: 5,
 };
-
-function seniorityFromText(text = '') {
-    const t = text.toLowerCase();
-    if (/gerente|\bmanager\b|\bhead\b/.test(t)) return 'manager';
-    if (/tech lead|\blead\b|l[íi]der t[ée]cnico/.test(t)) return 'lead';
-    if (/est[aá]gi|intern/.test(t)) return 'estagio';
-    if (/j[uú]nior|junior|\bjr\b/.test(t)) return 'junior';
-    if (/pleno|\bpl\b/.test(t)) return 'pleno';
-    if (/s[eê]nior|senior|\bsr\b|especialista|staff|principal/.test(t)) return 'senior';
-    return null;
-}
 
 /**
  * Calcula a compatibilidade (0-100) entre o perfil do usuário e uma vaga.
@@ -74,10 +63,15 @@ export function computeMatch(profile, job) {
         skillScore = hits.length > 0 ? Math.min(100, 45 + hits.length * 15) : 15;
     }
 
-    // Ajuste por senioridade (múltiplos níveis aceitos)
+    // Ajuste por senioridade (múltiplos níveis aceitos).
+    // O nível vem do TÍTULO (nivelDaVaga), igual ao filtro. Lendo título +
+    // descrição, "Analista de TI Sênior / Desenvolvedor Back-end Jr" e
+    // "Desenvolvedor GenAI Pleno" com "júnior" no texto davam 100% para um
+    // estagiário (caso real, 02/11/2026).
     let seniorityScore = 75;
+    let acimaDoNivel = 0; // quantos degraus a vaga está ACIMA do nível mais alto escolhido
     const levels = parseSkills(profile?.Levels).map((l) => l.toLowerCase());
-    const jobSen = seniorityFromText(`${job?.JobTitle || ''} ${job?.Description || ''}`);
+    const jobSen = job?.Level !== undefined ? job.Level : nivelDaVaga(job || {});
     if (levels.length && jobSen) {
         if (levels.includes(jobSen)) seniorityScore = 100;
         else {
@@ -85,11 +79,19 @@ export function computeMatch(profile, job) {
             const jr = SENIORITY_RANK[jobSen];
             const diffs = levels.map((l) => Math.abs((SENIORITY_RANK[l] ?? jr) - jr));
             seniorityScore = Math.max(40, 100 - Math.min(...diffs) * 25);
+            acimaDoNivel = Math.max(0, jr - Math.max(...levels.map((l) => SENIORITY_RANK[l] ?? jr)));
         }
     }
 
     // Skills pesam 80%, senioridade 20%
     let score = Math.round(skillScore * 0.8 + seniorityScore * 0.2);
+
+    // Vaga acima do nível não pode parecer feita para a pessoa: com peso de 20%,
+    // um sênior para quem é júnior ainda dava 90%. Um degrau acima (júnior x
+    // pleno) fica abaixo de "ótimo"; dois ou mais, abaixo do corte de 50% do
+    // envio automático.
+    if (acimaDoNivel === 1) score = Math.min(score, 60);
+    else if (acimaDoNivel >= 2) score = Math.min(score, 35);
 
     // Penalidade de ÁREA (defesa em profundidade): se o usuário declarou áreas e a
     // vaga é de outra área identificável (≠ 'other'), cross-área nunca pode parecer

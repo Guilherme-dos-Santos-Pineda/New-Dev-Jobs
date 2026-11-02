@@ -56,6 +56,9 @@ export default function Dashboard() {
     const [mostrar, setMostrar] = useState(POR_PAGINA);
     const [ocupado, setOcupado] = useState(null);
     const [fila, setFila] = useState(null);
+    // "Quero ver o que vai ser enviado" (02/11/2026): o email pronto de UMA vaga,
+    // antes de mandar. Sem o endereço do recrutador (o servidor não devolve).
+    const [previa, setPrevia] = useState(null); // { vaga, dados, erro }
     const [iniciando, setIniciando] = useState(false);
     const trava = useRef(false);
     const poll = useRef(null);
@@ -178,6 +181,15 @@ export default function Dashboard() {
         } catch (e) { toast.show(e.message, 'error'); }
     }
 
+    async function verEmail(vaga) {
+        if (!vaga) return;
+        setPrevia({ vaga, dados: null });
+        try {
+            const { preview } = await api.previewApplication({ jobId: vaga.id });
+            setPrevia((p) => (p?.vaga?.id === vaga.id ? { ...p, dados: preview } : p));
+        } catch (e) { setPrevia((p) => (p?.vaga?.id === vaga.id ? { ...p, erro: e.message } : p)); }
+    }
+
     async function abrirVaga(id) {
         if (aberta === id) { setAberta(null); return; }
         setAberta(id);
@@ -221,6 +233,9 @@ export default function Dashboard() {
                         <div className="vh-hero-txt">
                             <div className="vh-hero-titulo">{t('Envio automático')}</div>
                             <div className="vh-hero-sub">{t('Conecte seu Gmail e a gente manda seu currículo para as melhores vagas, com o seu nome. Só pedimos permissão para enviar, nunca para ler.')}</div>
+                            <button type="button" className="link-sutil vh-ver-email" onClick={() => verEmail(boas[0] || lista?.[0])}>
+                                <i className="ti ti-eye" /> {t('Ver como fica o email')}
+                            </button>
                         </div>
                         <button className="btn primary vh-hero-btn" onClick={conectarGmail}><i className="ti ti-brand-google" /> {t('Conectar Gmail')}</button>
                     </>) : !temCv ? (<>
@@ -233,6 +248,9 @@ export default function Dashboard() {
                         <div className="vh-hero-txt">
                             <div className="vh-hero-titulo">{t('Mandar meu currículo para as {n} melhores vagas de hoje', { n: quantasAuto })}</div>
                             <div className="vh-hero-sub">{t('Sai do seu Gmail, com o seu nome, uma vaga a cada 1 ou 2 minutos. Você pode parar quando quiser.')}</div>
+                            <button type="button" className="link-sutil vh-ver-email" onClick={() => verEmail(boas[0] || lista?.[0])}>
+                                <i className="ti ti-eye" /> {t('Ver como fica o email')}
+                            </button>
                         </div>
                         <button className="btn primary vh-hero-btn" disabled={iniciando} onClick={enviarAutomatico}>
                             <i className={`ti ${iniciando ? 'ti-loader-2 spin' : 'ti-send'}`} /> {t('Enviar agora')}
@@ -326,6 +344,9 @@ export default function Dashboard() {
                                                 {v.location && <span className="chip muted">{v.location}</span>}
                                             </div>
                                             <div className="det-descricao">{textoCompleto[v.id] ?? v.description ?? t('Carregando…')}</div>
+                                            <button className="btn ghost sm" style={{ marginTop: 10 }} onClick={() => verEmail(v)}>
+                                                <i className="ti ti-mail-opened" /> {t('Ver o email que vai sair')}
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -339,6 +360,49 @@ export default function Dashboard() {
                     )}
                 </>)}
             </>)}
+            {previa && (
+                <div className="modal-overlay" onClick={() => setPrevia(null)}>
+                    <div className="modal det email-previa" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t('O email que vai sair')}>
+                        <div className="det-topo">
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <h3>{t('O email que vai sair')}</h3>
+                                <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>{previa.vaga.title}{previa.vaga.company ? ` · ${previa.vaga.company}` : ''}</div>
+                            </div>
+                            <button className="close" onClick={() => setPrevia(null)} aria-label={t('Fechar')}><i className="ti ti-x" /></button>
+                        </div>
+                        <div className="modal-body">
+                            {previa.erro ? (
+                                <div className="notice danger" style={{ margin: 20 }}><i className="ti ti-alert-circle" />{previa.erro}</div>
+                            ) : !previa.dados ? (
+                                <div style={{ padding: 24 }}><div className="skeleton sk-line" /><div className="skeleton sk-line" style={{ width: '70%' }} /></div>
+                            ) : (<>
+                                <div className="ep-cab">
+                                    <div><span>{t('De')}</span><b>{previa.dados.fromName || t('Você')}</b> {conectado ? <span className="muted">&lt;{previa.dados.from}&gt;</span> : <span className="muted">{t('(seu Gmail)')}</span>}</div>
+                                    <div><span>{t('Para')}</span><b>{t('quem postou a vaga')}{previa.dados.company ? ` (${previa.dados.company})` : ''}</b> <span className="muted">{t('o endereço aparece quando você envia')}</span></div>
+                                    <div><span>{t('Assunto')}</span><b>{previa.dados.subject}</b></div>
+                                </div>
+                                <div className="ep-corpo">{previa.dados.text}</div>
+                                <div className="ep-anexo">
+                                    {previa.dados.attachment
+                                        ? <><i className="ti ti-paperclip" /> {previa.dados.attachment}</>
+                                        : <span className="ep-sem-anexo"><i className="ti ti-alert-triangle" /> {t('Sem currículo anexado.')} <Link to="/app/perfil" className="link-sutil" onClick={() => setPrevia(null)}>{t('Anexar no perfil')}</Link></span>}
+                                </div>
+                            </>)}
+                        </div>
+                        <div className="modal-foot">
+                            <Link to="/app/perfil?section=modelo" className="btn ghost sm" onClick={() => setPrevia(null)}><i className="ti ti-pencil" /> {t('Editar o modelo')}</Link>
+                            {estado[previa.vaga.id] ? (
+                                <span className="badge ok"><i className="ti ti-check" /> {t('Enviado')}</span>
+                            ) : (
+                                <button className="btn primary sm" disabled={!previa.dados || restam <= 0 || ocupado === previa.vaga.id}
+                                    onClick={async () => { await enviar(previa.vaga); setPrevia(null); }}>
+                                    <i className="ti ti-send" /> {t('Enviar para esta vaga')}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

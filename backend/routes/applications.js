@@ -39,6 +39,14 @@ router.get('/', requireAuth, async (req, res) => {
 // POST /api/applications/preview  { jobId, lang?, subject?, body? }
 router.post('/preview', requireAuth, async (req, res) => {
     const jobId = Number(req.body?.jobId);
+    // Com uma vaga REAL a pré-visualização só vale para vaga do feed da pessoa,
+    // e NUNCA devolve o endereço do recrutador. Antes aceitava qualquer jobId e
+    // devolvia `to`: era um jeito de colher o email de qualquer vaga da base sem
+    // gastar cota, furando a regra de que o contato só sai pelo compose.
+    if (jobId) {
+        const noFeed = (await getMatches(req.user.Id)).some((m) => String(m.id) === String(jobId));
+        if (!noFeed) return res.status(403).json({ error: 'Esta vaga não está entre as suas.' });
+    }
     const [job] = jobId ? await sql`select * from "Jobs" where "Id" = ${jobId}` : [null];
     const user = req.user;
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${req.user.Id}`;
@@ -55,7 +63,7 @@ router.post('/preview', requireAuth, async (req, res) => {
             ...rendered,
             from: user.GoogleEmail || user.Email,
             fromName: user.Name,
-            to: sample.Email,
+            to: job ? null : sample.Email, // vaga real: o endereço não sai daqui
             company: sample.Company,
             title: sample.JobTitle,
             attachment: profile?.CvName || null,

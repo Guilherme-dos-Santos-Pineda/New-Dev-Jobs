@@ -310,3 +310,21 @@ test('estágio: "Estágio em TI" fica no feed, curadoria não vira estágio, vag
     assert.equal(nivelDaVaga({ JobTitle: 'Vaga', Description: 'VAGA DE ESTÁGIO em suporte técnico' }), 'estagio');
     assert.equal(detectArea({ JobTitle: 'Estágio em Desenvolvimento', Skills: [], Description: '**PROCESSO SELETIVO ENCERRADO** Vaga de estágio' }), 'nontech');
 });
+
+// Revisão das 443 "fora de TI" da semana de 26/10/2026: estas eram de TI.
+test('vagas de TI que iam para o lixo na revisão de novembro/2026', () => {
+    const casos = {
+        'Administrador(a) de Dados Sênior': 'data', 'Analista de Ciência de Dados Pleno': 'data',
+        'Analista Sênior de Dados': 'data', 'Squad Leader de Dados': 'data', 'Estágio em Dados': 'data',
+        'Analista Mobile': 'mobile', 'System Administrator Sênior': 'devops', 'IT Systems Administrator': 'devops',
+        'Arquiteto de Segurança': 'devops', 'Analista de Requisitos Senior': 'po', 'Analista de Produto': 'po',
+        'Product Discovery': 'po', 'IT Project and Delivery Manager': 'po', 'Sênior Tech Manager': 'dev',
+        'Especialista em Arquitetura de Soluções TIC': 'dev', 'IT Service Manager': 'suporte',
+        'Especialista em Google Workspace': 'suporte', 'Analista de Implantação': 'suporte',
+    };
+    for (const [t, area] of Object.entries(casos)) assert.equal(detectArea(vaga(t)), area, `"${t}"`);
+    // e o que é de outra área continua fora
+    for (const t of ['Analista de Gestão de Dados Pessoais LGPD', 'Analista de Product Marketing Sênior']) {
+        assert.ok(['nontech', 'data', 'po'].includes(detectArea(vaga(t))), t);
+    }
+});

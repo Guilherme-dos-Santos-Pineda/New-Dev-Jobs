@@ -228,7 +228,7 @@ export default function Dashboard() {
                             <div className="vh-hero-titulo">{t('Falta só o seu currículo')}</div>
                             <div className="vh-hero-sub">{t('Ele vai anexado em cada email. É um PDF, leva 10 segundos.')}</div>
                         </div>
-                        <Link className="btn primary vh-hero-btn" to="/app/perfil?section=contact"><i className="ti ti-file-upload" /> {t('Anexar currículo')}</Link>
+                        <Link className="btn primary vh-hero-btn" to="/app/perfil"><i className="ti ti-file-upload" /> {t('Anexar currículo')}</Link>
                     </>) : quantasAuto > 0 ? (<>
                         <div className="vh-hero-txt">
                             <div className="vh-hero-titulo">{t('Mandar meu currículo para as {n} melhores vagas de hoje', { n: quantasAuto })}</div>

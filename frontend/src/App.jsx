@@ -51,7 +51,7 @@ export default function App() {
                     <Route path="admin" element={<Admin />} />
                     {/* compat: rotas antigas */}
                     <Route path="vagas" element={<Navigate to="/app" replace />} />
-                    <Route path="configuracoes" element={<Navigate to="/app/perfil?tab=email" replace />} />
+                    <Route path="configuracoes" element={<Navigate to="/app/perfil" replace />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/app" replace />} />
             </Routes>

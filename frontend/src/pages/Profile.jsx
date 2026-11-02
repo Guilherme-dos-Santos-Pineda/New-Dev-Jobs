@@ -28,8 +28,8 @@ export default function Profile() {
     const { user, refreshUser, logout } = useAuth();
     const navigate = useNavigate();
     const [params] = useSearchParams();
-    const initialSection = (params.get('google') || params.get('tab') === 'email') ? 'email'
-        : (params.get('section') || 'work');
+    // Link direto (?section=filters) abre aquele painel de "Mais opções".
+    const initialSection = params.get('section') || '';
     const [section, setSection] = useState(initialSection);
 
     const [form, setForm] = useState(EMPTY);
@@ -172,79 +172,85 @@ export default function Profile() {
 
     if (loading) return <div className="page center"><div className="spinner" /></div>;
 
-    // --- completude ---
-    // postingDays fora da conta enquanto o filtro esta desligado: senao o resumo
-    // anuncia "filtros ativos" por causa de um filtro que nao filtra nada.
-    const hasFilters = form.requiredKeywords.length || form.blockedWords.length || form.blockedDomains.length || (FILTRO_DATA_ATIVO && form.postingDays);
-    // Ordem e nomes pelo que a pessoa quer fazer, não pelo que o banco guarda.
-    // Feedback de 29/10/2026: "muita informação na hora de configurar". Só área
-    // e currículo contam como pendência; o resto é opcional e diz isso. Antes
-    // modalidade, senioridade e Gmail apareciam como "falta", e a lista de
-    // pendências parecia não acabar nunca.
-    const sections = [
-        { id: 'work', label: 'O que você procura', icon: 'ti-search', complete: form.areas.length > 0 },
-        { id: 'contact', label: 'Currículo e contato', icon: 'ti-file-cv', complete: !!cvName },
-        { id: 'skills', label: 'Suas habilidades', icon: 'ti-tags', optional: true, complete: form.skills.length > 0 },
-        { id: 'email', label: 'Como enviar', icon: 'ti-mail-cog', optional: true, complete: !!user.googleConnected },
-        { id: 'filters', label: 'Filtros avançados', icon: 'ti-filter', optional: true, complete: !!hasFilters },
-    ];
-    // Fora do checklist de propósito: apagar não é um passo da configuração, e
-    // contá-la como "pendente" colocaria um alerta permanente ao lado de uma ação
-    // destrutiva — convite para a pessoa clicar só para zerar o aviso.
-    const perigo = { id: 'perigo', label: 'Apagar meu perfil', icon: 'ti-trash' };
-    const required = sections.filter((s) => !s.optional);
-    const pct = Math.round((required.filter((s) => s.complete).length / required.length) * 100);
-
-    // A aba de Email salva por conta própria (é outro componente).
-    const showSave = section !== 'email' && section !== 'perigo';
+    const showSave = true;
     const sujo = JSON.stringify(form) !== salvoRef.current;
 
     return (
-        <div className="page" style={{ maxWidth: 1160 }}>
-            <div className="page-head row" style={{ alignItems: 'flex-start' }}>
-                <div>
-                    <h1>{t('Meu Perfil')}</h1>
-                    <p className="perfil-sub">{t('Configure suas preferências para receber as melhores vagas.')}</p>
-                </div>
-                <div className="spacer" />
-                {/* O progresso mora aqui, não num cartão só dele: era um .card de
-                    20px de padding para uma linha de texto e uma barra de 8px. */}
-                <div className="profile-progress">
-                    <div className="pp-top">
-                        <b>{t('Perfil')}</b>
-                        <span className="mono">{pct}{t('% completo')}</span>
-                    </div>
-                    <div className="progress"><span style={{ width: `${pct}%` }} /></div>
-                </div>
-                <button className="btn ghost sm btn-resetar" onClick={resetConfig}><i className="ti ti-rotate" /> {t('Resetar configuração')}</button>
+        <div className="page" style={{ maxWidth: 820 }}>
+            <div className="page-head">
+                <h1>{t('Meu perfil')}</h1>
+                <p className="perfil-sub">{t('Três coisas: o que você procura, seu currículo e como enviar.')}</p>
             </div>
 
-            <div className="settings-grid">
-                <nav className="section-nav">
-                    <div className="nav-topo">
-                        {t('Configuração')}
-                        <span>{required.filter((s) => s.complete).length}/{required.length}</span>
-                    </div>
-                    {sections.map((s) => (
-                        <button key={s.id} className={section === s.id ? 'active' : ''} onClick={() => setSection(s.id)}>
-                            {/* O estado vem PRIMEIRO: o olho percorre a coluna de
-                                marcações para achar o que falta, e um check no fim de
-                                rótulos de larguras diferentes não forma coluna. */}
-                            {s.complete
-                                ? <i className="ti ti-circle-check st-ok" />
-                                : <i className={`ti ti-circle st-${s.optional ? 'opt' : 'no'}`} />}
-                            <span className="nav-lbl">{t(s.label)}</span>
-                            {s.optional && !s.complete && <span className="st-opt">{t('opcional')}</span>}
-                        </button>
-                    ))}
-                    <button className={`perigo ${section === perigo.id ? 'active' : ''}`} onClick={() => setSection(perigo.id)}>
-                        <i className={`ti ${perigo.icon}`} />
-                        <span className="nav-lbl">{t(perigo.label)}</span>
-                    </button>
-                </nav>
-
+            <div className="perfil-simples">
                 <div>
-                    {section === 'skills' && (
+                    {/* Página única (02/11/2026): as três coisas que a pessoa precisa resolver
+                        ficam à vista, nesta ordem; todo ajuste fino mora em "Mais opções",
+                        fechado. Antes eram cinco seções com menu lateral e 39 campos, e o
+                        feedback era "confuso e cheio de informação". */}
+
+                        <div className="card">
+                            <div className="sec-card-head"><h2>{t('O que você procura')}</h2></div>
+                            <div className="field">
+                                <label>{t('Área')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({t('obrigatório, pode marcar várias')})</span></label>
+                                <div className="chips">
+                                    {AREA_OPTIONS.map((o) => (
+                                        <span key={o.value} className={`chip toggle ${form.areas.includes(o.value) ? 'on' : ''}`}
+                                            onClick={() => toggleIn('areas', o.value)}>{o.label}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="field">
+                                <label>Modalidade <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(selecione uma ou mais)</span></label>
+                                <div className="chips">
+                                    {MODALITY_OPTIONS.map((o) => (
+                                        <span key={o.value} className={`chip toggle ${form.modalities.includes(o.value) ? 'on' : ''}`}
+                                            onClick={() => toggleIn('modalities', o.value)}>{o.label}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="field">
+                                <label>Senioridade <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(selecione uma ou mais)</span></label>
+                                <div className="chips">
+                                    {LEVEL_OPTIONS.map((o) => (
+                                        <span key={o.value} className={`chip toggle ${form.seniorities.includes(o.value) ? 'on' : ''}`}
+                                            onClick={() => toggleIn('seniorities', o.value)}>{o.label}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    <div className="card">
+                        <div className="sec-card-head">
+                                <h2 style={{ fontSize: 15 }}><i className="ti ti-paperclip" /> Currículo para anexar no email</h2>
+                            </div>
+                            <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>Este é o PDF enviado em anexo nas candidaturas.</p>
+                            {cvName ? (
+                                <div className="row" style={{ alignItems: 'center' }}>
+                                    <i className="ti ti-file-type-pdf" style={{ fontSize: 26, color: 'var(--color-danger)' }} />
+                                    <div><div style={{ fontWeight: 600 }}>{cvName}</div><div className="muted" style={{ fontSize: 12.5 }}>Currículo enviado</div></div>
+                                    <div className="spacer" />
+                                    <button className="btn sm" disabled={uploading} onClick={() => fileRef.current?.click()}>{uploading ? 'Enviando…' : 'Substituir'}</button>
+                                </div>
+                            ) : (
+                                <div className="empty" style={{ padding: 28 }}>
+                                    <i className="ti ti-cloud-upload" />Envie seu currículo em PDF (até 5MB).
+                                    <div style={{ marginTop: 12 }}>
+                                        <button className="btn primary sm" disabled={uploading} onClick={() => fileRef.current?.click()}>{uploading ? 'Enviando…' : 'Selecionar arquivo'}</button>
+                                    </div>
+                                </div>
+                            )}
+                            <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={(e) => handleCv(e.target.files?.[0])} />
+                    </div>
+                    <EmailSettings parte="conta" />
+                    <div className="mais-opcoes">
+                        <div className="mais-titulo">{t('Mais opções')} <span>{t('não precisa mexer para começar')}</span></div>
+                    <div className={`mais-item ${section === 'skills' ? 'aberto' : ''}`}>
+                        <button type="button" className="mais-cab" onClick={() => setSection(section === 'skills' ? '' : 'skills')} aria-expanded={section === 'skills'}>
+                            <i className="ti ti-tags" /> <span>{t('Suas habilidades')}</span>
+                            <i className={`ti ${section === 'skills' ? 'ti-chevron-up' : 'ti-chevron-down'} mais-seta`} />
+                        </button>
+                        {section === 'skills' && (
+
                         <div className="card">
                             <div className="sec-card-head"><h2>{t('Suas habilidades')}</h2><span className="badge warn">Opcional</span></div>
                             <div className="why"><i className="ti ti-info-circle" />Essas keywords calculam o match de cada vaga com seu perfil. Quanto mais precisas, melhores os resultados.</div>
@@ -327,52 +333,15 @@ export default function Profile() {
                                 </div>
                             </div>
                         </div>
-                    )}
+                        )}
+                    </div>
+                    <div className={`mais-item ${section === 'filters' ? 'aberto' : ''}`}>
+                        <button type="button" className="mais-cab" onClick={() => setSection(section === 'filters' ? '' : 'filters')} aria-expanded={section === 'filters'}>
+                            <i className="ti ti-filter" /> <span>{t('Filtros avançados')}</span>
+                            <i className={`ti ${section === 'filters' ? 'ti-chevron-up' : 'ti-chevron-down'} mais-seta`} />
+                        </button>
+                        {section === 'filters' && (
 
-                    {section === 'work' && (
-                        <div className="card">
-                            <div className="sec-card-head"><h2>{t('O que você procura')}</h2></div>
-                            <div className="why"><i className="ti ti-info-circle" />{t('Só a área é obrigatória. Pode marcar várias opções em cada linha.')}</div>
-                            <div className="field">
-                                <label>Onde se candidatar (país das vagas)</label>
-                                <select className="select" value={form.region} onChange={(e) => set('region', e.target.value)}>
-                                    <option value="br">🇧🇷 Brasil</option>
-                                    <option value="intl">🌎 Internacional</option>
-                                </select>
-                                <div className="hint">Só receberá vagas da região escolhida. (Por enquanto o foco é Brasil.)</div>
-                            </div>
-                            <div className="field">
-                                <label>{t('Área profissional')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(filtra as vagas pelo cargo)</span></label>
-                                <div className="chips">
-                                    {AREA_OPTIONS.map((o) => (
-                                        <span key={o.value} className={`chip toggle ${form.areas.includes(o.value) ? 'on' : ''}`}
-                                            onClick={() => toggleIn('areas', o.value)}>{o.label}</span>
-                                    ))}
-                                </div>
-                                <div className="hint">Sem seleção = todas as áreas. Ex.: marque <b>QA</b> para receber vagas de teste, não de Desenvolvedor.</div>
-                            </div>
-                            <div className="field">
-                                <label>Modalidade <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(selecione uma ou mais)</span></label>
-                                <div className="chips">
-                                    {MODALITY_OPTIONS.map((o) => (
-                                        <span key={o.value} className={`chip toggle ${form.modalities.includes(o.value) ? 'on' : ''}`}
-                                            onClick={() => toggleIn('modalities', o.value)}>{o.label}</span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="field">
-                                <label>Senioridade <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(selecione uma ou mais)</span></label>
-                                <div className="chips">
-                                    {LEVEL_OPTIONS.map((o) => (
-                                        <span key={o.value} className={`chip toggle ${form.seniorities.includes(o.value) ? 'on' : ''}`}
-                                            onClick={() => toggleIn('seniorities', o.value)}>{o.label}</span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {section === 'filters' && (
                         <div className="card">
                             <div className="sec-card-head"><h2>{t('Filtros avançados')}</h2><span className="badge warn">Opcional</span></div>
                             <div className="why"><i className="ti ti-info-circle" />{t('Não precisa mexer aqui para começar. Use quando já tiver visto as vagas e quiser tirar algum tipo da sua lista.')}</div>
@@ -389,6 +358,14 @@ export default function Profile() {
                                 </div>
                             </div>
 
+                            <div className="field">
+                                <label>Onde se candidatar (país das vagas)</label>
+                                <select className="select" value={form.region} onChange={(e) => set('region', e.target.value)}>
+                                    <option value="br">🇧🇷 Brasil</option>
+                                    <option value="intl">🌎 Internacional</option>
+                                </select>
+                                <div className="hint">Só receberá vagas da região escolhida. (Por enquanto o foco é Brasil.)</div>
+                            </div>
                             <div className="field">
                                 <label>Keywords obrigatórias <span className="badge ok">eliminatório</span></label>
                                 <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>Vagas que NÃO contenham nenhuma dessas palavras serão descartadas.</div>
@@ -434,11 +411,17 @@ export default function Profile() {
                                 </div>
                             )}
                         </div>
-                    )}
+                        )}
+                    </div>
+                    <div className={`mais-item ${section === 'contact' ? 'aberto' : ''}`}>
+                        <button type="button" className="mais-cab" onClick={() => setSection(section === 'contact' ? '' : 'contact')} aria-expanded={section === 'contact'}>
+                            <i className="ti ti-address-book" /> <span>{t('Contato')}</span>
+                            <i className={`ti ${section === 'contact' ? 'ti-chevron-up' : 'ti-chevron-down'} mais-seta`} />
+                        </button>
+                        {section === 'contact' && (
 
-                    {section === 'contact' && (
                         <div className="card">
-                            <div className="sec-card-head"><h2>{t('Currículo e contato')}</h2></div>
+                            <div className="sec-card-head"><h2>{t('Contato')}</h2></div>
                             <div className="grid-2">
                                 <div className="field">
                                     <label>Telefone</label>
@@ -476,32 +459,23 @@ export default function Profile() {
                                 </div>
                             </div>
 
-                            <div className="sec-card-head" style={{ marginTop: 8, paddingTop: 14, borderTop: '1px solid var(--color-border-light)' }}>
-                                <h2 style={{ fontSize: 15 }}><i className="ti ti-paperclip" /> Currículo para anexar no email</h2>
                             </div>
-                            <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>Este é o PDF enviado em anexo nas candidaturas.</p>
-                            {cvName ? (
-                                <div className="row" style={{ alignItems: 'center' }}>
-                                    <i className="ti ti-file-type-pdf" style={{ fontSize: 26, color: 'var(--color-danger)' }} />
-                                    <div><div style={{ fontWeight: 600 }}>{cvName}</div><div className="muted" style={{ fontSize: 12.5 }}>Currículo enviado</div></div>
-                                    <div className="spacer" />
-                                    <button className="btn sm" disabled={uploading} onClick={() => fileRef.current?.click()}>{uploading ? 'Enviando…' : 'Substituir'}</button>
-                                </div>
-                            ) : (
-                                <div className="empty" style={{ padding: 28 }}>
-                                    <i className="ti ti-cloud-upload" />Envie seu currículo em PDF (até 5MB).
-                                    <div style={{ marginTop: 12 }}>
-                                        <button className="btn primary sm" disabled={uploading} onClick={() => fileRef.current?.click()}>{uploading ? 'Enviando…' : 'Selecionar arquivo'}</button>
-                                    </div>
-                                </div>
-                            )}
-                            <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={(e) => handleCv(e.target.files?.[0])} />
-                        </div>
-                    )}
+                        )}
+                    </div>
+                    <div className={`mais-item ${section === 'modelo' ? 'aberto' : ''}`}>
+                        <button type="button" className="mais-cab" onClick={() => setSection(section === 'modelo' ? '' : 'modelo')} aria-expanded={section === 'modelo'}>
+                            <i className="ti ti-mail-cog" /> <span>{t('Modelo do email e teste de envio')}</span>
+                            <i className={`ti ${section === 'modelo' ? 'ti-chevron-up' : 'ti-chevron-down'} mais-seta`} />
+                        </button>
+                        {section === 'modelo' && <EmailSettings parte="modelo" />}
+                    </div>
+                    <div className={`mais-item ${section === 'perigo' ? 'aberto' : ''}`}>
+                        <button type="button" className="mais-cab" onClick={() => setSection(section === 'perigo' ? '' : 'perigo')} aria-expanded={section === 'perigo'}>
+                            <i className="ti ti-trash" /> <span>{t('Apagar meu perfil')}</span>
+                            <i className={`ti ${section === 'perigo' ? 'ti-chevron-up' : 'ti-chevron-down'} mais-seta`} />
+                        </button>
+                        {section === 'perigo' && (
 
-                    {section === 'email' && <EmailSettings />}
-
-                    {section === 'perigo' && (
                         <div className="card">
                             <div className="sec-card-head"><h2>Apagar meu perfil</h2></div>
                             <div className="why"><i className="ti ti-info-circle" />
@@ -553,7 +527,9 @@ export default function Profile() {
                                 <i className="ti ti-trash" /> {apagando ? 'Apagando…' : 'Apagar meu perfil'}
                             </button>
                         </div>
-                    )}
+                        )}
+                    </div>
+                    </div>
 
                     {showSave && (
                         // Sem alteração pendente NÃO mostramos um botão desabilitado:

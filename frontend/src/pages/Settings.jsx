@@ -23,8 +23,9 @@ const GOOGLE_MSG = {
 // Aberto por padrão no desktop, fechado no celular. A decisão é tomada UMA vez,
 // na montagem, e não num listener de resize: quem gira o telefone não espera
 // que a seção feche sozinha no meio da edição.
-function Recolhivel({ titulo, resumo, children }) {
+function Recolhivel({ titulo, resumo, children, sempreAberto }) {
     const [aberto, setAberto] = useState(() => {
+        if (sempreAberto) return true;
         try { return window.innerWidth > 760; } catch { return true; }
     });
     return (
@@ -39,7 +40,11 @@ function Recolhivel({ titulo, resumo, children }) {
     );
 }
 
-export default function EmailSettings() {
+// `parte` divide a tela em duas (perfil em página única, 02/11/2026):
+//   'conta'  só a conexão do Gmail, que fica à vista no perfil;
+//   'modelo' o teste de envio e o modelo do email, que moram em "Mais opções".
+// Sem `parte`, mostra tudo (como era).
+export default function EmailSettings({ parte } = {}) {
     const { user, googleConfigured, refreshUser } = useAuth();
     const toast = useToast();
     const [params, setParams] = useSearchParams();
@@ -207,7 +212,7 @@ export default function EmailSettings() {
     return (
         <>
             {/* ---- Conexão Google ---- */}
-            <div className="card" style={{ marginBottom: 20 }}>
+            {parte !== 'modelo' && <div className="card" style={{ marginBottom: parte ? 0 : 20 }}>
                 <div className="section-title">Conta de envio (Gmail)</div>
                 {!googleConfigured && (
                     <div className="notice warn">
@@ -251,7 +256,7 @@ export default function EmailSettings() {
                 </a>
 
                 {/* Enviar email de teste */}
-                <div className="teste-envio">
+                {parte !== 'conta' && <div className="teste-envio">
                     <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Enviar email de teste</div>
                     <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
                         Envia um email real (com seu template e currículo) para conferir se está tudo certo.
@@ -265,11 +270,11 @@ export default function EmailSettings() {
                         </button>
                     </div>
                     {!user.googleConnected && <div className="hint">Conecte sua conta Google para enviar o teste.</div>}
-                </div>
-            </div>
+                </div>}
+            </div>}
 
             {/* ---- Editor de template ---- */}
-            <Recolhivel titulo="Modelo do email" resumo="assunto, corpo e variáveis">
+            {parte !== 'conta' && <Recolhivel titulo="Modelo do email" resumo="assunto, corpo e variáveis" sempreAberto={parte === 'modelo'}>
                 <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
                     <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
                         Personalize o assunto e o corpo. Use as variáveis (clique para inserir).
@@ -372,7 +377,7 @@ export default function EmailSettings() {
                         {saving ? 'Salvando…' : (<><i className="ti ti-device-floppy" /> Salvar modelo</>)}
                     </button>
                 </div>
-            </Recolhivel>
+            </Recolhivel>}
         </>
     );
 }

@@ -500,6 +500,14 @@
        aparecem mesmo escondidos (ver backend/config/planosPagos.js). */
     .plans[hidden] { display: none; }
 
+    .newdev { max-width: 980px; margin: 0 auto 56px; padding: 28px 28px; display: flex; align-items: center; gap: 28px;
+        border: 1px solid var(--color-border-light, rgba(255,255,255,.1)); border-radius: 16px; }
+    .newdev h2 { font-size: 24px; line-height: 1.25; margin: 0 0 10px; letter-spacing: -0.5px; }
+    .newdev p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--color-text-secondary, #b0b4b8); max-width: 600px; }
+    .newdev-btn { flex-shrink: 0; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .faq a, .footer-note a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+    @media (max-width: 720px) { .newdev { flex-direction: column; align-items: flex-start; margin: 0 16px 40px; padding: 22px 18px; } }
+
     /* Faixa de prova social: números reais, logo depois do hero. */
     .prova { max-width: 980px; margin: 8px auto 0; padding: 0 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; }
     .prova-num { display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; border-top: 1px solid var(--color-border-light, rgba(255,255,255,.1)); }
@@ -1021,7 +1029,7 @@
                 <details><summary data-i18n="faq.3.q">Como funciona?</summary><p data-i18n="faq.3.a">Você cadastra seu perfil, aperta enviar e a gente manda 20 emails personalizados, do seu jeito, pros responsáveis das vagas que mais dão match com as suas skills.</p></details>
                 <details><summary data-i18n="faq.4.q">Por que só 20 por dia?</summary><p data-i18n="faq.4.a">Porque 500 emails por dia é spam, e spam faz o Gmail achar que você é um robô. 20 bem mirados valem mais que 500 no escuro.</p></details>
                 <details><summary data-i18n="faq.5.q">E eu consigo a vaga?</summary><p data-i18n="faq.5.a">Aí já é com você. A gente coloca seu currículo na mesa de quem contrata. Na entrevista, por favor, não diga que foi o ChatGPT que fez seu projeto.</p></details>
-                <details><summary data-i18n="faq.6.q">Quem está por trás disso?</summary><p data-i18n="faq.6.a">A New Dev, minha consultoria. O New Dev Jobs é um produto nosso, feito pra quem cansou de mandar currículo pro vazio. Se ele te ajudou, você já sabe quem chamar.</p></details>
+                <details><summary data-i18n="faq.6.q">Quem está por trás disso?</summary><p data-i18n="faq.6.a">A <a href="https://newdev.com.br/?utm_source=newdevjobs&amp;utm_medium=landing" target="_blank" rel="noopener">New Dev</a>, minha consultoria de tecnologia: a gente entende o problema do negócio e constrói a solução até ela rodar em produção. O New Dev Jobs é um produto nosso, feito pra quem cansou de mandar currículo pro vazio.</p></details>
             </div>
         </section>
 
@@ -1035,6 +1043,18 @@
             </p>
         </div>
 
+        <!-- ==================== NEW DEV (a consultoria) ====================
+             Quem visita aqui é dev procurando emprego, não comprador. O gancho é
+             o depois: quem consegue a vaga entra numa empresa, e é a empresa que
+             contrata consultoria. UTM para medir quantos chegam por aqui. -->
+        <section class="newdev">
+            <div>
+                <h2 data-i18n="newdev.h">Arrumou o emprego?<br>Agora indica a gente pro seu chefe.</h2>
+                <p data-i18n="newdev.p">O New Dev Jobs é feito pela New Dev, uma consultoria que pensa como consultoria e entrega como dev: entende onde a empresa está perdendo tempo e dinheiro, e constrói a solução até ela rodar em produção. Produtos digitais, dados, IA e automação.</p>
+            </div>
+            <a class="btn-s newdev-btn" href="https://newdev.com.br/?utm_source=newdevjobs&amp;utm_medium=landing" target="_blank" rel="noopener" data-i18n="newdev.btn">conhecer a New Dev <i class="ti ti-arrow-up-right" aria-hidden="true"></i></a>
+        </section>
+
         <!-- ==================== FOOTER ==================== -->
         <footer>
             <span class="footer-logo">New Dev Jobs</span>
@@ -1044,7 +1064,7 @@
                 <a href="privacidade.html" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;" data-i18n="footer.privacy">privacidade</a>
                 <a href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG" target="_blank" rel="noopener" style="font-size:12.5px;color:var(--color-text-tertiary);text-decoration:none;" data-i18n="footer.community"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> comunidade</a>
             </span>
-            <span class="footer-note" data-i18n="footer.note">um produto da New Dev · 2026</span>
+            <span class="footer-note" data-i18n="footer.note">um produto da <a href="https://newdev.com.br/?utm_source=newdevjobs&amp;utm_medium=landing" target="_blank" rel="noopener">New Dev</a> · 2026</span>
         </footer>
 
     </div>
@@ -1060,7 +1080,10 @@
         // PT é o conteúdo original do HTML (capturado uma vez e restaurado ao voltar);
         // o dicionário abaixo só traz as traduções EN. Chave = atributo data-i18n.
         const I18N_EN = {
-            'faq.6.a': 'New Dev, my consultancy. New Dev Jobs is our product, made for people tired of sending résumés into the void. If it helped you, you know who to call.',
+            'newdev.btn': 'meet New Dev <i class="ti ti-arrow-up-right" aria-hidden="true"></i>',
+            'newdev.p': 'New Dev Jobs is made by New Dev, a consultancy that thinks like consultants and ships like devs: we find where a company is losing time and money, and build the solution until it runs in production. Digital products, data, AI and automation.',
+            'newdev.h': 'Got the job?<br>Now tell your boss about us.',
+            'faq.6.a': '<a href="https://newdev.com.br/?utm_source=newdevjobs&amp;utm_medium=landing" target="_blank" rel="noopener">New Dev</a>, my tech consultancy: we understand the business problem and build the solution until it runs in production. New Dev Jobs is our product, made for people tired of sending résumés into the void.',
             'faq.6.q': 'Who is behind this?',
             'faq.5.a': 'That part is on you. We put your résumé on the desk of the person who hires. In the interview, please don’t say ChatGPT built your project.',
             'faq.5.q': 'Will I get the job?',
@@ -1174,7 +1197,7 @@
             'footer.terms': 'terms of use',
             'footer.privacy': 'privacy',
             'footer.community': '<i class="ti ti-brand-whatsapp" aria-hidden="true"></i> community',
-            'footer.note': 'a New Dev product · 2026',
+            'footer.note': 'a <a href="https://newdev.com.br/?utm_source=newdevjobs&amp;utm_medium=landing" target="_blank" rel="noopener">New Dev</a> product · 2026',
             'cta.community': '<i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Come join our WhatsApp community',
 
             // --- Metadados do <head>. Não têm data-i18n (não são elementos de

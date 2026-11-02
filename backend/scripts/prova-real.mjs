@@ -333,6 +333,17 @@ try {
         const ap = await api(c0.token, 'POST', '/applications', { jobId: Number(fora.Id) });
         checa([402, 403].includes(ap.status), 'POST /applications recusa vaga fora do feed', `HTTP ${ap.status}`);
     }
+    // A pré-visualização do email NUNCA devolve o endereço do recrutador, e só
+    // vale para vaga do feed (antes devolvia `to` de qualquer vaga da base).
+    if (fora) {
+        const pvFora = await api(c0.token, 'POST', '/applications/preview', { jobId: Number(fora.Id) });
+        checa(pvFora.status === 403 && !pvFora.data?.preview, 'SEGURANCA: previa recusa vaga fora do feed', `HTTP ${pvFora.status}`);
+    }
+    const primeira = (feeds[c0.perfil.nome] || [])[0];
+    if (primeira) {
+        const pv = await api(c0.token, 'POST', '/applications/preview', { jobId: Number(primeira.id) });
+        checa(pv.status === 200 && pv.data?.preview?.subject && !pv.data.preview.to, 'SEGURANCA: previa da vaga do feed sem o endereco do recrutador', `HTTP ${pv.status} to=${pv.data?.preview?.to}`);
+    }
     const fbMine = await api(c0.token, 'GET', '/jobs/feedback/mine');
     checa(fbMine.status === 200 && typeof fbMine.data?.disponivel === 'boolean', '/jobs/feedback/mine responde', `HTTP ${fbMine.status}`);
 

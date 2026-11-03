@@ -5,6 +5,7 @@ import { sendApplicationEmail } from './mailer.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { resolveTemplate } from '../routes/templates.js';
 import { invalidateMatches } from './jobsQuery.js';
+import { jaContatado } from './mesmoRecrutador.js';
 import { emailDeContatoValido, ehErroDeDestinatario } from './emailContato.js';
 
 class ApplyError extends Error {
@@ -41,6 +42,9 @@ export async function applyToJob(userId, jobId) {
     if (!emailDeContatoValido(job.Email)) throw new ApplyError('Vaga sem email de contato válido', 422);
     const [existing] = await sql`select "Id" from "Applications" where "UserId" = ${userId} and "JobId" = ${jobId}`;
     if (existing) return { skipped: true };
+    // Um currículo por recrutador a cada 30 dias (services/mesmoRecrutador.js).
+    // `skipped`, não erro: no worker a linha vira "pulada", não "falhou".
+    if (await jaContatado(userId, job.Email)) return { skipped: true, motivo: 'recrutador' };
 
     const match = computeMatch(profile, job);
     const tpl = await resolveTemplate(userId, 'pt');

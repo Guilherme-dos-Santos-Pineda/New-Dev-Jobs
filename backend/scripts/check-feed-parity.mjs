@@ -18,6 +18,7 @@ dotenv.config({ path: resolve(ROOT, '../../.env') });
 const { default: sql } = await import('../lib/sql.js');
 const { getMatches, invalidateMatches, passesFilters } = await import('../services/jobsQuery.js');
 const { feedbackDisponivel } = await import('../services/jobFeedback.js');
+const { enderecos, contatadosRecentes } = await import('../services/mesmoRecrutador.js');
 
 const todas = await sql`select * from "Jobs" order by "CreatedAt" desc, "Id" desc`;
 console.log(`base: ${todas.length} vagas\n`);
@@ -36,9 +37,14 @@ for (const u of users) {
         .map(j => String(j.Id)));
 
     invalidateMatches(u.Id);
-    const novo = new Set((await getMatches(u.Id)).map(m => String(m.id)));
+    const feed = await getMatches(u.Id);
+    const novo = new Set(feed.map(m => String(m.id)));
 
-    const perdidas = [...ref].filter(id => !novo.has(id));
+    // Uma vaga por recrutador (services/mesmoRecrutador.js): a que sobrou ou o
+    // contato recente explicam a ausência das outras. Não é perda.
+    const recrutadorCoberto = new Set([...feed.flatMap(m => enderecos(m.email)), ...await contatadosRecentes(u.Id)]);
+    const porId = new Map(todas.map(j => [String(j.Id), j]));
+    const perdidas = [...ref].filter(id => !novo.has(id) && !enderecos(porId.get(id)?.Email).some(e => recrutadorCoberto.has(e)));
     const extras   = [...novo].filter(id => !ref.has(id));
     const capado   = ref.size > 1500;
     const ok = extras.length === 0 && (perdidas.length === 0 || capado);

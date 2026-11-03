@@ -99,7 +99,7 @@ router.post('/', requireAuth, async (req, res) => {
         const noFeed = (await getMatches(req.user.Id)).some((m) => String(m.id) === String(jobId));
         if (!noFeed) return res.status(403).json({ error: 'Esta vaga não está entre as suas.' });
         const r = await applyToJob(req.user.Id, jobId);
-        if (r.skipped) return res.status(409).json({ error: 'Você já se candidatou a esta vaga' });
+        if (r.skipped) return res.status(409).json({ error: r.motivo === 'recrutador' ? 'Você já mandou currículo para este recrutador nos últimos 30 dias.' : 'Você já se candidatou a esta vaga' });
         const [created] = await sql`
             select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description"
             from "Applications" a join "Jobs" j on j."Id" = a."JobId" where a."Id" = ${r.applicationId}`;

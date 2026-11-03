@@ -6,6 +6,7 @@ import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
 import { niveisAceitos } from '../config/niveis.js';
+import { umaPorRecrutador, contatadosRecentes } from './mesmoRecrutador.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -272,8 +273,11 @@ async function computeMatches(userId) {
     const rows = await buscarCandidatas(userId, profile);
 
     const noneApplied = new Set(); // a query já excluiu as candidatadas
-    return rows
+    const ordenadas = rows
         .filter((j) => passesFilters(j, profile))
         .map((j) => shapeJob(j, profile, noneApplied))
         .sort((a, b) => b.matchScore - a.matchScore);
+    // Uma vaga por recrutador (a de maior match) e nenhuma de quem já recebeu
+    // currículo desta pessoa nos últimos 30 dias (services/mesmoRecrutador.js).
+    return umaPorRecrutador(ordenadas, await contatadosRecentes(userId));
 }

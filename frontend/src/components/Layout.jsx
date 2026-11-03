@@ -5,6 +5,8 @@ import { api } from '../api.js';
 import { PLANOS_PAGOS_ATIVOS } from '../lib/flags.js';
 import { prefetch } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
+import { useInstalarApp } from '../lib/instalarApp.js';
+import { useToast } from './Toast.jsx';
 import Logo from './Logo.jsx';
 import BugReportModal from './BugReportModal.jsx';
 
@@ -58,6 +60,8 @@ function MenuUsuario({ user, onBug, onSair, compacto }) {
     const navigate = useNavigate();
     const [aberto, setAberto] = useState(false);
     const ref = useRef(null);
+    const app = useInstalarApp();
+    const toast = useToast();
     const initials = (user?.name || user?.email || '?')
         .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('');
 
@@ -99,6 +103,15 @@ function MenuUsuario({ user, onBug, onSair, compacto }) {
                     <button role="menuitem" onClick={() => { toggleTheme(); setAberto(false); }}>
                         <i className={`ti ${escuro ? 'ti-sun' : 'ti-moon'}`} /> {escuro ? t('Tema claro') : t('Tema escuro')}
                     </button>
+                    {app.mostrar && (
+                        <button role="menuitem" onClick={() => {
+                            setAberto(false);
+                            if (app.ios) toast.show(t('No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início".'));
+                            else app.instalar();
+                        }}>
+                            <i className="ti ti-device-mobile" /> {t('Instalar app')}
+                        </button>
+                    )}
                     <div className="mu-sep" />
                     <button role="menuitem" className="mu-sair" onClick={onSair}><i className="ti ti-logout" /> {t('Sair')}</button>
                 </div>

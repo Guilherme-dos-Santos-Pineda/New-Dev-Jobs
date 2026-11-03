@@ -1,0 +1,19 @@
+{
+    "id": "/app/",
+    "name": "New Dev Jobs",
+    "short_name": "New Dev Jobs",
+    "description": "Vagas de tecnologia do dia e envio do seu currículo para os recrutadores.",
+    "lang": "pt-BR",
+    "start_url": "/app/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#F1F0EB",
+    "theme_color": "#F1F0EB",
+    "categories": ["business", "productivity"],
+    "icons": [
+        { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

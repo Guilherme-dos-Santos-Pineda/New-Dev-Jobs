@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx';
 import './styles.css';
 import { clearChunkReloadFlag } from './lib/lazyWithReload.js';
 import { capturarErros } from './lib/errorLog.js';
+import { registrarApp } from './lib/instalarApp.js';
 
 // Libera a trava anti-loop do recarregamento de chunk SO depois que o app
 // realmente pintou. Limpar no topo do modulo (como era antes) anulava a trava: a
@@ -22,6 +23,9 @@ if (typeof requestAnimationFrame === 'function') {
 
 // Guarda o ultimo erro de JS da sessao para anexar a um relato de bug.
 capturarErros();
+
+// Service worker + escuta do "Instalar app" (precisa ser antes do primeiro render).
+registrarApp();
 
 createRoot(document.getElementById('root')).render(
     <React.StrictMode>

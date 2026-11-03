@@ -124,6 +124,8 @@ const EN = {
     'Assinatura': 'Subscription',
     'Admin': 'Admin',
     'Sair': 'Log out',
+    'Instalar app': 'Install app',
+    'No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início".': 'On iPhone: tap Share, then "Add to Home Screen".',
     'Alternar tema': 'Toggle theme',
     'Recolher': 'Collapse',
     'Expandir': 'Expand',

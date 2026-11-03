@@ -209,6 +209,15 @@ regra existente, não acrescente uma nova que a contradiga.
 - **`—` como "sem valor" também sai.** Em prosa, omita o trecho (`{empresa ? \`${empresa} · \` : ''}`); em célula de tabela, deixe vazio.
 - Comentário de código pode manter travessão: ninguém além de quem edita o arquivo lê.
 
+## App de celular (PWA, desde 02/11/2026)
+- **O app React é instalável** (manifest + service worker em `frontend/public/`). Decisão do dono: PWA primeiro, Play Store (Capacitor) depois. A App Store fica para mais tarde: a Apple recusa site embalado (4.2) e exige "Entrar com a Apple" ao lado do Google.
+- **`scope: "/"` no manifest, de propósito.** `/login` e `/signup` vivem fora de `/app/`; com o escopo em `/app/`, quem abre o app deslogado cai numa tela "fora do app" (barra de navegador no Android, folha do Safari no iPhone). O preço é que, no Android, link para a landing também abre no app instalado.
+- **O service worker (`sw.js`) fica em `/app/` e só mexe em duas coisas**: navegação é REDE PRIMEIRO (cópia do `index.html` só sem internet; deploy chega na hora) e `/app/assets/*` é cache primeiro (nome com hash nunca envelhece). `/api` nunca passa por ele. **Não faça cache-first de navegação nem do `/api`**: o app ficaria preso numa versão velha, ou mostrando vaga e cota de ontem.
+- **Se o SW atrapalhar**, troque o `sw.js` por um que só faça `self.registration.unregister()` no `activate`: o navegador confere o arquivo a cada navegação e desliga em todo aparelho. Apagar o arquivo não basta: com 404 a atualização falha e o SW antigo segue rodando.
+- O SW só registra no build (`import.meta.env.PROD`); no dev server atrapalharia o HMR. **Para testar, use o build servido em `/app/`**: o `vite preview` serve na raiz (o `base` só vale para `vite build`) e o `sw.js` volta como HTML.
+- "Instalar app" no menu do nome: aparece quando o Chrome dispara `beforeinstallprompt` (o listener nasce no `main.jsx`, senão o evento se perde) ou no iPhone, onde vira instrução de "Adicionar à Tela de Início". Some quando já está instalado.
+- O deploy confere que `/app/sw.js` e `/app/manifest.json` não voltam como HTML.
+
 ## Layout
 - **`.page` precisa de `width: 100%` junto do `max-width`.** `.app-main` é flex em coluna, e `margin: 0 auto` num flex item **desliga o stretch do cross axis**: sem a largura explícita a página fica do tamanho do CONTEÚDO, não do container. Medido: 642 px num monitor de 1250 px, com o resto vazio. Era a causa de "sobra nas laterais", e mexer só no `max-width` não muda nada.
 - **Lista de itens iguais vai em LINHAS dentro de um cartão só**, não em cartões soltos (ver Candidaturas). Cada item tem os mesmos campos; cartão solto quebra o alinhamento das colunas e o olho perde a capacidade de comparar.

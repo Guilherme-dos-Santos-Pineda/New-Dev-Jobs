@@ -181,6 +181,13 @@ jobs:
               printf '  %-14s -> %s\n' "$rota" "$codigo"
               [ "$codigo" = "200" ] || { echo "::error::${rota} respondeu ${codigo}"; exit 1; }
           done
+          # App instalável: se o sw.js ou o manifest caírem no fallback do SPA,
+          # voltam 200 com HTML, o navegador recusa e o "Instalar" some sem erro.
+          for arq in sw.js manifest.json; do
+              tipo=$(curl -s -o /dev/null -w '%{content_type}' --max-time 20 "https://newdevjobs.xyz/app/${arq}")
+              printf '  %-14s -> %s\n' "/app/${arq}" "$tipo"
+              case "$tipo" in *html*|"") echo "::error::/app/${arq} veio como '${tipo}', esperado JS/JSON"; exit 1;; esac
+          done
           # 404 real precisa continuar existindo: se virar 200, o SPA está
           # engolindo toda URL e o Google indexaria páginas inexistentes.
           erro=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://newdevjobs.xyz/rota-que-nao-existe)

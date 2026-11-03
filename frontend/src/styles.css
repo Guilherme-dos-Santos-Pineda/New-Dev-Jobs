@@ -807,7 +807,10 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
 @media (max-width: 820px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .nav-tabs a span { display: none; }
-    .user-chip span { display: none; }
+    /* Só o NOME. Era `.user-chip span`, que pegava o avatar junto (também é
+       span): no celular o botão do menu do nome ficava 10x10 px e invisível, e
+       Admin, tema, idioma e sair não tinham por onde abrir. */
+    .user-chip .user-chip-nome { display: none; }
 }
 @media (max-width: 560px) {
     .grid-2 { grid-template-columns: 1fr; }
@@ -2110,8 +2113,36 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 8px -2px rgba(0, 0, 0, 0.5);
         }
+        /* O menu do nome mora DENTRO da barra de cima, que já tem backdrop-filter.
+           Vidro dentro de vidro não funciona: o desfoque do filho só enxerga a
+           própria barra, não a página, e o menu ficava transparente com o texto
+           de baixo atravessando. Aqui ele é sólido. */
+        .mobile-bar .menu-usuario-pop {
+            background: var(--color-surface);
+            -webkit-backdrop-filter: none; backdrop-filter: none;
+        }
     }
 }
+
+/* Aviso "dá para instalar o app" (só celular), logo acima da barra flutuante.
+   Abaixo dos modais (z 90) e do toast (100), acima das barras (50). */
+.aviso-instalar {
+    position: fixed; z-index: 55; left: 12px; right: 12px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px;
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: 18px; box-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.38);
+    animation: aviso-in 0.25s ease;
+}
+.aviso-instalar img { border-radius: 11px; flex-shrink: 0; }
+.ai-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--color-text-secondary); }
+.ai-texto b { font-size: 14px; color: var(--color-text); padding-right: 18px; }
+.ai-acoes { display: flex; gap: 6px; margin-top: 8px; }
+.ai-fechar {
+    position: absolute; top: 8px; right: 8px; background: none; border: 0; cursor: pointer;
+    color: var(--color-text-tertiary); font-size: 16px; padding: 4px; line-height: 1;
+}
+@keyframes aviso-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 /* Símbolo da marca sobre um quadrado escuro. O verde neon solto sobre o fundo
    claro do tema ficava apagado ("ícone verde com fundo branco, tá feio",

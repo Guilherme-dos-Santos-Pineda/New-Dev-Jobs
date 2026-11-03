@@ -216,12 +216,15 @@ regra existente, não acrescente uma nova que a contradiga.
 - **Se o SW atrapalhar**, troque o `sw.js` por um que só faça `self.registration.unregister()` no `activate`: o navegador confere o arquivo a cada navegação e desliga em todo aparelho. Apagar o arquivo não basta: com 404 a atualização falha e o SW antigo segue rodando.
 - O SW só registra no build (`import.meta.env.PROD`); no dev server atrapalharia o HMR. **Para testar, use o build servido em `/app/`**: o `vite preview` serve na raiz (o `base` só vale para `vite build`) e o `sw.js` volta como HTML.
 - "Instalar app" no menu do nome: aparece quando o Chrome dispara `beforeinstallprompt` (o listener nasce no `main.jsx`, senão o evento se perde) ou no iPhone, onde vira instrução de "Adicionar à Tela de Início". Some quando já está instalado.
+- **Aviso de instalação** (`AvisoInstalar.jsx`): cartão acima da barra de baixo, **só no celular** (no computador o Chrome já mostra o ícone na barra de endereço), 4 s depois de abrir. "Agora não" cala por **30 dias** (`localStorage('avisoInstalarAte')`); o item do menu continua lá. Fica abaixo dos modais (z 55 < 90): não pode tapar o assistente do primeiro acesso.
 - O deploy confere que `/app/sw.js` e `/app/manifest.json` não voltam como HTML.
 
 ## Layout
 - **`.page` precisa de `width: 100%` junto do `max-width`.** `.app-main` é flex em coluna, e `margin: 0 auto` num flex item **desliga o stretch do cross axis**: sem a largura explícita a página fica do tamanho do CONTEÚDO, não do container. Medido: 642 px num monitor de 1250 px, com o resto vazio. Era a causa de "sobra nas laterais", e mexer só no `max-width` não muda nada.
 - **Lista de itens iguais vai em LINHAS dentro de um cartão só**, não em cartões soltos (ver Candidaturas). Cada item tem os mesmos campos; cartão solto quebra o alinhamento das colunas e o olho perde a capacidade de comparar.
 - **No detalhe, rótulo em cima do valor** (`.det-campo`): o rótulo responde "o que é isso" antes de a pessoa deduzir pelo conteúdo.
+- **No celular, o menu do nome é o ÚNICO caminho para Admin, tema, idioma e sair.** Uma regra antiga do layout anterior (`.user-chip span { display: none }` abaixo de 820 px) escondia o avatar junto com o nome, e o botão virava 10x10 px invisível: o admin não abria no celular. Ao esconder parte do chip, mire na classe (`.user-chip-nome`), nunca no elemento.
+- **Vidro dentro de vidro não funciona**: elemento com `backdrop-filter` dentro de outro com `backdrop-filter` só desfoca o pai, não a página. O menu do nome dentro da barra de cima do celular ficava transparente com o texto atravessando; ali ele é sólido.
 - **A barra inferior do mobile é FLUTUANTE** (`bottom: 10px + safe-area`, laterais soltas, cantos arredondados). Colada embaixo ela encosta na área do gesto do iOS e no indicador do Android, e esconde o fim da página. O item ativo ganha **pílula**, não só cor: em fundo translúcido a cor sozinha não diz onde você está.
 
 ## Frontend — armadilhas

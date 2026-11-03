@@ -9,6 +9,7 @@ import { useInstalarApp } from '../lib/instalarApp.js';
 import { useToast } from './Toast.jsx';
 import Logo from './Logo.jsx';
 import BugReportModal from './BugReportModal.jsx';
+import AvisoInstalar from './AvisoInstalar.jsx';
 
 // Hover em um item do menu já aquece o chunk lazy da rota + os dados da tela.
 // Quando o usuário clica, a página normalmente já tem tudo em cache.
@@ -184,6 +185,8 @@ export default function Layout() {
                     </NavLink>
                 ))}
             </nav>
+
+            <AvisoInstalar />
         </div>
     );
 }

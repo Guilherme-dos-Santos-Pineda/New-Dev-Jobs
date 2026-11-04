@@ -354,6 +354,7 @@ const scraperParams = z.object({
     takePages: z.coerce.number().int().min(1).max(40).optional(),
     // monitoramento
     maxPosts: z.coerce.number().int().min(1).max(100).optional(),
+    creditoMinimo: z.coerce.number().min(0).max(20).optional(), // robô extra: US$ que precisam sobrar
     source: z.enum(['global', 'saved', 'selected']).optional(),
     recruiterIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
     maxRecruiters: z.coerce.number().int().min(1).max(500).optional(), // cap p/ rotação (saved)

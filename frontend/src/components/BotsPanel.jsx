@@ -15,12 +15,16 @@ import { haQuanto, emQuanto, aCada } from '../lib/tempo.js';
 // "Avançado".
 
 const FREQUENCIAS = [120, 360, 720, 1440];
-const ROTULO = { monitor: 'Monitorar recrutadores', descoberta: 'Descobrir recrutadores novos' };
+const ROTULO = { monitor: 'Monitorar recrutadores', descoberta: 'Descobrir recrutadores novos', nicho: 'Buscar vagas por nicho' };
 const EXPLICA = {
     monitor: 'Visita 10 recrutadores por vez e lê as vagas que eles postaram na última semana. Todo recrutador com vaga no Brasil é visitado uma vez por semana.',
     descoberta: 'Procura #vagati no LinkedIn inteiro. Quem posta vaga com email vira recrutador monitorado sozinho.',
+    nicho: 'Procura front-end, QA, mobile, design, júnior e estágio no LinkedIn inteiro. Só acrescenta vagas, não muda os outros robôs, e pula o dia se o crédito da Apify estiver curto.',
 };
-const tipoDe = (robo) => (robo.params?.source === 'global' ? 'descoberta' : 'monitor');
+const tipoDe = (robo) => {
+    if (robo.params?.creditoMinimo) return 'nicho';
+    return robo.params?.source === 'global' ? 'descoberta' : 'monitor';
+};
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 const usd = (v) => (v == null ? '' : `US$ ${Number(v).toFixed(2).replace('.', ',')}`);
 
@@ -31,6 +35,7 @@ function resumoRun(run) {
     if (run.status === 'running') return 'Rodando agora…';
     if (run.status === 'failed') return `Falhou: ${run.error || 'erro desconhecido'}`;
     const s = run.stats || {};
+    if (s.semFolga) return 'Pulou o dia: crédito da Apify curto';
     const novas = s.novos ?? 0;
     return `${nf(novas)} vaga${novas === 1 ? '' : 's'} nova${novas === 1 ? '' : 's'} de ${nf(s.found ?? 0)} posts lidos`;
 }
@@ -206,7 +211,7 @@ export default function BotsPanel() {
             <div className="card lista-card">
                 {d.runs.length === 0 && <div className="empty" style={{ padding: 22 }}><i className="ti ti-clock-off" />Nenhuma execução ainda.</div>}
                 {d.runs.map((run) => {
-                    const tipo = run.params?.source === 'global' ? 'descoberta' : 'monitor';
+                    const tipo = tipoDe(run);
                     const avulsa = !run.params?.scheduleId;
                     return (
                         <div key={run.id}>

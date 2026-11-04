@@ -1,6 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isQuotaError, endOfMonthMs, apifyPoolState, resetApifyPool } from '../services/apifyPool.js';
+import { isQuotaError, endOfMonthMs, apifyPoolState, resetApifyPool, temFolgaDeCredito } from '../services/apifyPool.js';
+
+// ---------- Robô extra só gasta o que sobra do monitoramento ----------
+test('temFolgaDeCredito: soma o que resta em cada conta', () => {
+    const uso = { accounts: [{ remainingUsd: 0 }, { remainingUsd: 1.5 }, { remainingUsd: 1 }] };
+    assert.equal(temFolgaDeCredito(uso, 2), true);
+    assert.equal(temFolgaDeCredito(uso, 3), false);
+});
+test('temFolgaDeCredito: na dúvida, não gasta', () => {
+    assert.equal(temFolgaDeCredito(null, 2), false);
+    assert.equal(temFolgaDeCredito({ accounts: [] }, 2), false);
+    assert.equal(temFolgaDeCredito({ accounts: [{ remainingUsd: 5 }, { remainingUsd: null }] }, 2), false);
+});
 
 // ---------- Detecção de erro de crédito (rotaciona) vs transitório (retenta) ----------
 test('isQuotaError: 402/403 são erro de cota', () => {

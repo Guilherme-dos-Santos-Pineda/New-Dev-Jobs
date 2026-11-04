@@ -110,6 +110,16 @@ export function resetApifyPool() {
     return apifyPoolState();
 }
 
+/**
+ * Sobra crédito acima de `minimo`? Robô extra pergunta isto antes de gastar, para
+ * nunca tirar o crédito do monitoramento. Na dúvida (conta que não respondeu),
+ * diz não: perder uma busca extra custa menos que parar o robô principal.
+ */
+export function temFolgaDeCredito(uso, minimo) {
+    if (!uso?.accounts?.length || uso.accounts.some((a) => a.remainingUsd == null)) return false;
+    return uso.accounts.reduce((soma, a) => soma + a.remainingUsd, 0) >= minimo;
+}
+
 // Gasto REAL do mês por conta (via API da Apify), para o relatório de custos.
 // Cacheado 60s (é 1 chamada de rede por conta). Free tier = US$5/conta/mês.
 const FREE_USD = 5;

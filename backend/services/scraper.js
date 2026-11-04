@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import sql from '../lib/sql.js';
 import { config } from '../config.js';
 import { analyzeContent } from './ai.js';
-import { runActor } from './apifyPool.js';
+import { runActor, apifyUsage, temFolgaDeCredito } from './apifyPool.js';
 import { proximosMonitoraveis } from './recrutadorMonitoravel.js';
 
 // =========================
@@ -229,8 +229,13 @@ export const QUERY_DESCOBERTA = '#vagati OR #vagasti';
 export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
-    region = 'global', excludeCountries, maxRecruiters = 10,
+    region = 'global', excludeCountries, maxRecruiters = 10, creditoMinimo,
 } = {}) {
+    // Robô extra (busca por nicho): só gasta o que sobra do monitoramento.
+    if (creditoMinimo && !temFolgaDeCredito(await apifyUsage().catch(() => null), creditoMinimo)) {
+        return { found: 0, novos: 0, semFolga: true };
+    }
+
     // Sem query explícita, o padrão depende do modo (ver QUERY_MONITORAMENTO).
     // Era `"hiring software engineer"` para TUDO: somado aos authorUrls, a busca
     // virava "posts destes recrutadores BR que digam isso em inglês", e as 14

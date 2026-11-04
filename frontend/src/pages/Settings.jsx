@@ -8,6 +8,7 @@ import { deveVoltarParaVagas } from '../lib/voltarParaVagas.js';
 const GOOGLE_MSG = {
     connected: ['Conta Google conectada com sucesso', 'info'],
     denied: ['Você cancelou a conexão com o Google', 'error'],
+    'sem-envio': ['Faltou marcar a opção de enviar email na tela do Google. Conecte de novo e marque a caixinha.', 'error'],
     invalid: ['Sessão de conexão expirou, tente de novo', 'error'],
     error: ['Falha ao conectar com o Google', 'error'],
 };
@@ -238,7 +239,7 @@ export default function EmailSettings({ parte } = {}) {
                         <div className="job-logo"><i className="ti ti-brand-google" /></div>
                         <div>
                             <div style={{ fontWeight: 600 }}>Conecte sua conta Google</div>
-                            <div className="muted" style={{ fontSize: 12.5 }}>Permissão apenas de envio (gmail.send). Nunca lemos seus emails.</div>
+                            <div className="muted" style={{ fontSize: 12.5 }}>Permissão apenas de envio (gmail.send). Nunca lemos seus emails. Na tela do Google, marque a caixinha de enviar email.</div>
                         </div>
                         <div className="spacer" />
                         <button className="btn primary sm" disabled={connecting} onClick={connectGoogle}>

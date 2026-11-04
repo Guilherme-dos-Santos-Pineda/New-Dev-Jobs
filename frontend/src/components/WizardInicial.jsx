@@ -221,7 +221,7 @@ export default function WizardInicial({ onPronto, onPular }) {
                                 <button type="button" className={`wizard-cartao ${modoEnvio === 'auto' ? 'on' : ''}`} onClick={() => setModoEnvio('auto')}>
                                     <i className="ti ti-bolt" aria-hidden="true" />
                                     <span className="wc-t">{t('Automático')} <span className="badge ok">{t('recomendado')}</span></span>
-                                    <span className="wc-d">{t('Você conecta o Gmail e, com um clique, a gente manda seu currículo para as melhores vagas do dia, com o seu nome. Só pedimos permissão para enviar, nunca para ler.')}</span>
+                                    <span className="wc-d">{t('Você conecta o Gmail e, com um clique, a gente manda seu currículo para as melhores vagas do dia, com o seu nome. Só pedimos permissão para enviar, nunca para ler. Na tela do Google, marque a caixinha de enviar email.')}</span>
                                 </button>
                                 <button type="button" className={`wizard-cartao ${modoEnvio === 'proprio' ? 'on' : ''}`} onClick={() => setModoEnvio('proprio')}>
                                     <i className="ti ti-hand-click" aria-hidden="true" />

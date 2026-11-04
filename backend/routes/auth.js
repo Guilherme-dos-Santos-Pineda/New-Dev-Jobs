@@ -77,7 +77,11 @@ router.get('/google/callback', async (req, res) => {
     }
 
     try {
-        await exchangeCodeAndStore(code, userId);
+        const r = await exchangeCodeAndStore(code, userId);
+        if (r.semPermissaoDeEnvio) {
+            console.warn('Google callback: concluiu sem marcar a permissão de enviar');
+            return redirect('sem-envio');
+        }
         redirect('connected');
     } catch (e) {
         console.error('Erro no callback Google:', e.message);

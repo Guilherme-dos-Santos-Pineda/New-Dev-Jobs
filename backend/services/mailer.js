@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import { config } from '../config.js';
-import { authorizedClient, isInvalidGrant, markGoogleDisconnected } from './google.js';
+import { authorizedClient, isInvalidGrant, isFaltaDeEscopo, markGoogleDisconnected } from './google.js';
 
 // =========================
 // Envio de email da candidatura
@@ -58,6 +58,15 @@ export async function sendApplicationEmail({ userId, from, to, subject, html, te
         if (isInvalidGrant(err)) {
             await markGoogleDisconnected(userId).catch(() => {});
             const e = new Error('Sua conexão com o Google expirou ou foi revogada. Reconecte sua conta Google em Perfil → Email.');
+            e.code = 'GOOGLE_REAUTH';
+            throw e;
+        }
+        // Falta de permissão não se resolve tentando de novo: subindo como erro comum,
+        // o worker retentava por horas e a pessoa via a mensagem crua do Google.
+        // Desconectar faz a tela voltar a pedir o Gmail.
+        if (isFaltaDeEscopo(err)) {
+            await markGoogleDisconnected(userId).catch(() => {});
+            const e = new Error('O Google não deu permissão para enviar email. Conecte o Gmail de novo e marque a opção de enviar email.');
             e.code = 'GOOGLE_REAUTH';
             throw e;
         }

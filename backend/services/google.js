@@ -59,6 +59,19 @@ export function consumeState(state) {
     } catch { return null; }
 }
 
+const ESCOPO_ENVIO = 'https://www.googleapis.com/auth/gmail.send';
+
+/**
+ * A pessoa deixou marcada a permissão de enviar? Na tela do Google cada permissão
+ * é uma caixinha, e dá para concluir sem marcar. O Google devolve um token válido
+ * só com o que foi marcado, sem erro nenhum: sem esta conferência o app dizia
+ * "conectado" e cada envio falhava depois com "Request had insufficient
+ * authentication scopes" (caso real, 04/11/2026).
+ */
+export function temPermissaoDeEnvio(scope) {
+    return String(scope || '').split(' ').includes(ESCOPO_ENVIO);
+}
+
 export function getAuthUrl(userId) {
     const client = oauthClient();
     return client.generateAuthUrl({
@@ -73,6 +86,8 @@ export function getAuthUrl(userId) {
 export async function exchangeCodeAndStore(code, userId) {
     const client = oauthClient();
     const { tokens } = await client.getToken(code);
+    // Sem `scope` na resposta não dá para afirmar nada: quem pega é o envio (mailer.js).
+    if (tokens.scope && !temPermissaoDeEnvio(tokens.scope)) return { semPermissaoDeEnvio: true };
     client.setCredentials(tokens);
 
     // Descobre o email da conta Google conectada
@@ -128,6 +143,12 @@ export async function authorizedClient(userId) {
 export function isInvalidGrant(err) {
     const m = err?.response?.data?.error || err?.response?.data?.error_description || err?.message || '';
     return /invalid_grant/i.test(String(m));
+}
+
+/** O Gmail recusou porque o token não tem a permissão de enviar. */
+export function isFaltaDeEscopo(err) {
+    const m = [err?.message, err?.response?.data?.error?.message, err?.response?.data?.error?.status].join(' ');
+    return /insufficient authentication scopes|access_token_scope_insufficient/i.test(m);
 }
 
 // Marca a conexão Google como inválida (sem tentar revogar — o token já está morto),

@@ -70,7 +70,7 @@ const EN = {
     'Como você quer mandar seu currículo?': 'How do you want to send your résumé?',
     'Nada sai sem você mandar. Dá para trocar depois.': 'Nothing goes out unless you send it. You can change this later.',
     'Automático': 'Automatic',
-    'Você conecta o Gmail e, com um clique, a gente manda seu currículo para as melhores vagas do dia, com o seu nome. Só pedimos permissão para enviar, nunca para ler.': 'You connect Gmail and, with one click, we send your résumé to the day’s best jobs, with your name. We only ask permission to send, never to read.',
+    'Você conecta o Gmail e, com um clique, a gente manda seu currículo para as melhores vagas do dia, com o seu nome. Só pedimos permissão para enviar, nunca para ler. Na tela do Google, marque a caixinha de enviar email.': 'You connect Gmail and, with one click, we send your résumé to the day’s best jobs, with your name. We only ask permission to send, never to read. On the Google screen, tick the box to send email.',
     'Eu mesmo envio': 'I’ll send it myself',
     'Já trabalha em algum lugar?': 'Already working somewhere?',
     'Digite o nome da empresa e aperte Enter. Ela nunca recebe seu currículo.': 'Type the company name and press Enter. It will never get your résumé.',
@@ -233,6 +233,7 @@ const EN = {
     'Os emails saem da SUA conta, com o seu nome no remetente. O recrutador responde direto para você.':
         'Emails go out from YOUR account, with your name as sender. The recruiter replies straight to you.',
     'Conectar Gmail': 'Connect Gmail',
+    'Na tela do Google, marque a caixinha de enviar email.': 'On the Google screen, tick the box to send email.',
     'Não lemos sua caixa de entrada. A permissão que pedimos é só a de ENVIAR, e você pode desconectar quando quiser.':
         'We do not read your inbox. The only permission we ask for is SEND, and you can disconnect whenever you want.',
     'Configuração': 'Setup',

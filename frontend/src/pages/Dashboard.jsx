@@ -165,6 +165,8 @@ export default function Dashboard() {
         } catch (e) {
             aba?.close();
             toast.show(e.message, 'error');
+            // O envio pode ter desconectado o Gmail: o cartão de cima precisa saber.
+            refreshUser().catch(() => {});
         } finally {
             trava.current = false;
             setOcupado(null);
@@ -233,6 +235,7 @@ export default function Dashboard() {
                         <div className="vh-hero-txt">
                             <div className="vh-hero-titulo">{t('Envio automático')}</div>
                             <div className="vh-hero-sub">{t('Conecte seu Gmail e a gente manda seu currículo para as melhores vagas, com o seu nome. Só pedimos permissão para enviar, nunca para ler.')}</div>
+                            <div className="vh-hero-sub">{t('Na tela do Google, marque a caixinha de enviar email.')}</div>
                             <button type="button" className="link-sutil vh-ver-email" onClick={() => verEmail(boas[0] || lista?.[0])}>
                                 <i className="ti ti-eye" /> {t('Ver como fica o email')}
                             </button>

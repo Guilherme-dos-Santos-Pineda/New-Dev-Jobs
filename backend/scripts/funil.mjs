@@ -95,6 +95,27 @@ console.log('\n  Candidaturas por caminho');
 console.log(`    automático (Gmail conectado)  ${String(e.total_auto).padStart(5)} envios · ${e.enviaram_auto} pessoa(s)`);
 console.log(`    na mão (sem conectar nada)    ${String(e.total_mao).padStart(5)} envios · ${e.enviaram_mao} pessoa(s)`);
 
+// A resposta MAIS RECENTE de cada pessoa. A tabela vem da migration 0018.
+const [temRetorno] = await sql`select to_regclass('public."RetornoEnvios"') is not null as ok`;
+if (temRetorno.ok) {
+    const [r] = await sql`
+        select
+            count(*)::int                                       as total,
+            count(*) filter (where "Resposta" = 'nada')::int    as nada,
+            count(*) filter (where "Resposta" = 'sim')::int     as sim,
+            count(*) filter (where "Resposta" = 'emprego')::int as emprego
+        from (
+            select distinct on ("UserId") "UserId", "Resposta" from "RetornoEnvios"
+            where "UserId" in (select "Id" from "Users" where "Email" <> ${DONO} and "Email" not like '%teste-newdevjobs.local')
+            order by "UserId", "CreatedAt" desc
+        ) x`;
+    console.log('\n  Retorno dos recrutadores (quem respondeu ao cartão)');
+    console.log(`    responderam ao cartão  ${r.total}`);
+    console.log(`    ainda sem resposta     ${r.nada}`);
+    console.log(`    recrutador respondeu   ${r.sim}`);
+    console.log(`    conseguiram emprego    ${r.emprego}`);
+}
+
 console.log('\n  Entradas');
 console.log(`    últimos 7 dias  ${n.semana}`);
 console.log(`    últimos 30 dias ${n.mes}`);

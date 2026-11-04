@@ -8,6 +8,7 @@ import { useT } from '../lib/i18n.jsx';
 import { scoreClass, gmailComposeUrl, LIMITE_URL, AREA_OPTIONS } from '../utils.js';
 import { haQuanto } from '../lib/tempo.js';
 import WizardInicial from '../components/WizardInicial.jsx';
+import PerguntaRetorno from '../components/PerguntaRetorno.jsx';
 import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
 
 // =========================
@@ -268,6 +269,8 @@ export default function Dashboard() {
                 {!enviando && restam > 0 && (
                     <div className="vh-cota muted">{t('{r} de {n} envios livres hoje', { r: restam, n: limite })} · <Link to="/app/perfil" className="link-sutil">{t('Ajustar o que eu procuro')}</Link></div>
                 )}
+
+                <PerguntaRetorno />
 
                 {/* ---- As vagas ---- */}
                 {lista === null ? (

@@ -233,6 +233,14 @@ const EN = {
     'Os emails saem da SUA conta, com o seu nome no remetente. O recrutador responde direto para você.':
         'Emails go out from YOUR account, with your name as sender. The recruiter replies straight to you.',
     'Conectar Gmail': 'Connect Gmail',
+    'Algum recrutador te respondeu?': 'Has any recruiter replied to you?',
+    'A gente não vê sua caixa de entrada, então só sabe se você contar.': 'We can not see your inbox, so we only know if you tell us.',
+    'Ainda não': 'Not yet',
+    'Sim, responderam': 'Yes, they replied',
+    'Consegui emprego': 'I got a job',
+    'Obrigado por contar. Isso ajuda a gente a melhorar.': 'Thanks for telling us. It helps us improve.',
+    'Que bom! Obrigado por contar.': 'Great! Thanks for telling us.',
+    'Parabéns pelo emprego! Essa é a melhor notícia que a gente pode receber.': 'Congratulations on the job! That is the best news we could get.',
     'Na tela do Google, marque a caixinha de enviar email.': 'On the Google screen, tick the box to send email.',
     'Não lemos sua caixa de entrada. A permissão que pedimos é só a de ENVIAR, e você pode desconectar quando quiser.':
         'We do not read your inbox. The only permission we ask for is SEND, and you can disconnect whenever you want.',

@@ -141,6 +141,9 @@ export const api = {
     // 👍/👎 numa vaga (voto 1, -1 ou 0 para desfazer). O 👎 tira a vaga do feed.
     jobFeedback: (id, voto, motivo) => request('POST', `/jobs/${id}/feedback`, { voto, motivo }),
     jobFeedbackMine: () => request('GET', '/jobs/feedback/mine'),
+    // "Algum recrutador te respondeu?": resposta é nada, sim ou emprego.
+    retorno: () => request('GET', '/retorno'),
+    responderRetorno: (resposta) => request('POST', '/retorno', { resposta }),
     queueStart: (mode, jobIds) => request('POST', '/queue', { mode, jobIds }),
     queueStatus: () => request('GET', '/queue'),
     queueStop: () => request('POST', '/queue/stop'),

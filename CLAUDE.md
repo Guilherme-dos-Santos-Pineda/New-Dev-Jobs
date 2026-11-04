@@ -120,6 +120,8 @@ regra existente, não acrescente uma nova que a contradiga.
   - **Funciona antes da migration**: `feedbackDisponivel()` checa a tabela; sem ela os botões somem e o feed segue igual. Consultar tabela inexistente derrubaria o feed de todos.
   - **`semDislikeSql` é SÍNCRONA de propósito.** Fragmento do postgres.js é "thenable": devolvido por função `async`, o `await` do chamador EXECUTA o fragmento sozinho ("syntax error at or near $3") e o feed cai. A primeira versão fez isso; nenhum teste ou lint pega, só rodar.
 
+- **"Algum recrutador te respondeu?"** (`PerguntaRetorno.jsx`, `services/retornoEnvios.js`, migration `0018`). A permissão do Gmail é só de enviar, então perguntar é o único jeito de saber se o produto funciona. Aparece 14 dias depois do primeiro envio, de novo a cada 30 e nunca mais depois de "Consegui emprego". "Agora não" cala 7 dias, só naquele aparelho. Uma linha por resposta, sem sobrescrever: a sequência dá o tempo até a contratação. Sem a tabela o cartão não aparece. O resultado sai no `npm run funil`.
+
 ## Prova real (ponta a ponta)
 - **O harness falha alto:** há `catch` explícito (o `finally` chamava `process.exit()` antes de a exceção subir, e um crash virava "todas passaram" com metade das verificações) e um piso mínimo — rodada curta é falha.
 - `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **247 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.

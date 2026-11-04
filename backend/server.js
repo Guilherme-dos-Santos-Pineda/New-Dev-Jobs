@@ -24,6 +24,7 @@ import adminRoutes from './routes/admin.js';
 import billingRoutes from './routes/billing.js';
 import dashboardRoutes from './routes/dashboard.js';
 import publicRoutes from './routes/public.js';
+import retornoRoutes from './routes/retorno.js';
 import { getBoss } from './lib/boss.js';
 import { startWorker } from './worker.js';
 
@@ -98,6 +99,7 @@ app.use('/api/email', emailRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/retorno', retornoRoutes);
 
 // 404 para rotas /api desconhecidas
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota não encontrada' }));

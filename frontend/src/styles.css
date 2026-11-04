@@ -1974,6 +1974,10 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .vh-hero-sub { font-size: 13.5px; color: var(--color-text-secondary); margin-top: 5px; line-height: 1.5; }
 .vh-hero-btn { padding: 13px 22px; font-size: 15px; flex-shrink: 0; }
 .vh-cota { font-size: 12.5px; margin: 10px 2px 14px; }
+.vh-retorno { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 18px; margin-bottom: 14px; font-size: 13px; }
+.vh-retorno-txt { flex: 1; min-width: 240px; }
+.vh-retorno-titulo { font-weight: 600; font-size: 14.5px; margin-bottom: 2px; }
+.vh-retorno-acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .vh-lista { margin-top: 4px; }
 .vh-vaga { border-bottom: 1px solid var(--color-border-light); }

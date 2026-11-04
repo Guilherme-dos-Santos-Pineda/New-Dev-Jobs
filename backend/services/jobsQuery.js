@@ -6,7 +6,7 @@ import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
 import { niveisAceitos } from '../config/niveis.js';
-import { umaPorRecrutador, contatadosRecentes } from './mesmoRecrutador.js';
+import { umaPorRecrutador, contatadosRecentes, enderecos } from './mesmoRecrutador.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -14,6 +14,30 @@ const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.pa
 // Reexporta a classificação (detectArea/detectLevel vivem em classify.js para
 // serem compartilhados com o motor de match sem import circular).
 export { detectArea, detectLevel };
+
+const semAcento = (s) => String(s).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/**
+ * A pessoa bloqueou esta vaga? É a trava de "não mandar para a empresa onde eu
+ * trabalho" (pedido de usuários em 03/11/2026), e por isso olha também o EMAIL:
+ * com "Acme" bloqueada, rh@acme.com.br cai mesmo com a empresa extraída errado.
+ * Sem acento dos dois lados: quem digita "Itaú" pega o itau.com.br.
+ *
+ * Mais larga que o SQL de propósito (ele não vê o email nem ignora acento): o
+ * SQL nunca pode ser mais restritivo que o JS. Usada pelo feed e por applyToJob.
+ */
+export function bloqueadaPeloUsuario(job, profile) {
+    const skills = parseArr(job.Skills).join(' ');
+    const texto = semAcento(`${job.JobTitle || ''} ${job.Company || ''} ${job.Description || ''} ${skills} ${job.Email || ''}`);
+    const email = semAcento(job.Email || '');
+    // Sem espaços contra o email: "Mercado Livre" tem de pegar rh@mercadolivre.com.
+    const bloqueada = (k) => texto.includes(semAcento(k)) || email.includes(semAcento(k).replace(/\s+/g, ''));
+    if (parseArr(profile?.BlockedWords).some((k) => k && bloqueada(k))) return true;
+
+    const dominios = parseArr(profile?.BlockedDomains).map((d) => d.toLowerCase());
+    const doEmail = enderecos(job.Email).map((e) => e.split('@')[1] || '');
+    return doEmail.some((dom) => dominios.some((d) => dom === d || dom.endsWith(`.${d}`)));
+}
 
 export function passesFilters(job, profile) {
     // Vaga de outra profissão NUNCA entra, com ou sem perfil e com ou sem filtro
@@ -45,14 +69,7 @@ export function passesFilters(job, profile) {
     const required = parseArr(profile.RequiredKeywords).map((k) => k.toLowerCase());
     if (required.length && !required.some((k) => text.includes(k))) return false;
 
-    const blocked = parseArr(profile.BlockedWords).map((k) => k.toLowerCase());
-    if (blocked.some((k) => k && text.includes(k))) return false;
-
-    const domains = parseArr(profile.BlockedDomains).map((d) => d.toLowerCase());
-    if (domains.length && job.Email) {
-        const dom = job.Email.split('@')[1]?.toLowerCase() || '';
-        if (domains.some((d) => dom === d || dom.endsWith(`.${d}`))) return false;
-    }
+    if (bloqueadaPeloUsuario(job, profile)) return false;
 
     // FILTRO_DATA_ATIVO desligado por ora (config/filtroData.js). O valor de
     // cada pessoa segue salvo; é só religar a chave.

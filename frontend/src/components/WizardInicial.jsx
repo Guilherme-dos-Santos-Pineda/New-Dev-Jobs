@@ -4,7 +4,8 @@ import { useAuth } from '../auth.jsx';
 import { useToast } from './Toast.jsx';
 import { useT } from '../lib/i18n.jsx';
 import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
-import { AREA_OPTIONS, LEVEL_OPTIONS } from '../utils.js';
+import { AREA_OPTIONS, LEVEL_OPTIONS, normalizeKeyword } from '../utils.js';
+import TagInput from './TagInput.jsx';
 
 // =========================
 // Wizard de primeiro acesso
@@ -45,6 +46,7 @@ export default function WizardInicial({ onPronto, onPular }) {
     const [areas, setAreas] = useState([]);
     const [niveis, setNiveis] = useState([]);
     const [skills, setSkills] = useState([]);
+    const [empresas, setEmpresas] = useState([]); // onde a pessoa trabalha: nunca recebe o currículo
     const [temCv, setTemCv] = useState(false);
     const [lendoCv, setLendoCv] = useState(false);
     const [salvando, setSalvando] = useState(false);
@@ -94,7 +96,9 @@ export default function WizardInicial({ onPronto, onPular }) {
         setSalvando(true);
         try {
             await api.updateProfile({
-                areas, levels: niveis, skills,
+                // O campo do PUT /profile é `seniorities`. Com `levels`, o backend
+                // ignorava e a escolha de nível do assistente se perdia em silêncio.
+                areas, seniorities: niveis, skills, blockedWords: empresas,
             });
             await refreshUser();
             // Escolheu o automático: vai direto ao consentimento do Google e, na
@@ -224,6 +228,11 @@ export default function WizardInicial({ onPronto, onPular }) {
                                     <span className="wc-t">{t('Eu mesmo envio')}</span>
                                     <span className="wc-d">{t('Para cada vaga, a gente abre o email pronto no seu Gmail. Você anexa o currículo e manda.')}</span>
                                 </button>
+                            </div>
+                            <div className="field" style={{ marginTop: 18, marginBottom: 0 }}>
+                                <label>{t('Já trabalha em algum lugar?')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({t('opcional')})</span></label>
+                                <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>{t('Digite o nome da empresa e aperte Enter. Ela nunca recebe seu currículo.')}</div>
+                                <TagInput value={empresas} onChange={setEmpresas} tone="danger" normalize={normalizeKeyword} placeholder={t('Nome da empresa')} />
                             </div>
                         </>
                     )}

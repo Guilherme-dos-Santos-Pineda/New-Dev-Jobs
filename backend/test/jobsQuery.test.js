@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectArea, detectLevel, passesFilters } from '../services/jobsQuery.js';
+import { detectArea, detectLevel, passesFilters, bloqueadaPeloUsuario } from '../services/jobsQuery.js';
 
 test('detectArea: classifica o cargo a partir do título', () => {
     assert.equal(detectArea({ JobTitle: 'Desenvolvedor .NET Sênior', Skills: [] }), 'backend');
@@ -119,4 +119,26 @@ test('passesFilters: email inválido é barrado ATÉ sem perfil', () => {
         assert.equal(passesFilters({ JobTitle: 'X', Email: ruim }, null), false, `deveria barrar: ${String(ruim)}`);
         assert.equal(passesFilters({ JobTitle: 'X', Email: ruim }, { Region: 'br' }), false, `deveria barrar com perfil: ${String(ruim)}`);
     }
+});
+
+// Pedido de usuários (03/11/2026): quem já trabalha não pode mandar currículo
+// para a própria empresa sem querer.
+test('bloqueadaPeloUsuario: empresa bloqueada cai pelo nome, pelo email e sem acento', () => {
+    const p = { BlockedWords: ['Itaú'] };
+    assert.equal(bloqueadaPeloUsuario({ JobTitle: 'Dev', Company: 'Itaú Unibanco', Email: 'a@b.com' }, p), true);
+    assert.equal(bloqueadaPeloUsuario({ JobTitle: 'Dev', Company: 'Consultoria X', Email: 'rh@itau.com.br' }, p), true);
+    assert.equal(bloqueadaPeloUsuario({ JobTitle: 'Dev', Company: 'Consultoria X', Description: 'Alocado no ITAU', Email: 'a@b.com' }, p), true);
+    assert.equal(bloqueadaPeloUsuario({ JobTitle: 'Dev', Company: 'Nubank', Email: 'rh@nubank.com.br' }, p), false);
+});
+
+test('bloqueadaPeloUsuario: nome composto pega o email sem espaço', () => {
+    const p = { BlockedWords: ['Mercado Livre'] };
+    assert.equal(bloqueadaPeloUsuario({ Company: 'Consultoria X', Email: 'rh@mercadolivre.com' }, p), true);
+});
+
+test('bloqueadaPeloUsuario: domínio confere todos os endereços da vaga', () => {
+    const p = { BlockedDomains: ['acme.com'] };
+    assert.equal(bloqueadaPeloUsuario({ Email: 'a@outra.com, rh@vagas.acme.com' }, p), true);
+    assert.equal(bloqueadaPeloUsuario({ Email: 'a@outra.com' }, p), false);
+    assert.equal(bloqueadaPeloUsuario({ Email: 'a@outra.com' }, null), false);
 });

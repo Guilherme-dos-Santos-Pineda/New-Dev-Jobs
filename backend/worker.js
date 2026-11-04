@@ -37,7 +37,7 @@ async function handleSend([job]) {
     try {
         const r = await applyToJob(userId, jobId);
         await sql`update "SendQueue" set "Status" = ${r.skipped ? 'skipped' : 'sent'}, "SentAt" = now() where "Id" = ${queueId}`;
-        console.log(r.skipped ? `↦ ${r.motivo === 'recrutador' ? 'recrutador já contatado (30 dias)' : 'já enviado antes'}: user ${userId} job ${jobId}` : `✉️  enviado: user ${userId} job ${jobId}`);
+        console.log(r.skipped ? `↦ pulado (${r.motivo || 'já enviado antes'}): user ${userId} job ${jobId}` : `✉️  enviado: user ${userId} job ${jobId}`);
     } catch (e) {
         if (e instanceof ApplyError) {
             // Erro de negócio definitivo (vaga sem email, vaga removida…): marca falha, não retenta.

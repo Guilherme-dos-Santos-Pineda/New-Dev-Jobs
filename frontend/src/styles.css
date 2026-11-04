@@ -70,14 +70,14 @@
 
 html.dark {
     --color-bg: #0E0F10;
-    --color-bg-secondary: #17181A;
-    --color-surface: #141517;
+    --color-bg-secondary: #1D1F22;
+    --color-surface: #17191C;
     --color-text: #F2F2F0;
     --color-text-secondary: #9A9D9F;
-    --color-text-tertiary: #63666A;
-    --color-border: #26282A;
-    --color-border-light: #1E2022;
-    --color-border-medium: #26282A;
+    --color-text-tertiary: #7A7D82;
+    --color-border: #303338;
+    --color-border-light: #282A2E;
+    --color-border-medium: #303338;
 
     --color-accent: #F2F2F0;
     --color-accent-dark: #FFFFFF;
@@ -666,6 +666,16 @@ html.dark .icon-sun { display: inline; } html.dark .icon-moon { display: none; }
     animation: pop 0.18s ease;
 }
 @keyframes pop { from { transform: translateY(10px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+/* No escuro, o modal era #141517 sobre #0E0F10 com véu de 55%: no celular, com
+   brilho baixo, modal e fundo viravam uma coisa só. Véu mais fechado, e o modal
+   é uma camada MAIS CLARA (as variáveis valem para o que estiver dentro dele). */
+html.dark .modal-overlay { background: rgba(0, 0, 0, 0.74); }
+html.dark .modal {
+    --color-surface: #212328; --color-bg-secondary: #2A2D32;
+    --color-border: #3D4046; --color-border-light: #34373C;
+    background: var(--color-surface); border-color: #44474D;
+    box-shadow: 0 24px 64px -12px #000;
+}
 .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--color-border-light); display: flex; align-items: center; gap: 10px; }
 .modal-head h3 { font-family: var(--font-disp); font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
 /* `.close` vale SOZINHA, não só dentro de .modal-head. Aninhada, qualquer
@@ -2121,6 +2131,7 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
             background: var(--color-surface);
             -webkit-backdrop-filter: none; backdrop-filter: none;
         }
+        :root.dark .mobile-bar .menu-usuario-pop { background: #212328; border-color: #44474D; }
     }
 }
 

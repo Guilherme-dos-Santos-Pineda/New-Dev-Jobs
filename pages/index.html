@@ -12,7 +12,12 @@
     <meta name="keywords" content="vagas de TI, vagas para desenvolvedor, vagas dev, emprego programador, vagas no LinkedIn, automação de candidatura, vagas de TI Brasil, enviar currículo automático">
     <meta name="author" content="newdevjobs">
     <meta name="robots" content="index, follow, max-image-preview:large">
-    <meta name="theme-color" content="#F1F0EB">
+    <meta name="theme-color" content="#0E0F10">
+    <script>
+        // Escuro é o padrão: só fica claro quem escolheu claro. No <head> para não piscar.
+        try { if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark'); }
+        catch (e) { document.documentElement.classList.add('dark'); }
+    </script>
     <link rel="canonical" href="https://newdevjobs.xyz/">
     <link rel="alternate" hreflang="pt-BR" href="https://newdevjobs.xyz/">
     <link rel="alternate" hreflang="en" href="https://newdevjobs.xyz/en/">
@@ -1236,17 +1241,6 @@
             }
         }
 
-        // Inicializa tema ao carregar
-        (function() {
-            const saved = localStorage.getItem('theme');
-            if (saved === 'dark') {
-                document.documentElement.classList.add('dark');
-            } else if (saved === 'light') {
-                document.documentElement.classList.remove('dark');
-            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.documentElement.classList.add('dark');
-            }
-        })();
     </script>
 </body>
 </html>

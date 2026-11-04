@@ -116,11 +116,10 @@ html = html.replace(
     /("description": ")[^"]*(")/,
     `$1${dict['meta.jsonldDescription']}$2`);
 
-// --- links relativos: sob /en/ resolveriam para /en/docs.html (404) ---
-// docs, termos e privacidade seguem só em português, então apontam para a raiz.
-for (const f of ['favicon.svg', 'docs.html', 'termos.html', 'privacidade.html']) {
-    html = html.replaceAll(`href="${f}"`, `href="/${f}"`);
-}
+// --- caminhos relativos: sob /en/ resolveriam para /en/docs.html (404) ---
+// Vale para TODO href/src relativo, não uma lista de nomes: a lista esqueceu o
+// marca.png e a logo sumiu da página em inglês (avisado por um usuário).
+html = html.replace(/\b(href|src)="(?![a-z][a-z0-9+.-]*:|\/|#)([^"]+)"/gi, '$1="/$2"');
 
 // --- seletor de idioma: EN ativo em vez de PT ---
 html = html.replace('class="lang-opt active" data-lang="pt"', 'class="lang-opt" data-lang="pt"');

@@ -4,7 +4,7 @@ import { renderEmail } from './templates.js';
 import { sendApplicationEmail } from './mailer.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { resolveTemplate } from '../routes/templates.js';
-import { invalidateMatches } from './jobsQuery.js';
+import { invalidateMatches, bloqueadaPeloUsuario } from './jobsQuery.js';
 import { jaContatado } from './mesmoRecrutador.js';
 import { emailDeContatoValido, ehErroDeDestinatario } from './emailContato.js';
 
@@ -42,6 +42,9 @@ export async function applyToJob(userId, jobId) {
     if (!emailDeContatoValido(job.Email)) throw new ApplyError('Vaga sem email de contato válido', 422);
     const [existing] = await sql`select "Id" from "Applications" where "UserId" = ${userId} and "JobId" = ${jobId}`;
     if (existing) return { skipped: true };
+    // Última trava da empresa bloqueada: o que entrou na fila antes do bloqueio,
+    // ou por fora do feed, não pode sair para o chefe da pessoa.
+    if (bloqueadaPeloUsuario(job, profile)) return { skipped: true, motivo: 'bloqueada' };
     // Um currículo por recrutador a cada 30 dias (services/mesmoRecrutador.js).
     // `skipped`, não erro: no worker a linha vira "pulada", não "falhou".
     if (await jaContatado(userId, job.Email)) return { skipped: true, motivo: 'recrutador' };

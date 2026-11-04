@@ -218,6 +218,14 @@ export default function Profile() {
                                     ))}
                                 </div>
                             </div>
+                            {/* À vista de propósito: "e se mandar para a minha própria empresa?"
+                                foi a dúvida de quem já trabalha (03/11/2026), e em Filtros
+                                avançados ninguém achava a resposta. */}
+                            <div className="field">
+                                <label>{t('Empresas e palavras bloqueadas')}</label>
+                                <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>{t('Já trabalha em algum lugar? Coloque o nome da empresa aqui e ela nunca recebe seu currículo. Vale para o nome, o email e o texto da vaga.')}</div>
+                                <TagInput value={form.blockedWords} onChange={(v) => set('blockedWords', v)} tone="danger" normalize={normalizeKeyword} placeholder={t('Nome da empresa ou palavra')} />
+                            </div>
                         </div>
                     <div className="card">
                         <div className="sec-card-head">
@@ -370,12 +378,6 @@ export default function Profile() {
                                 <label>Keywords obrigatórias <span className="badge ok">eliminatório</span></label>
                                 <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>Vagas que NÃO contenham nenhuma dessas palavras serão descartadas.</div>
                                 <TagInput value={form.requiredKeywords} onChange={(v) => set('requiredKeywords', v)} normalize={normalizeKeyword} placeholder="Tags que toda vaga DEVE ter…" />
-                            </div>
-
-                            <div className="field">
-                                <label>Palavras bloqueadas</label>
-                                <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>Vagas que contenham qualquer uma dessas palavras serão ignoradas.</div>
-                                <TagInput value={form.blockedWords} onChange={(v) => set('blockedWords', v)} tone="danger" normalize={normalizeKeyword} placeholder="Tags que você NÃO quer ver…" />
                             </div>
 
                             <div className="field">

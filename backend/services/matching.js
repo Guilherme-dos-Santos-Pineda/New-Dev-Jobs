@@ -3,6 +3,7 @@
 // =========================
 
 import { detectArea, nivelDaVaga } from './classify.js';
+import { expandirAreas } from '../config/areas.js';
 
 function parseSkills(value) {
     if (!value) return [];
@@ -98,7 +99,13 @@ export function computeMatch(profile, job) {
     // um match alto — ex.: um QA não deve ver uma vaga de Dev como compatível. O
     // filtro (passesFilters) já descarta esses casos no feed; aqui garantimos o
     // mesmo na visão "ignorar filtros" e no ranking.
-    const userAreas = parseSkills(profile?.Areas).map((a) => a.toLowerCase());
+    //
+    // A lista EXPANDIDA, a mesma do filtro. Comparando com a escolha crua, quem
+    // marcou "dev" levava a penalidade em toda vaga "backend", e quem marcou
+    // "backend" em toda vaga "dev": skills 100% viravam 25%, abaixo do corte de
+    // 50% do envio automático (achado em 03/11/2026, ficou assim desde a divisão
+    // da família dev em 30/09).
+    const userAreas = expandirAreas(parseSkills(profile?.Areas).map((a) => a.toLowerCase()));
     const jobArea = detectArea(job);
     // 'nontech' é mismatch SEMPRE — mesmo sem áreas declaradas e mesmo na visão
     // "ignorar filtros", onde passesFilters não roda. Sem isto, uma vaga de outra

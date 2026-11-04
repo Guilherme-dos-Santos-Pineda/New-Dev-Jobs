@@ -70,3 +70,16 @@ test('computeMatch: vaga sem skills mas com a stack no texto pontua mais', () =>
     const irrelevante = { JobTitle: 'Motorista', Description: 'entregas na cidade', Skills: [] };
     assert.ok(computeMatch(dev, relevante).score > computeMatch(dev, irrelevante).score);
 });
+
+// Caso real (03/11/2026): com a escolha crua, skills 100% viravam 25% e a vaga
+// ficava abaixo do corte de 50% do envio automático.
+test('computeMatch: a área usa a lista expandida, igual ao filtro', () => {
+    const job = { JobTitle: 'Desenvolvedor Back-end .NET', Skills: ['.NET', 'C#'] };
+    const generico = { JobTitle: 'Desenvolvedor de Software', Skills: ['.NET', 'C#'] };
+    const skills = ['.NET', 'C#'];
+    assert.equal(computeMatch({ Skills: skills, Areas: ['dev'] }, job).areaMismatch, false);
+    assert.equal(computeMatch({ Skills: skills, Areas: ['backend'] }, generico).areaMismatch, false);
+    assert.ok(computeMatch({ Skills: skills, Areas: ['dev'] }, job).score >= 90);
+    // Front e back continuam sem se puxar.
+    assert.equal(computeMatch({ Skills: skills, Areas: ['frontend'] }, job).areaMismatch, true);
+});

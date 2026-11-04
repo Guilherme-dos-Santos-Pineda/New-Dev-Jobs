@@ -58,7 +58,11 @@ const sql = url
         // consumindo a fila entravam na fila atrás dela — e como a query do
         // getMatches segura uma conexão por ~1,2s, o dashboard parecia travar.
         max: Number(process.env.PG_POOL_MAX) || 25,
-        idle_timeout: 20,      // devolve conexão ociosa ao pooler (segundos)
+        // Era 20 s, menos que o tique de 60 s do agendador: a conexão morria entre
+        // um tique e outro. Cada reconexão refaz o TLS e o postgres.js baixa a
+        // tabela de tipos (~380 linhas): ~3600 vezes por dia, a consulta que mais
+        // devolvia linhas no banco, e tudo isso conta no egress do plano grátis.
+        idle_timeout: 300,     // devolve conexão ociosa ao pooler (segundos)
         connect_timeout: 10,   // falha rápido em vez de pendurar a request
         transform: { undefined: null },
     })

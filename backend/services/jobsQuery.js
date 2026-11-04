@@ -1,7 +1,8 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
 import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga } from './classify.js';
-import { semDislikeSql, feedbackDisponivel } from './jobFeedback.js';
+import { idsComDislike } from './jobFeedback.js';
+import { vagasDoFeed } from './feedCache.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
 import { expandirAreas } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
@@ -23,8 +24,7 @@ const semAcento = (s) => String(s).normalize('NFD').replace(/\p{M}/gu, '').toLow
  * com "Acme" bloqueada, rh@acme.com.br cai mesmo com a empresa extraída errado.
  * Sem acento dos dois lados: quem digita "Itaú" pega o itau.com.br.
  *
- * Mais larga que o SQL de propósito (ele não vê o email nem ignora acento): o
- * SQL nunca pode ser mais restritivo que o JS. Usada pelo feed e por applyToJob.
+ * Usada pelo feed e por applyToJob, a última trava antes do envio.
  */
 export function bloqueadaPeloUsuario(job, profile) {
     const skills = parseArr(job.Skills).join(' ');
@@ -37,6 +37,11 @@ export function bloqueadaPeloUsuario(job, profile) {
     const dominios = parseArr(profile?.BlockedDomains).map((d) => d.toLowerCase());
     const doEmail = enderecos(job.Email).map((e) => e.split('@')[1] || '');
     return doEmail.some((dom) => dominios.some((d) => dom === d || dom.endsWith(`.${d}`)));
+}
+
+/** Texto em que as palavras exigidas são procuradas. */
+function textoDoFiltro(job) {
+    return `${job.JobTitle || ''} ${job.Company || ''} ${job.Description || ''} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
 }
 
 export function passesFilters(job, profile) {
@@ -63,11 +68,11 @@ export function passesFilters(job, profile) {
     const region = profile.Region || 'br';
     if (region === 'br' && !jobIsBR(job)) return false;
     if (region === 'intl' && jobIsBR(job)) return false;
-    const skillsText = parseArr(job.Skills).join(' ');
-    const text = `${job.JobTitle || ''} ${job.Company || ''} ${job.Description || ''} ${skillsText}`.toLowerCase();
-
     const required = parseArr(profile.RequiredKeywords).map((k) => k.toLowerCase());
-    if (required.length && !required.some((k) => text.includes(k))) return false;
+    if (required.length) {
+        const text = textoDoFiltro(job);
+        if (!required.some((k) => text.includes(k))) return false;
+    }
 
     if (bloqueadaPeloUsuario(job, profile)) return false;
 
@@ -187,111 +192,65 @@ export async function getMatches(userId) {
 }
 
 
-// Teto de vagas trazidas do banco por consulta. Não é paginação: é o limite de
-// quanto o processo aceita segurar em memória de uma vez. Como o SQL abaixo já
-// aplicou área, modalidade, nível, país e data, essas são as vagas do feed —
-// pegar as 1500 MAIS RECENTES entre elas é uma perda aceitável (ninguém percorre
-// 1500 vagas), e sem teto uma base de 50 mil vagas derruba a VM de 954 MB.
+// Teto do feed de uma pessoa. Não é paginação: é o limite de quanto o processo
+// monta e devolve de uma vez. As vagas chegam das mais recentes para as mais
+// antigas, então ficam as 1500 MAIS RECENTES que passaram no filtro (ninguém
+// percorre 1500 vagas).
 const MATCHES_MAX = Number(process.env.MATCHES_MAX) || 1500;
 
 /**
- * Traz do banco só as vagas que podem entrar no feed do usuário.
+ * Filtra as vagas em memória (services/feedCache.js) para uma pessoa.
  *
- * O filtro vive em DOIS lugares de propósito, e a divisão importa:
+ * Dois passos, e a divisão importa. Primeiro o corte BARATO: colunas gravadas na
+ * inserção (migration 0014) e as palavras da pessoa, que descartam a maior parte
+ * sem rodar nenhuma regex. Só o que sobra vai para passesFilters, a autoridade
+ * final: ele reclassifica o texto, e fazer isso nas ~8 mil vagas a cada
+ * requisição custava ~1,2 s por usuário na VM.
  *
- *  • Aqui (SQL) ficam os critérios que dependem só da VAGA — área, nível,
- *    modalidade, país, data. Eles foram pré-calculados na inserção e gravados em
- *    colunas indexadas (migration 0014), então o banco descarta as vagas
- *    incompatíveis SEM enviá-las. Antes, `select * from "Jobs"` trazia a tabela
- *    inteira para o Node reclassificar em JavaScript a cada requisição de cada
- *    usuário: ~12 MB e ~1,2 s com 6 mil vagas, mais de 75 MB com 50 mil.
- *
- *  • Em passesFilters (JS) ficam os critérios textuais do usuário (palavras
- *    exigidas/bloqueadas, domínios), que não valem um índice, e ele roda DE NOVO
- *    sobre o que chegou — é a autoridade final. Por isso o SQL nunca pode ser
- *    mais restritivo que o JS: se divergirem, o JS corta o excesso; o contrário
- *    sumiria com vaga boa sem ninguém perceber.
+ * O corte barato NUNCA pode ser mais restritivo que passesFilters: se divergirem,
+ * vaga boa some em silêncio, sem erro e sem log. Confira com `npm run check:feed`.
  */
-// Reproduz em SQL o texto que passesFilters monta em JS: título + empresa +
-// descrição + skills separadas por espaço. As skills viram texto pelo caminho
-// mais barato (tirar `["`, `",`, `"]` e colapsar espaços) em vez de um
-// jsonb_array_elements_text por linha — o resultado é o mesmo e não custa um
-// lateral join. Se este texto ficasse MENOR que o do JS, o SQL seria mais
-// restritivo que o filtro autoritativo e sumiria com vaga boa em silêncio.
-// FUNÇÃO, não constante: `sql` é null quando DATABASE_URL não está definido, e um
-// sql`` no topo do módulo quebraria o IMPORT — o que derrubou a suíte inteira no
-// CI, que roda sem banco de propósito (os testes são de lógica pura).
-const textoDaVaga = () => sql`(
-    coalesce(j."JobTitle",'') || ' ' || coalesce(j."Company",'') || ' ' ||
-    coalesce(j."Description",'') || ' ' ||
-    coalesce(regexp_replace(translate(j."Skills"::text, '[]",', '    '), '\\s+', ' ', 'g'), '')
-)`;
-
-// `includes()` do JS é substring literal; ILIKE trata % e _ como curinga. Sem
-// escapar, uma palavra bloqueada com "%" casaria com tudo.
-const paraLike = (k) => `%${String(k).replace(/([\\%_])/g, '\\$1')}%`;
-
-async function buscarCandidatas(userId, profile) {
-    // A chave vale para o SQL E para o JS. Ligar só num lado faz o SQL ficar
-    // mais restritivo que o JS, que some com vaga boa em silêncio.
+export function candidatasDoPerfil(vagas, profile, resolvidas = new Set()) {
     const dias = FILTRO_DATA_ATIVO && Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
-    const region = profile?.Region || 'br';
-    const areas = expandirAreas(parseArr(profile?.Areas));
+    const desde = dias ? Date.now() - dias * 86400000 : null;
+    const paraFora = (profile?.Region || 'br') === 'intl';
+    const areas = new Set(expandirAreas(parseArr(profile?.Areas)));
+    const niveis = new Set(niveisAceitos(profile));
     const mods = parseArr(profile?.Modalities).map((m) => String(m).toLowerCase());
-    const levels = niveisAceitos(profile);
-    // Palavras exigidas/bloqueadas também vão para o SQL. Não é otimização de
-    // sobra: eram o filtro que mais cortava (um perfil de segurança guardava 421
-    // de 1500 vagas), então deixá-las em JS fazia o teto de linhas ser gasto com
-    // vagas que seriam descartadas na chegada — e o feed perdia 39% do que devia
-    // mostrar. Filtrando aqui, o teto passa a valer sobre o resultado de verdade.
-    const exigidas = parseArr(profile?.RequiredKeywords).filter(Boolean).map(paraLike);
-    const bloqueadas = parseArr(profile?.BlockedWords).filter(Boolean).map(paraLike);
-    // 👎 do usuário: some do feed dele (vazio enquanto a migration 0017 não existe).
-    const semDislike = semDislikeSql(userId, await feedbackDisponivel());
+    const exigidas = parseArr(profile?.RequiredKeywords).filter(Boolean).map((k) => k.toLowerCase());
+    const temBloqueio = parseArr(profile?.BlockedWords).length > 0 || parseArr(profile?.BlockedDomains).length > 0;
 
-    return sql`
-        select j.* from "Jobs" j
-        -- O like é LARGO de propósito (só derruba o que não tem cara nenhuma
-        -- de email): quem corta fino é o passesFilters, em JS. SQL mais
-        -- restritivo que o JS some com vaga boa em silêncio.
-        -- Ver services/emailContato.js.
-        where j."Email" is not null and j."Email" like ${LIKE_EMAIL}
-          -- Vaga de outra profissão nunca entra, com ou sem perfil configurado.
-          and coalesce(j."Area", 'other') <> 'nontech'
-          and not exists (
-              select 1 from "Applications" a
-              where a."UserId" = ${userId} and a."JobId" = j."Id"
-          )
-          ${semDislike}
-          ${dias ? sql`and j."CreatedAt" >= now() - make_interval(days => ${dias})` : sql``}
-          ${profile ? (region === 'intl'
-              ? sql`and j."IsBR" is not true`
-              : sql`and j."IsBR" is not false`) : sql``}
-          -- Área/nível/modalidade: o "is null" repete o critério do JS — vaga que
-          -- não deu para classificar PASSA. Título ruim não é vaga ruim, e o balde
-          -- dos indefinidos tinha Tech Lead e Arquiteto de Software dentro.
-          -- Os ::text[] são obrigatórios, não decoração. Sem eles o tipo do
-          -- parâmetro fica por conta da inferência do servidor, e atrás do
-          -- PgBouncer em transaction mode a mesma consulta cai em conexões
-          -- diferentes a cada execução: em produção isso deu "malformed array
-          -- literal" em 1 requisição de 8, e só sob concorrência. O cast explícito
-          -- tira a inferência da jogada.
-          ${areas.length ? sql`and (j."Area" is null or j."Area" = 'other' or j."Area" = any(${areas}::text[]))` : sql``}
-          ${levels.length ? sql`and (j."Level" is null or j."Level" = any(${levels}::text[]))` : sql``}
-          ${mods.length ? sql`and (j."Mods" is null or jsonb_exists_any(j."Mods", ${mods}::text[]))` : sql``}
-          ${exigidas.length ? sql`and ${textoDaVaga()} ilike any (${exigidas}::text[])` : sql``}
-          ${bloqueadas.length ? sql`and not (${textoDaVaga()} ilike any (${bloqueadas}::text[]))` : sql``}
-        order by j."CreatedAt" desc, j."Id" desc
-        limit ${MATCHES_MAX}`;
+    const saida = [];
+    for (const j of vagas) {
+        if (resolvidas.has(String(j.Id))) continue;
+        if (desde && new Date(j.CreatedAt).getTime() < desde) continue;
+        if (profile && j.IsBR === paraFora) continue;
+        // Vaga que não deu para classificar PASSA: título ruim não é vaga ruim, e
+        // o balde dos indefinidos tinha Tech Lead e Arquiteto de Software dentro.
+        if (areas.size && j.Area != null && j.Area !== 'other' && !areas.has(j.Area)) continue;
+        if (niveis.size && j.Level != null && !niveis.has(j.Level)) continue;
+        if (mods.length && j.Mods != null && !parseArr(j.Mods).some((m) => mods.includes(m))) continue;
+        if (exigidas.length) {
+            const texto = textoDoFiltro(j);
+            if (!exigidas.some((k) => texto.includes(k))) continue;
+        }
+        if (temBloqueio && bloqueadaPeloUsuario(j, profile)) continue;
+        if (!passesFilters(j, profile)) continue;
+        saida.push(j);
+        if (saida.length >= MATCHES_MAX) break;
+    }
+    return saida;
 }
 
 async function computeMatches(userId) {
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
-    const rows = await buscarCandidatas(userId, profile);
+    const vagas = await vagasDoFeed();
+    const candidaturas = await sql`select "JobId" from "Applications" where "UserId" = ${userId}`;
+    // Já enviada ou com 👎: sai do feed desta pessoa.
+    const resolvidas = new Set([...candidaturas.map((r) => String(r.JobId)), ...await idsComDislike(userId)]);
 
-    const noneApplied = new Set(); // a query já excluiu as candidatadas
-    const ordenadas = rows
-        .filter((j) => passesFilters(j, profile))
+    const noneApplied = new Set(); // as candidatadas já saíram acima
+    const ordenadas = candidatasDoPerfil(vagas, profile, resolvidas)
         .map((j) => shapeJob(j, profile, noneApplied))
         .sort((a, b) => b.matchScore - a.matchScore);
     // Uma vaga por recrutador (a de maior match) e nenhuma de quem já recebeu

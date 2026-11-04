@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Confere que o pré-filtro em SQL de getMatches() não esconde nenhuma vaga que o
+// Confere que o corte barato de getMatches() não esconde nenhuma vaga que o
 // filtro autoritativo em JS (passesFilters, varrendo a tabela inteira) aprovaria.
 //
 //   node backend/scripts/check-feed-parity.mjs
 //
 // Rode SEMPRE que mexer em passesFilters, em classify.js ou na consulta de
-// buscarCandidatas. É o único jeito de pegar a falha desta arquitetura, que é
-// silenciosa: o SQL fica um pouco mais restritivo que o JS e vaga boa some do
+// candidatasDoPerfil. É o único jeito de pegar a falha desta arquitetura, que é
+// silenciosa: o corte fica um pouco mais restritivo que o JS e vaga boa some do
 // feed sem erro, sem log e sem ninguém perceber.
 //
 // "perdidas" só é aceitável quando o teto de MATCHES_MAX linhas entra em ação.

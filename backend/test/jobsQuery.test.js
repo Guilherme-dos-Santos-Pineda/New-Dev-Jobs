@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectArea, detectLevel, passesFilters, bloqueadaPeloUsuario } from '../services/jobsQuery.js';
+import { detectArea, detectLevel, passesFilters, bloqueadaPeloUsuario, candidatasDoPerfil } from '../services/jobsQuery.js';
+import { maisRecentePrimeiro } from '../services/feedCache.js';
 
 test('detectArea: classifica o cargo a partir do título', () => {
     assert.equal(detectArea({ JobTitle: 'Desenvolvedor .NET Sênior', Skills: [] }), 'backend');
@@ -105,7 +106,7 @@ test('passesFilters: keyword obrigatória ausente descarta', () => {
 
 test('passesFilters: sem perfil libera tudo', () => {
     // A vaga precisa ter email de contato: o feed só oferece o que dá para
-    // enviar, e quem chega aqui já veio do buscarCandidatas, que exige email.
+    // enviar, e quem chega aqui já veio das vagas em memória, que exigem email.
     assert.equal(passesFilters({ JobTitle: 'X', Email: 'rh@empresa.com.br' }, null), true);
 });
 
@@ -141,4 +142,45 @@ test('bloqueadaPeloUsuario: domínio confere todos os endereços da vaga', () =>
     assert.equal(bloqueadaPeloUsuario({ Email: 'a@outra.com, rh@vagas.acme.com' }, p), true);
     assert.equal(bloqueadaPeloUsuario({ Email: 'a@outra.com' }, p), false);
     assert.equal(bloqueadaPeloUsuario({ Email: 'a@outra.com' }, null), false);
+});
+
+// ---------- Vagas em memória (services/feedCache.js) ----------
+// O corte barato usa as colunas gravadas; passesFilters reclassifica o texto.
+// Se o barato for mais restritivo, vaga boa some em silêncio.
+const vagaGravada = (extra = {}) => ({
+    Id: '1', JobTitle: 'Desenvolvedor Back-end Júnior', Company: 'Acme', Description: 'Vaga em São Paulo/SP',
+    Email: 'rh@acme.com.br', Skills: ['Node.js'], CreatedAt: new Date(), Area: 'backend', Level: 'junior', Mods: null, IsBR: true, ...extra,
+});
+
+test('candidatasDoPerfil: corta pelas colunas gravadas e tira o que já foi resolvido', () => {
+    const p = { Region: 'br', Areas: ['backend'], Levels: ['junior'] };
+    const ids = (vagas, r) => candidatasDoPerfil(vagas, p, r).map((j) => j.Id);
+    assert.deepEqual(ids([vagaGravada()]), ['1']);
+    assert.deepEqual(ids([vagaGravada()], new Set(['1'])), []);
+    assert.deepEqual(ids([vagaGravada({ IsBR: false })]), []);
+    assert.deepEqual(ids([vagaGravada({ Area: 'data', JobTitle: 'Analista de Dados Júnior' })]), []);
+    assert.deepEqual(ids([vagaGravada({ Level: 'senior', JobTitle: 'Desenvolvedor Back-end Sênior' })]), []);
+});
+
+test('candidatasDoPerfil: vaga sem classificação passa, igual a passesFilters', () => {
+    const p = { Region: 'br', Areas: ['backend'], Levels: ['junior'], Modalities: ['remoto'] };
+    const vaga = vagaGravada({ Area: null, Level: null, Mods: null, IsBR: null });
+    assert.deepEqual(candidatasDoPerfil([vaga], p).map((j) => j.Id), ['1']);
+});
+
+test('candidatasDoPerfil: sem perfil, só valem os cortes de todo mundo', () => {
+    assert.equal(candidatasDoPerfil([vagaGravada({ IsBR: false })], undefined).length, 1);
+    assert.equal(candidatasDoPerfil([vagaGravada({ Email: 'informado' })], undefined).length, 0);
+});
+
+test('candidatasDoPerfil: palavra exigida e empresa bloqueada', () => {
+    assert.equal(candidatasDoPerfil([vagaGravada()], { Region: 'br', RequiredKeywords: ['Node'] }).length, 1);
+    assert.equal(candidatasDoPerfil([vagaGravada()], { Region: 'br', RequiredKeywords: ['COBOL'] }).length, 0);
+    assert.equal(candidatasDoPerfil([vagaGravada()], { Region: 'br', BlockedWords: ['acme'] }).length, 0);
+});
+
+test('maisRecentePrimeiro: data desc e, no empate, Id desc sem perder precisão', () => {
+    const d = new Date('2026-11-01');
+    const lista = [{ Id: '9007199254740993', CreatedAt: d }, { Id: '9007199254740994', CreatedAt: d }, { Id: '1', CreatedAt: new Date('2026-11-02') }];
+    assert.deepEqual(lista.sort(maisRecentePrimeiro).map((j) => j.Id), ['1', '9007199254740994', '9007199254740993']);
 });

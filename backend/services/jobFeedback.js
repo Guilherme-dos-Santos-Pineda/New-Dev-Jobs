@@ -32,9 +32,16 @@ export async function feedbackDisponivel() {
     return disponivel;
 }
 
+/** Vagas que a pessoa marcou com 👎: saem do feed dela. */
+export async function idsComDislike(userId) {
+    if (!await feedbackDisponivel()) return [];
+    const rows = await sql`select "JobId" from "JobFeedback" where "UserId" = ${userId} and "Voto" = -1`;
+    return rows.map((r) => String(r.JobId));
+}
+
 /**
- * Pedaço de SQL que exclui do feed o que o usuário marcou com 👎. Usado por
- * buscarCandidatas E pelo diagnóstico do admin, que precisam cortar igual.
+ * Pedaço de SQL que exclui o que o usuário marcou com 👎, para o diagnóstico do
+ * admin, que precisa cortar igual ao feed (idsComDislike).
  *
  * É SÍNCRONO de propósito, e recebe `ativo` de quem chamou (await
  * feedbackDisponivel()). Um fragmento do postgres.js é "thenable": devolvido

@@ -67,7 +67,7 @@ export async function diagnosticoDoFeed(userId) {
     const regiao = perfil?.Region || 'br';
     const dias = FILTRO_DATA_ATIVO && Number(perfil?.PostingDays) > 0 ? Number(perfil.PostingDays) : null;
 
-    // Os pedaços de SQL são os MESMOS de buscarCandidatas, na mesma ordem. Se
+    // Os pedaços de SQL cortam IGUAL a candidatasDoPerfil, na mesma ordem. Se
     // divergirem, o diagnóstico mente e manda o admin arrumar o lugar errado.
     const fArea = areas.length ? sql`and (j."Area" is null or j."Area" = 'other' or j."Area" = any(${areas}::text[]))` : sql``;
     const fPais = perfil ? (regiao === 'intl' ? sql`and j."IsBR" is not true` : sql`and j."IsBR" is not false`) : sql``;

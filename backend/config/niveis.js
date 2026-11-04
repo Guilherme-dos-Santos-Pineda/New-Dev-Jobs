@@ -10,7 +10,7 @@
 // (júnior vê estágio, júnior e pleno; nunca sênior). "Senioridade estrita"
 // tira a folga. Vaga sem nível declarado continua passando.
 //
-// Usada pelo SQL (buscarCandidatas), pelo JS (passesFilters) e pelo
+// Usada pelo corte barato (candidatasDoPerfil), por passesFilters e pelo
 // diagnóstico do admin. Uma função só, senão os filtros divergem.
 
 export const ORDEM_NIVEIS = ['estagio', 'junior', 'pleno', 'senior', 'lead', 'manager'];

@@ -532,7 +532,7 @@ router.get('/jobs', requireAdmin, async (req, res) => {
     const pageSize = Math.min(100, Math.max(10, Number(req.query.pageSize) || 30));
     // Grupos na linguagem da tela. "no feed" é o que um usuário BR pode receber:
     // com email, fora de outras profissões e não marcada como de fora do Brasil
-    // (os mesmos cortes de buscarCandidatas antes do perfil).
+    // (os mesmos cortes do feed antes do perfil).
     const NO_FEED = sql`j."Email" like '%@%.%' and coalesce(j."Area", 'other') <> 'nontech' and j."IsBR" is not false`;
     const grupos = {
         feed: sql`and ${NO_FEED}`,

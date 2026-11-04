@@ -13,6 +13,29 @@ export const SEND_DLQ = 'send-application-dlq';
 export const SCRAPER_DISCOVERY = 'scraper-discovery';
 export const SCRAPER_MONITORING = 'scraper-monitoring';
 
+// De quanto em quanto tempo (s) cada fila pergunta ao banco se há trabalho. Fila
+// vazia também custa: eram 178 mil consultas por dia, ~250 bytes cada, ~44 MB de
+// egress diário sem ninguém usando o produto (o plano grátis tem 5 GB por ciclo).
+// O envio pode esperar 10 s porque os itens de uma pessoa já saem a cada 60 a 120 s.
+// NÃO suba o de envio sem `drenando`: sem ele a fila anda um item por intervalo.
+export const POLL_S = { envio: 10, dlq: 60, scraper: 30 };
+
+/**
+ * Faz a fila seguir direto para o próximo item, sem esperar o intervalo. O worker
+ * do pg-boss dorme entre um item e outro, e com intervalo de 10 s seriam só 6
+ * envios por minuto para TODOS os usuários juntos. Avisado durante o item, ele
+ * busca de novo na hora; achando a fila vazia, volta a dormir.
+ */
+export function drenando(handler, acordar) {
+    return async (jobs) => {
+        try {
+            return await handler(jobs);
+        } finally {
+            acordar();
+        }
+    };
+}
+
 // ATENÇÃO: o pg-boss usa DATABASE_URL em SESSION mode (porta 5432) de propósito —
 // ele depende de recursos de sessão (advisory locks / LISTEN-NOTIFY) que o
 // transaction mode (6543) não preserva. Não troque para o pooler de transação.
@@ -26,6 +49,10 @@ async function createInstance() {
         connectionString: url,
         ssl: { rejectUnauthorized: false }, // Supabase exige TLS (sem verificação de CA, igual ao sql.js)
         max: Number(process.env.PGBOSS_POOL_MAX) || 2,
+        // O cron do pg-boss não é usado (os robôs vivem em "ScraperSchedules"), e
+        // ligado ele consulta o banco a cada 5 s. Antes de usar boss.schedule(),
+        // tire esta linha: com ela o agendamento é aceito e nunca dispara.
+        schedule: false,
     });
     boss.on('error', (e) => console.error('pg-boss erro:', e.message));
     await boss.start();

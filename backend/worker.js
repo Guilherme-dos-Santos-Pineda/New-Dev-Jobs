@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { pathToFileURL } from 'node:url';
 import sql from './lib/sql.js';
-import { getBoss, SEND_QUEUE, SEND_DLQ, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from './lib/boss.js';
+import { getBoss, drenando, POLL_S, SEND_QUEUE, SEND_DLQ, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from './lib/boss.js';
 import { applyToJob, ApplyError } from './services/sender.js';
 import { runDiscovery, runMonitoring } from './services/scraper.js';
 import { planOf } from './config/plans.js';
@@ -241,11 +241,12 @@ export async function startWorker({ standalone = false } = {}) {
         return null;
     }
 
-    await boss.work(SEND_QUEUE, { batchSize: 1, pollingIntervalSeconds: 1 }, handleSend);
-    await boss.work(SEND_DLQ, { batchSize: 1, pollingIntervalSeconds: 5 }, handleDlq);
+    let workerDeEnvio = null;
+    workerDeEnvio = await boss.work(SEND_QUEUE, { batchSize: 1, pollingIntervalSeconds: POLL_S.envio }, drenando(handleSend, () => boss.notifyWorker(workerDeEnvio)));
+    await boss.work(SEND_DLQ, { batchSize: 1, pollingIntervalSeconds: POLL_S.dlq }, handleDlq);
     // Scraper: 1 run por vez (sem concorrência) para não duplicar custo Apify.
-    await boss.work(SCRAPER_DISCOVERY, { batchSize: 1, pollingIntervalSeconds: 3 }, makeScraperHandler(runDiscovery, 'discovery'));
-    await boss.work(SCRAPER_MONITORING, { batchSize: 1, pollingIntervalSeconds: 3 }, makeScraperHandler(runMonitoring, 'monitoring'));
+    await boss.work(SCRAPER_DISCOVERY, { batchSize: 1, pollingIntervalSeconds: POLL_S.scraper }, makeScraperHandler(runDiscovery, 'discovery'));
+    await boss.work(SCRAPER_MONITORING, { batchSize: 1, pollingIntervalSeconds: POLL_S.scraper }, makeScraperHandler(runMonitoring, 'monitoring'));
 
     // Agendador dos robôs (ScraperSchedules)
     const pararTimers = startScheduler(boss);

@@ -341,6 +341,39 @@ export function areaDaVaga(job) {
     return job.AiClassification === REMOVIDA_PELO_ADMIN ? 'nontech' : detectArea(job);
 }
 
+// Fora de TI, mas sem público aqui: continua sem aparecer para ninguém. Testada
+// antes das áreas porque "Enfermeira de Atendimento" e "Técnico de Manutenção de
+// Produção" têm palavra de outra área no título.
+const OUTRA_PROFISSAO = /enferm|m[ée]dic[oa]|psic[óo]log|nutri[çc]|nutricion|fisioterap|dentist|odonto|farmac|biom[ée]d|veterin|advog|jur[íi]dic|direito|paralegal|engenheir|soldador|eletricist|el[ée]tric|mec[âa]nic|motorista|vigia|vigilante|porteir|zelador|limpeza|cozinh|gar[çc]on|professor|pedagog|instrutor|esteticista|pedreiro|costureir|manuten[çc][ãa]o/;
+
+const AREAS_DO_TITULO = [
+    ['marketing', /marketing|\bm[íi]dias?\b|social media|conte[úu]do|copywrit|tr[áa]fego|branding|\bcomunica[çc][ãa]o\b|\bgrowth\b|publicidade|\bseo\b/],
+    ['vendas', /vendas|vendedor|comercial|\bsales\b|account exec|customer success|sucesso do cliente|atendimento|\bsdr\b|\bbdr\b|representante|telemarketing|call center|atendente|de neg[óo]cios/],
+    ['adm', /administrativ|administra[çc][ãa]o|benef[íi]cios|escrit[óo]rio|fp&a|contratos|facilities|secret[áa]ri|recep[çc]|faturamento|contas a (?:pagar|receber)|financeir|cont[áa]bil|contador|contabilidade|fiscal|tribut|departamento pessoal|\bdp\b|recursos humanos|\brh\b|\bhr\b|recrutador|recrutamento|talent|human resources|\bpeople\b|controladoria|payroll|folha de pagamento/],
+    ['operacoes', /opera[çc][õo]es|operacional|operations|log[íi]stic|supply|compras|comprador|produ[çc][ãa]o|almoxarif|estoque|\bprocessos\b|expedi[çc][ãa]o|suprimentos|qualidade|planejamento|importa[çc]|exporta[çc]|\bpcp\b/],
+];
+
+/**
+ * A qual área de FORA de TI esta vaga pertence, ou null. Teste aberto em
+ * 03/11/2026: o robô já traz ~37 vagas destas por dia dos mesmos recrutadores, e
+ * elas iam para o lixo.
+ *
+ * NÃO muda o `Area` gravado, que segue 'nontech' de propósito: destaques, admin,
+ * prioridade dos robôs e contagens de "vagas de TI" continuam certos sem tocar
+ * neles. Só o feed de quem MARCOU a área olha para isto (config/areas.js).
+ *
+ * Só pelo título: "Vaga" sozinha fica de fora, porque sem saber o cargo não dá
+ * para dizer a quem serve.
+ */
+export function areaForaDeTI(job) {
+    if (job.AiClassification === REMOVIDA_PELO_ADMIN) return null;
+    if (detectArea(job) !== 'nontech') return null;
+    if (VAGA_ENCERRADA.test(String(job.Description || '').toLowerCase().slice(0, 300))) return null;
+    const titulo = String(job.JobTitle || '').toLowerCase().replace(/\((?:a|o|as|os|e|es)\)/g, '');
+    if (OUTRA_PROFISSAO.test(titulo)) return null;
+    return AREAS_DO_TITULO.find(([, regra]) => regra.test(titulo))?.[0] ?? null;
+}
+
 export function classifyJob(job) {
     return {
         area: areaDaVaga(job),

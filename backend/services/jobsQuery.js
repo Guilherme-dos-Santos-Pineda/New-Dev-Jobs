@@ -1,10 +1,10 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
-import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga } from './classify.js';
+import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga, areaForaDeTI } from './classify.js';
 import { idsComDislike } from './jobFeedback.js';
 import { vagasDoFeed } from './feedCache.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
-import { expandirAreas } from '../config/areas.js';
+import { expandirAreas, AREAS_FORA_DE_TI } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
 import { niveisAceitos } from '../config/niveis.js';
 import { umaPorRecrutador, contatadosRecentes, enderecos } from './mesmoRecrutador.js';
@@ -39,6 +39,14 @@ export function bloqueadaPeloUsuario(job, profile) {
     return doEmail.some((dom) => dominios.some((d) => dom === d || dom.endsWith(`.${d}`)));
 }
 
+/** A área de fora de TI desta vaga, se a pessoa marcou essa área. Senão, null. */
+function areaForaDeTIEscolhida(job, profile) {
+    const marcadas = parseArr(profile?.Areas).filter((a) => AREAS_FORA_DE_TI.includes(a));
+    if (!marcadas.length) return null;
+    const area = areaForaDeTI(job);
+    return marcadas.includes(area) ? area : null;
+}
+
 /** Texto em que as palavras exigidas são procuradas. */
 function textoDoFiltro(job) {
     return `${job.JobTitle || ''} ${job.Company || ''} ${job.Description || ''} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
@@ -51,7 +59,11 @@ export function passesFilters(job, profile) {
     // é ruído do scraper — que lê posts de recrutador anunciando de tudo.
     // Vem antes do `if (!profile)` de propósito: vale até para quem ainda não
     // preencheu o perfil.
-    if (areaDaVaga(job) === 'nontech') return false;
+    //
+    // Única exceção: quem MARCOU uma área de fora de TI (config/areas.js) recebe
+    // as vagas daquela área. Opt-in: sem marcar, nada muda.
+    const foraDeTI = areaForaDeTIEscolhida(job, profile);
+    if (!foraDeTI && areaDaVaga(job) === 'nontech') return false;
 
     // Vaga cujo "email" é telefone, link ou a palavra "informado" NUNCA entra.
     // Vem antes do `if (!profile)` pelo mesmo motivo do nontech: não é filtro
@@ -111,7 +123,7 @@ export function passesFilters(job, profile) {
     // vaga no dia do deploy. Ver config/areas.js.
     const areas = expandirAreas(parseArr(profile.Areas));
     if (areas.length) {
-        const area = areaDaVaga(job);
+        const area = foraDeTI || areaDaVaga(job);
         if (area !== 'other' && !areas.includes(area)) return false;
     }
     return true;
@@ -126,7 +138,7 @@ export function shapeJob(job, profile, appliedSet) {
         applied: appliedSet.has(job.Id),
         // Classificação persistida: a tela mostra área, nível e modalidade em
         // cada vaga para a pessoa decidir sem abrir o post.
-        area: job.Area ?? null, level: job.Level ?? null, mods: parseArr(job.Mods), location: job.Location ?? null,
+        area: (job.Area === 'nontech' ? areaForaDeTI(job) : job.Area) ?? null, level: job.Level ?? null, mods: parseArr(job.Mods), location: job.Location ?? null,
     };
 }
 
@@ -215,6 +227,7 @@ export function candidatasDoPerfil(vagas, profile, resolvidas = new Set()) {
     const desde = dias ? Date.now() - dias * 86400000 : null;
     const paraFora = (profile?.Region || 'br') === 'intl';
     const areas = new Set(expandirAreas(parseArr(profile?.Areas)));
+    const querForaDeTI = AREAS_FORA_DE_TI.some((a) => areas.has(a));
     const niveis = new Set(niveisAceitos(profile));
     const mods = parseArr(profile?.Modalities).map((m) => String(m).toLowerCase());
     const exigidas = parseArr(profile?.RequiredKeywords).filter(Boolean).map((k) => k.toLowerCase());
@@ -227,7 +240,10 @@ export function candidatasDoPerfil(vagas, profile, resolvidas = new Set()) {
         if (profile && j.IsBR === paraFora) continue;
         // Vaga que não deu para classificar PASSA: título ruim não é vaga ruim, e
         // o balde dos indefinidos tinha Tech Lead e Arquiteto de Software dentro.
-        if (areas.size && j.Area != null && j.Area !== 'other' && !areas.has(j.Area)) continue;
+        if (j.Area === 'nontech') {
+            // Quem decide a área de fora de TI é passesFilters, abaixo.
+            if (!querForaDeTI) continue;
+        } else if (areas.size && j.Area != null && j.Area !== 'other' && !areas.has(j.Area)) continue;
         if (niveis.size && j.Level != null && !niveis.has(j.Level)) continue;
         if (mods.length && j.Mods != null && !parseArr(j.Mods).some((m) => mods.includes(m))) continue;
         if (exigidas.length) {

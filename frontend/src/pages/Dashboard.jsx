@@ -207,7 +207,7 @@ export default function Dashboard() {
         <div className="page vagas-hoje">
             <div className="page-head">
                 <h1>{nome ? t('Vagas para você, {name}', { name: nome }) : t('Vagas para você')}</h1>
-                <p>{t('Vagas de tecnologia postadas por recrutadores, com o contato deles.')}</p>
+                <p>{t('Vagas postadas por recrutadores, com o contato deles.')}</p>
             </div>
 
             {mostraWizard && (

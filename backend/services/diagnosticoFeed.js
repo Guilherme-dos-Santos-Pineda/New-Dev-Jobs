@@ -1,6 +1,6 @@
 import sql from '../lib/sql.js';
 import { getMatches } from './jobsQuery.js';
-import { expandirAreas } from '../config/areas.js';
+import { expandirAreas, AREAS_FORA_DE_TI } from '../config/areas.js';
 import { LIKE_EMAIL } from './emailContato.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
 import { niveisAceitos } from '../config/niveis.js';
@@ -87,7 +87,10 @@ export async function diagnosticoDoFeed(userId) {
     };
 
     await passo('vagas disponíveis', 'com email válido, fora de outras profissões, ainda não enviadas', sql``);
-    if (areas.length) await passo('área', areas.join(', '), sql`${fArea}`);
+    // As áreas de fora de TI são decididas em JS (areaForaDeTI) e esta cascata é
+    // SQL: ela não as conta. O total certo é o `noFeed` lá embaixo.
+    const semForaDeTI = areas.some((a) => AREAS_FORA_DE_TI.includes(a)) ? ' (sem contar as vagas de fora de TI)' : '';
+    if (areas.length) await passo('área', areas.join(', ') + semForaDeTI, sql`${fArea}`);
     await passo('país', regiao === 'intl' ? 'fora do Brasil' : 'Brasil', sql`${fArea} ${fPais}`);
     if (dias) await passo('data de postagem', `últimos ${dias} dias`, sql`${fArea} ${fPais} ${fData}`);
     if (niveis.length) await passo('senioridade', `${niveis.join(', ')} (modo estrito)`, sql`${fArea} ${fPais} ${fData} ${fNivel}`);

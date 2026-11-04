@@ -1,3 +1,5 @@
+import { AREAS_FORA_DE_TI } from './areas.js';
+
 // =========================
 // Opções que o perfil aceita — LISTA CANÔNICA
 // =========================
@@ -19,7 +21,7 @@
 // 'dev' continua aceito e NAO vira legado: e a sobra do classificador (titulo
 // generico como "Desenvolvedor de Software" ou "Tech Lead") e e o que esta
 // salvo na maioria dos perfis antigos. Ver config/areas.js.
-export const ALLOWED_AREAS = ['frontend', 'backend', 'fullstack', 'dev', 'mobile', 'data', 'devops', 'qa', 'design', 'po', 'suporte', 'erp'];
+export const ALLOWED_AREAS = ['frontend', 'backend', 'fullstack', 'dev', 'mobile', 'data', 'devops', 'qa', 'design', 'po', 'suporte', 'erp', ...AREAS_FORA_DE_TI];
 
 /** Níveis. Espelha LEVEL_OPTIONS em frontend/src/utils.js. */
 export const ALLOWED_LEVELS = ['estagio', 'junior', 'pleno', 'senior', 'lead', 'manager'];

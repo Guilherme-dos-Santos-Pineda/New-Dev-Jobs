@@ -2,8 +2,8 @@
 // Motor de matching perfil x vaga
 // =========================
 
-import { detectArea, nivelDaVaga } from './classify.js';
-import { expandirAreas } from '../config/areas.js';
+import { detectArea, nivelDaVaga, areaForaDeTI } from './classify.js';
+import { expandirAreas, AREAS_FORA_DE_TI } from '../config/areas.js';
 
 function parseSkills(value) {
     if (!value) return [];
@@ -64,6 +64,14 @@ export function computeMatch(profile, job) {
         skillScore = hits.length > 0 ? Math.min(100, 45 + hits.length * 15) : 15;
     }
 
+    // Áreas de fora de TI (opt-in): a compatibilidade não pode depender das skills.
+    // O dicionário delas é de tecnologia, então quem é de vendas sairia com ~15% e
+    // nada passaria do corte de 50%. Ter marcado a área é o sinal que existe.
+    const userAreasCruas = parseSkills(profile?.Areas).map((a) => a.toLowerCase());
+    const areaFora = userAreasCruas.some((a) => AREAS_FORA_DE_TI.includes(a)) ? areaForaDeTI(job || {}) : null;
+    const foraEscolhida = areaFora && userAreasCruas.includes(areaFora) ? areaFora : null;
+    if (foraEscolhida) skillScore = Math.max(skillScore, 60);
+
     // Ajuste por senioridade (múltiplos níveis aceitos).
     // O nível vem do TÍTULO (nivelDaVaga), igual ao filtro. Lendo título +
     // descrição, "Analista de TI Sênior / Desenvolvedor Back-end Jr" e
@@ -105,8 +113,8 @@ export function computeMatch(profile, job) {
     // "backend" em toda vaga "dev": skills 100% viravam 25%, abaixo do corte de
     // 50% do envio automático (achado em 03/11/2026, ficou assim desde a divisão
     // da família dev em 30/09).
-    const userAreas = expandirAreas(parseSkills(profile?.Areas).map((a) => a.toLowerCase()));
-    const jobArea = detectArea(job);
+    const userAreas = expandirAreas(userAreasCruas);
+    const jobArea = foraEscolhida || detectArea(job);
     // 'nontech' é mismatch SEMPRE — mesmo sem áreas declaradas e mesmo na visão
     // "ignorar filtros", onde passesFilters não roda. Sem isto, uma vaga de outra
     // profissão poderia aparecer ali com score alto por coincidência de palavra.

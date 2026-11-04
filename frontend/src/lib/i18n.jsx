@@ -45,7 +45,7 @@ const EN = {
     'Pronto. Seu currículo vai sair para {n} vagas, uma a cada 1 ou 2 minutos.': 'Done. Your résumé will go out to {n} jobs, one every 1 or 2 minutes.',
     'Envio parado. O que já saiu continua enviado.': 'Sending stopped. What already went out stays sent.',
     'Conexão com o Google indisponível no momento.': 'Google connection is unavailable right now.',
-    'Vagas de tecnologia postadas por recrutadores, com o contato deles.': 'Tech jobs posted by recruiters, with their contact.',
+    'Vagas postadas por recrutadores, com o contato deles.': 'Jobs posted by recruiters, with their contact.',
     'Enviando seu currículo…': 'Sending your résumé…',
     '{feitos} de {total} enviados. Pode fechar a página, o envio continua.': '{feitos} of {total} sent. You can close the page, sending continues.',
     'Você já mandou os {n} currículos de hoje.': 'You already sent today’s {n} résumés.',

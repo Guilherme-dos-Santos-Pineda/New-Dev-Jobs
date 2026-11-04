@@ -82,7 +82,9 @@ export default function AdminJobs() {
                     </div>
                     <select className="select" style={{ maxWidth: 190 }} value={f.area} onChange={(e) => aplicar('area', e.target.value)} aria-label="Área">
                         <option value="">Todas as áreas</option>
-                        {AREA_OPTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                        {/* As de fora de TI seguem gravadas como 'nontech': o filtro por elas viria vazio. */}
+                        {AREA_OPTIONS.filter((a) => !['adm', 'vendas', 'marketing', 'operacoes'].includes(a.value))
+                            .map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
                     </select>
                 </div>
                 <div className="chips">

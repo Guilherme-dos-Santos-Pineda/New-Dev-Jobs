@@ -45,6 +45,14 @@ const VIZINHAS = {
     fullstack: ['fullstack', 'dev'],
 };
 
+/**
+ * Áreas de FORA de TI (teste aberto em 03/11/2026). São OPT-IN: a vaga segue com
+ * `Area = 'nontech'` no banco e só aparece para quem marcou a área. Sem isso, quem
+ * não escolheu área nenhuma (o feed "de tudo") passaria a receber vaga de
+ * recepcionista. A classificação vive em `areaForaDeTI` (services/classify.js).
+ */
+export const AREAS_FORA_DE_TI = ['adm', 'vendas', 'marketing', 'operacoes'];
+
 export function expandirAreas(escolhidas) {
     const lista = Array.isArray(escolhidas) ? escolhidas.filter(Boolean).map(String) : [];
     if (!lista.length) return [];

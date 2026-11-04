@@ -53,6 +53,11 @@ export const AREA_OPTIONS = [
     { value: 'erp', label: 'ERP / SAP / CRM', icone: 'ti-building-factory-2', desc: 'SAP, TOTVS, Salesforce, ServiceNow' },
     { value: 'suporte', label: 'Suporte / Service Desk', icone: 'ti-headset', desc: 'Help desk, suporte tecnico, TI' },
     { value: 'dev', label: 'Desenvolvimento (geral)', icone: 'ti-code', desc: 'Nao sei ainda, quero ver de tudo' },
+    // Fora de TI: espelha AREAS_FORA_DE_TI (backend/config/areas.js).
+    { value: 'adm', label: 'Administrativo / Financeiro / RH', icone: 'ti-file-text', desc: 'Administrativo, fiscal, contábil, DP, recrutamento' },
+    { value: 'vendas', label: 'Vendas / Atendimento', icone: 'ti-message-circle', desc: 'Comercial, inside sales, customer success' },
+    { value: 'marketing', label: 'Marketing / Comunicação', icone: 'ti-speakerphone', desc: 'Social media, conteúdo, tráfego, comunicação' },
+    { value: 'operacoes', label: 'Operações / Logística', icone: 'ti-truck', desc: 'Logística, compras, produção, qualidade' },
 ];
 
 export const LEVEL_OPTIONS = [

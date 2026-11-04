@@ -10,7 +10,7 @@ import { LIKE_EMAIL } from './emailContato.js';
 // Reddit foram 519 MB; no ritmo daquele dia, o ciclo acabava em uma semana.
 //
 // A lista de vagas é a MESMA para todo mundo, só o filtro muda por pessoa. Então
-// o processo guarda as vagas que podem entrar em algum feed (~8 mil, ~12 MB) e
+// o processo guarda as vagas que podem entrar em algum feed (~10 mil, ~15 MB) e
 // filtra aqui. O banco só manda o que mudou:
 //
 //  • Uma vez por minuto, e só se alguém pedir, uma IMPRESSÃO da lista: o maior
@@ -35,7 +35,7 @@ let emCurso = null;
 
 // Fragmento devolvido por função SÍNCRONA: ver semDislikeSql em jobFeedback.js.
 // FUNÇÃO, não constante: `sql` é null sem DATABASE_URL e o import quebraria o CI.
-const elegivel = () => sql`"Email" is not null and "Email" like ${LIKE_EMAIL} and coalesce("Area", 'other') <> 'nontech'`;
+const elegivel = () => sql`"Email" is not null and "Email" like ${LIKE_EMAIL}`;
 
 /** Maior Id elegível e md5 das vagas até `ate` (todas, se null). */
 async function impressao(ate) {

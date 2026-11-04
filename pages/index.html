@@ -765,6 +765,53 @@
         .nav-cta-txt { display: none; }
         .nav-cta { padding: 8px 10px; }
     }
+
+    /* ============================================
+       Marca e vidro
+       ============================================
+       A marca neon sobre o fundo claro ficava apagada: ela vai no mesmo quadrado
+       escuro do app e do favicon. O vidro só aparece onde há algo atrás dele: a
+       barra, com a página passando por baixo, e a carta do herói, com um brilho
+       verde atrás. Sem esse brilho, vidro sobre fundo liso é só uma cor. */
+    .logo-mark-img {
+        box-sizing: content-box; background: #111214; padding: 4px 6px; border-radius: 9px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    html.dark .logo-mark-img { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09); }
+    /* Com PT/EN, tema e entrar na barra, o nome quebrava em três linhas. */
+    @media (max-width: 480px) { .logo-name { display: none; } }
+
+    :root { --vidro-fundo: rgba(250, 249, 246, 0.55); --vidro-borda: rgba(20, 20, 20, 0.08); --vidro-brilho: rgba(255, 255, 255, 0.7); --vidro-luz: rgba(46, 204, 113, 0.38); }
+    html.dark { --vidro-fundo: rgba(23, 25, 28, 0.5); --vidro-borda: rgba(255, 255, 255, 0.1); --vidro-brilho: rgba(255, 255, 255, 0.08); --vidro-luz: rgba(46, 204, 113, 0.26); }
+
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        nav {
+            top: 10px; margin: 10px 16px 0; border: 1px solid var(--vidro-borda); border-radius: 16px;
+            background: var(--vidro-fundo);
+            -webkit-backdrop-filter: blur(22px) saturate(190%); backdrop-filter: blur(22px) saturate(190%);
+            box-shadow: inset 0 1px 0 var(--vidro-brilho), 0 14px 34px -22px rgba(15, 23, 42, 0.5);
+        }
+        .hero { position: relative; isolation: isolate; overflow-x: clip; }
+        .hero::before, .hero::after {
+            content: ''; position: absolute; z-index: -1; border-radius: 50%; filter: blur(46px); pointer-events: none;
+        }
+        .hero::before { width: 300px; height: 300px; right: 5%; top: 14%; background: var(--vidro-luz); }
+        .hero::after { width: 190px; height: 190px; right: 30%; bottom: 12%; background: var(--vidro-luz); opacity: 0.7; }
+        .hero-visual, .hero-lado .hero-trust {
+            background: var(--vidro-fundo); border-color: var(--vidro-borda); border-radius: 16px;
+            -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: inset 0 1px 0 var(--vidro-brilho), 0 24px 50px -30px rgba(15, 23, 42, 0.55);
+        }
+        @media (max-width: 900px) {
+            .hero::before { right: -40px; top: auto; bottom: 40px; }
+            .hero::after { right: auto; left: -30px; bottom: 150px; }
+        }
+        @media (max-width: 768px) {
+            nav { top: 8px; margin: 8px 10px 0; }
+            /* Sólido: vidro dentro de vidro não desfoca a página. */
+            .nav-links { top: calc(100% + 8px); background: var(--color-surface); border: 1px solid var(--vidro-borda); border-radius: 14px; }
+        }
+    }
 </style>
 </head>
 <body>

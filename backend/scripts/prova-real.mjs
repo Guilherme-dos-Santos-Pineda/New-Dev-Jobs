@@ -60,7 +60,7 @@ const PERFIS = [
     { nome: 'Dados',                 Areas: ['data'],    Modalities: ['remoto', 'hibrido'],              Skills: ['python', 'sql', 'power bi'],        Levels: ['pleno'] },
     { nome: 'Mobile',                Areas: ['mobile'],  Modalities: ['remoto'],                         Skills: ['flutter', 'kotlin'],                Levels: ['junior'] },
     { nome: 'DevOps',                Areas: ['devops'],  Modalities: ['remoto', 'hibrido', 'presencial'], Skills: ['docker', 'kubernetes', 'aws'],     Levels: ['senior'] },
-    { nome: 'Suporte/infra',         Areas: ['suporte'], Modalities: ['presencial', 'hibrido'],          Skills: ['redes', 'windows'],                 Levels: ['junior'] },
+    { nome: 'Suporte/infra',         Areas: ['suporte'], Modalities: ['presencial', 'hibrido'],          Skills: ['redes', 'windows'],                 Levels: ['junior'], States: ['SP'], Cities: ['Recife'] },
     { nome: 'Sem area definida',     Areas: [],          Modalities: ['remoto'],                         Skills: ['java', 'spring'],                   Levels: ['pleno'] },
     { nome: 'Palavra exigida',       Areas: [],          Modalities: [],                                 Skills: ['python'],                           Levels: [], RequiredKeywords: ['python'] },
     { nome: 'Palavra bloqueada',     Areas: ['dev'],     Modalities: ['remoto'],                         Skills: ['php'],                              Levels: [], BlockedWords: ['estagio', 'estágio'] },
@@ -132,6 +132,7 @@ try {
         const corpo = {
             skills: p.Skills, areas: p.Areas, modalities: p.Modalities, seniorities: p.Levels,
             requiredKeywords: p.RequiredKeywords || [], blockedWords: p.BlockedWords || [],
+            states: p.States || [], cities: p.Cities || [],
             headline: `Teste ${p.nome}`, region: 'br',
         };
         const put = await api(c.token, 'PUT', '/profile', corpo);
@@ -146,6 +147,8 @@ try {
         checa(JSON.stringify(lido.areas || []) === JSON.stringify(p.Areas), `perfil releu as AREAS de ${p.nome}`, `enviou ${JSON.stringify(p.Areas)}, leu ${JSON.stringify(lido.areas)}`);
         checa(JSON.stringify(lido.modalities || []) === JSON.stringify(p.Modalities), `perfil releu as MODALIDADES de ${p.nome}`, `enviou ${JSON.stringify(p.Modalities)}, leu ${JSON.stringify(lido.modalities)}`);
         checa(JSON.stringify(lido.seniorities || []) === JSON.stringify(p.Levels), `perfil releu os NIVEIS de ${p.nome}`, `enviou ${JSON.stringify(p.Levels)}, leu ${JSON.stringify(lido.seniorities)}`);
+        checa(JSON.stringify(lido.states || []) === JSON.stringify(p.States || []), `perfil releu os ESTADOS de ${p.nome}`, `enviou ${JSON.stringify(p.States)}, leu ${JSON.stringify(lido.states)}`);
+        checa(JSON.stringify(lido.cities || []) === JSON.stringify(p.Cities || []), `perfil releu as CIDADES de ${p.nome}`, `enviou ${JSON.stringify(p.Cities)}, leu ${JSON.stringify(lido.cities)}`);
     }
 
     // ---------- 5. FEED ----------
@@ -161,6 +164,11 @@ try {
         // recrutador no texto, e ele não pode vazar pela listagem.
         checa(!ms.some((m) => /[\w.+-]+@[\w-]+\.[\w.]+/.test(m.description || '')), `SEGURANCA: descricao do feed sem email de contato (${c.perfil.nome})`);
         checa(ms.every((m, i) => i === 0 || ms[i - 1].matchScore >= m.matchScore), `feed ordenado por match (${c.perfil.nome})`);
+        if (c.perfil.States) {
+            // O perfil marcou SP e Recife: híbrida ou presencial do Rio não pode vir.
+            const doRio = ms.filter((m) => /\/RJ\b/.test(m.location || '') && !(m.mods || []).includes('remoto') && (m.mods || []).length);
+            checa(doRio.length === 0, `filtro de local respeitado (${c.perfil.nome})`, doRio.slice(0, 3).map((m) => m.location).join(', '));
+        }
         console.log(`   ${c.perfil.nome.padEnd(24)} ${String(ms.length).padStart(4)} vagas · melhor ${ms[0]?.matchScore ?? '-'}% · ${(r.bytes / 1024).toFixed(0)} kB`);
     }
     const tamanhos = new Set(Object.values(feeds).map((f) => f.length));

@@ -5,7 +5,7 @@ import { FILTRO_DATA_ATIVO } from '../lib/flags.js';
 import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
 import { useToast } from '../components/Toast.jsx';
 import { useAuth } from '../auth.jsx';
-import { MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
+import { MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, UF_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
 import { useT } from '../lib/i18n.jsx';
 import TagInput from '../components/TagInput.jsx';
 import EmailSettings from './Settings.jsx';
@@ -20,6 +20,7 @@ const EMPTY = {
     skills: [], seniorities: [], modalities: [], areas: [], salaryMin: '', salaryMax: '', headline: '',
     phone: '', whatsapp: '', linkedin: '', github: '', portfolio: '',
     requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br',
+    states: [], cities: [], showPcd: false,
 };
 
 export default function Profile() {
@@ -62,6 +63,7 @@ export default function Profile() {
             requiredKeywords: p.requiredKeywords || [], blockedWords: p.blockedWords || [],
             blockedDomains: p.blockedDomains || [],
             strictLevel: !!p.strictLevel, postingDays: p.postingDays ?? '', region: p.region || 'br',
+            states: p.states || [], cities: p.cities || [], showPcd: !!p.showPcd,
         };
         setForm(novo);
         salvoRef.current = JSON.stringify(novo);
@@ -174,6 +176,9 @@ export default function Profile() {
 
     const showSave = true;
     const sujo = JSON.stringify(form) !== salvoRef.current;
+    // O filtro de local só vale para híbrida e presencial, e só no Brasil.
+    const soRemoto = form.modalities.length === 1 && form.modalities[0] === 'remoto';
+    const mostraLocal = !soRemoto && form.region !== 'intl';
 
     return (
         <div className="page" style={{ maxWidth: 820 }}>
@@ -209,6 +214,21 @@ export default function Profile() {
                                     ))}
                                 </div>
                             </div>
+                            {mostraLocal && (
+                                <div className="field">
+                                    <label>{t('Estados e cidades')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({t('opcional')})</span></label>
+                                    <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>{t('Vale para vagas híbridas e presenciais. Vaga remota e vaga sem local informado continuam aparecendo.')}</div>
+                                    <div className="chips">
+                                        {UF_OPTIONS.map((o) => (
+                                            <span key={o.value} className={`chip toggle ${form.states.includes(o.value) ? 'on' : ''}`}
+                                                onClick={() => toggleIn('states', o.value)}>{o.label}</span>
+                                        ))}
+                                    </div>
+                                    <div style={{ marginTop: 10 }}>
+                                        <TagInput value={form.cities} onChange={(v) => set('cities', v)} placeholder={t('Ou só algumas cidades: digite e aperte Enter')} />
+                                    </div>
+                                </div>
+                            )}
                             <div className="field">
                                 <label>Senioridade <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>(selecione uma ou mais)</span></label>
                                 <div className="chips">
@@ -395,6 +415,14 @@ export default function Profile() {
                                 <label className="row" style={{ alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 400 }}>
                                     <input type="checkbox" checked={form.strictLevel} onChange={(e) => set('strictLevel', e.target.checked)} />
                                     Só essas senioridades (sem isso, mostramos também um nível acima e um abaixo)
+                                </label>
+                            </div>
+
+                            <div className="field">
+                                <label>{t('Vagas exclusivas para PCD')}</label>
+                                <label className="row" style={{ alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 400 }}>
+                                    <input type="checkbox" checked={form.showPcd} onChange={(e) => set('showPcd', e.target.checked)} />
+                                    {t('Mostrar vagas exclusivas para pessoas com deficiência')}
                                 </label>
                             </div>
 

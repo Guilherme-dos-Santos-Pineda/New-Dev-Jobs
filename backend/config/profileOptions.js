@@ -29,6 +29,9 @@ export const ALLOWED_LEVELS = ['estagio', 'junior', 'pleno', 'senior', 'lead', '
 /** Modalidades. Espelha detectModality() em services/classify.js. */
 export const ALLOWED_MODALITIES = ['remoto', 'hibrido', 'presencial'];
 
+/** Estados. Espelha UF_OPTIONS em frontend/src/utils.js. */
+export const ALLOWED_STATES = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+
 // 'nontech' e 'other' NÃO entram: não são escolha do usuário. 'nontech' é o que
 // o sistema barra para todo mundo e 'other' é "não deu para classificar", que
 // passa de propósito.

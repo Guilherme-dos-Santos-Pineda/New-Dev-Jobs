@@ -8,6 +8,7 @@ import { expandirAreas, AREAS_FORA_DE_TI } from '../config/areas.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
 import { niveisAceitos } from '../config/niveis.js';
 import { umaPorRecrutador, contatadosRecentes, enderecos } from './mesmoRecrutador.js';
+import { foraDoLocal, vagaExclusivaPcd } from './localVaga.js';
 
 // jsonb já volta como array; mantém robusto para string legada
 const parseArr = (v) => (Array.isArray(v) ? v : (() => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } })());
@@ -74,6 +75,10 @@ export function passesFilters(job, profile) {
     // presa em `queued` — o painel do usuário ficava "enviando" para sempre.
     if (!emailDeContatoValido(job.Email)) return false;
 
+    // Só quem marcou no perfil vê. Vem antes do `if (!profile)` porque quem ainda
+    // não tem perfil também não marcou.
+    if (!profile?.ShowPcd && vagaExclusivaPcd(job)) return false;
+
     if (!profile) return true;
 
     // Preferência de país do usuário (br | intl)
@@ -115,6 +120,8 @@ export function passesFilters(job, profile) {
         const daVaga = detectModality(job);
         if (daVaga && !daVaga.some((m) => modalidades.includes(m))) return false;
     }
+
+    if (foraDoLocal(job, profile)) return false;
 
     // Área profissional: descarta vagas de outro cargo (ex.: QA não recebe vaga de Dev).
     // Só filtra quando a área da vaga é identificável (≠ 'other'), p/ não perder vaga boa.

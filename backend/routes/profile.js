@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
-import { ALLOWED_AREAS, ALLOWED_LEVELS, ALLOWED_MODALITIES } from '../config/profileOptions.js';
+import { ALLOWED_AREAS, ALLOWED_LEVELS, ALLOWED_MODALITIES, ALLOWED_STATES } from '../config/profileOptions.js';
 import { parseLinkedInText } from '../services/linkedinParser.js';
 import { pdfToText } from '../services/pdfText.js';
 import { normalizeList, normalizeDomain } from '../services/normalize.js';
@@ -22,18 +22,19 @@ const EMPTY_PROFILE = {
     Skills: [], Seniority: null, Modality: null, SalaryMin: null, SalaryMax: null,
     Headline: null, Phone: null, Whatsapp: null, Linkedin: null, Github: null, Portfolio: null,
     RequiredKeywords: [], BlockedWords: [], BlockedDomains: [], Levels: [], Modalities: [], Areas: [],
-    StrictLevel: false, PostingDays: null, Region: 'br',
+    StrictLevel: false, PostingDays: null, Region: 'br', States: [], Cities: [], ShowPcd: false,
 };
 
 async function upsertProfile(userId, f) {
     await sql`
         insert into "Profiles" ("UserId", "Skills", "Seniority", "Modality", "SalaryMin", "SalaryMax", "Headline",
             "Phone", "Whatsapp", "Linkedin", "Github", "Portfolio",
-            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "Areas", "StrictLevel", "PostingDays", "Region", "UpdatedAt")
+            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "Areas", "StrictLevel", "PostingDays", "Region", "States", "Cities", "ShowPcd", "UpdatedAt")
         values (${userId}, ${sql.json(f.Skills)}, ${f.Seniority}, ${f.Modality}, ${f.SalaryMin}, ${f.SalaryMax}, ${f.Headline},
             ${f.Phone}, ${f.Whatsapp}, ${f.Linkedin}, ${f.Github}, ${f.Portfolio},
             ${sql.json(f.RequiredKeywords)}, ${sql.json(f.BlockedWords)}, ${sql.json(f.BlockedDomains)},
-            ${sql.json(f.Levels)}, ${sql.json(f.Modalities)}, ${sql.json(f.Areas || [])}, ${f.StrictLevel}, ${f.PostingDays}, ${f.Region || 'br'}, now())
+            ${sql.json(f.Levels)}, ${sql.json(f.Modalities)}, ${sql.json(f.Areas || [])}, ${f.StrictLevel}, ${f.PostingDays}, ${f.Region || 'br'},
+            ${sql.json(f.States)}, ${sql.json(f.Cities)}, ${f.ShowPcd}, now())
         on conflict ("UserId") do update set
             "Skills" = excluded."Skills", "Seniority" = excluded."Seniority", "Modality" = excluded."Modality",
             "SalaryMin" = excluded."SalaryMin", "SalaryMax" = excluded."SalaryMax", "Headline" = excluded."Headline",
@@ -41,7 +42,8 @@ async function upsertProfile(userId, f) {
             "Github" = excluded."Github", "Portfolio" = excluded."Portfolio",
             "RequiredKeywords" = excluded."RequiredKeywords", "BlockedWords" = excluded."BlockedWords",
             "BlockedDomains" = excluded."BlockedDomains", "Levels" = excluded."Levels", "Modalities" = excluded."Modalities",
-            "Areas" = excluded."Areas", "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "Region" = excluded."Region", "UpdatedAt" = now()`;
+            "Areas" = excluded."Areas", "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "Region" = excluded."Region",
+            "States" = excluded."States", "Cities" = excluded."Cities", "ShowPcd" = excluded."ShowPcd", "UpdatedAt" = now()`;
 
     // Skills, região, palavras bloqueadas e senioridade decidem o que passa em
     // passesFilters — o memo do getMatches precisa cair junto com a alteração.
@@ -73,6 +75,9 @@ function publicProfile(p) {
         strictLevel: !!p.StrictLevel,
         postingDays: p.PostingDays,
         region: p.Region || 'br',
+        states: parseArr(p.States),
+        cities: parseArr(p.Cities),
+        showPcd: !!p.ShowPcd,
         cvName: p.CvName,
         hasCv: !!p.CvPath,
         updatedAt: p.UpdatedAt,
@@ -119,6 +124,9 @@ router.put('/', requireAuth, async (req, res) => {
         StrictLevel: !!b.strictLevel,
         PostingDays: Number.isInteger(+b.postingDays) && +b.postingDays > 0 ? +b.postingDays : null,
         Region: b.region === 'intl' ? 'intl' : 'br',
+        States: toArr(b.states).map((x) => x.toUpperCase()).filter((x) => ALLOWED_STATES.includes(x)),
+        Cities: [...new Set(toArr(b.cities).map((x) => x.replace(/[<>]/g, '').slice(0, 60)))].slice(0, 20),
+        ShowPcd: !!b.showPcd,
     });
 
     res.json({ profile: publicProfile(await getProfile(req.user.Id)) });

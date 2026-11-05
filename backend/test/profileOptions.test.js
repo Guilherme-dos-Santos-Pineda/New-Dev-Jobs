@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { ALLOWED_AREAS, ALLOWED_LEVELS, ALLOWED_MODALITIES } from '../config/profileOptions.js';
+import { ALLOWED_AREAS, ALLOWED_LEVELS, ALLOWED_MODALITIES, ALLOWED_STATES } from '../config/profileOptions.js';
 import { detectArea, detectLevel, detectModality } from '../services/classify.js';
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -31,6 +31,10 @@ test('as áreas da UI são exatamente as que o backend aceita', () => {
 
 test('os níveis da UI são exatamente os que o backend aceita', () => {
     assert.deepEqual(opcoesDoFrontend('LEVEL_OPTIONS').slice().sort(), ALLOWED_LEVELS.slice().sort());
+});
+
+test('os estados da UI são exatamente os que o backend aceita', () => {
+    assert.deepEqual(opcoesDoFrontend('UF_OPTIONS').slice().sort(), ALLOWED_STATES.slice().sort());
 });
 
 // Área que o classificador produz mas o perfil não deixa escolher fica invisível:

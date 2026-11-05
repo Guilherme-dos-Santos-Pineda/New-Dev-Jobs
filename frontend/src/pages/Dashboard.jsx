@@ -363,7 +363,9 @@ export default function Dashboard() {
                                                 {v.area && v.area !== 'other' && <span className="chip muted">{AREA_NOME[v.area] || v.area}</span>}
                                                 {v.level && <span className="chip muted">{NIVEL_NOME[v.level] || v.level}</span>}
                                                 {(v.mods || []).map((m) => <span key={m} className="chip muted">{MOD_NOME[m] || m}</span>)}
-                                                {v.location && <span className="chip muted">{v.location}</span>}
+                                                {v.location
+                                                    ? <span className="chip muted">{v.location}</span>
+                                                    : !(v.mods || []).includes('remoto') && <span className="chip muted">{t('Local não informado')}</span>}
                                             </div>
                                             <div className="det-descricao">{textoCompleto[v.id] ?? v.description ?? t('Carregando…')}</div>
                                             <button className="btn ghost sm" style={{ marginTop: 10 }} onClick={() => verEmail(v)}>

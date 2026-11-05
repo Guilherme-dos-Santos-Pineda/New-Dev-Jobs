@@ -100,7 +100,7 @@ export async function diagnosticoDoFeed(userId) {
 
     // O número que a pessoa vê de verdade. Pode ser MENOR que a última etapa:
     // o passesFilters em JS roda de novo por cima e é a autoridade final
-    // (domínios bloqueados), e existe o teto de 1500.
+    // (domínios bloqueados, estado e cidade, exclusiva PCD), e existe o teto de 1500.
     const matches = await getMatches(userId);
     const comMatchAlto = matches.filter((m) => m.matchScore >= 50).length;
 

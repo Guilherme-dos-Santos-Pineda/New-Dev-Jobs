@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { temPermissaoDeEnvio, isFaltaDeEscopo, isInvalidGrant } from '../services/google.js';
+import { temPermissaoDeEnvio, isFaltaDeEscopo, isContaSemGmail, isInvalidGrant } from '../services/google.js';
 
 // Caso real (04/11/2026): na tela do Google cada permissão é uma caixinha. Quem
 // concluía sem marcar a de enviar ficava "conectado", e cada envio falhava com
@@ -19,6 +19,18 @@ test('isFaltaDeEscopo: reconhece a recusa do Gmail nos dois formatos', () => {
     assert.equal(isFaltaDeEscopo(new Error('Request had insufficient authentication scopes.')), true);
     assert.equal(isFaltaDeEscopo({ response: { data: { error: { status: 'PERMISSION_DENIED', message: 'Request had insufficient authentication scopes.' } } } }), true);
     assert.equal(isFaltaDeEscopo({ response: { data: { error: { status: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' } } } }), true);
+});
+
+test('isContaSemGmail: reconhece a recusa real de conta Google sem caixa do Gmail', () => {
+    assert.equal(isContaSemGmail(new Error('Precondition check failed.')), true);
+    assert.equal(isContaSemGmail({ cause: { status: 'FAILED_PRECONDITION' } }), true);
+    assert.equal(isContaSemGmail({ response: { data: { error: { status: 'FAILED_PRECONDITION', message: 'Precondition check failed.' } } } }), true);
+});
+
+test('isContaSemGmail: erro transitório e falta de escopo não entram', () => {
+    assert.equal(isContaSemGmail(new Error('Rate limit exceeded')), false);
+    assert.equal(isContaSemGmail(new Error('Request had insufficient authentication scopes.')), false);
+    assert.equal(isContaSemGmail(undefined), false);
 });
 
 test('isFaltaDeEscopo: erro transitório continua sendo retentado', () => {

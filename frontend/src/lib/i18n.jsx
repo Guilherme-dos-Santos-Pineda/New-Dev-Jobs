@@ -42,6 +42,7 @@ const EN = {
     'Contato': 'Contact',
     'Enviadas': 'Sent',
     'Envio concluído: {n} currículos enviados.': 'Done: {n} résumés sent.',
+    'Seu currículo não foi enviado': 'Your résumé was not sent',
     'Pronto. Seu currículo vai sair para {n} vagas, uma a cada 1 ou 2 minutos.': 'Done. Your résumé will go out to {n} jobs, one every 1 or 2 minutes.',
     'Envio parado. O que já saiu continua enviado.': 'Sending stopped. What already went out stays sent.',
     'Conexão com o Google indisponível no momento.': 'Google connection is unavailable right now.',

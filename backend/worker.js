@@ -42,6 +42,11 @@ async function handleSend([job]) {
         if (e instanceof ApplyError) {
             // Erro de negócio definitivo (vaga sem email, vaga removida…): marca falha, não retenta.
             await sql`update "SendQueue" set "Status" = 'failed', "Error" = ${(e.message || 'erro').slice(0, 200)}, "SentAt" = now() where "Id" = ${queueId}`;
+            // 403 é da conta (Gmail, perfil, currículo), não da vaga: o resto do lote
+            // falharia igual, um a cada 1 ou 2 minutos, com a tela dizendo "enviando".
+            if (e.status === 403) {
+                await sql`update "SendQueue" set "Status" = 'failed', "Error" = ${(e.message || 'erro').slice(0, 200)}, "SentAt" = now() where "UserId" = ${userId} and "Status" = 'queued'`;
+            }
             console.warn(`✖ falha definitiva: user ${userId} job ${jobId}: ${e.message}`);
             return;
         }

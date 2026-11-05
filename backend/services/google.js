@@ -151,6 +151,15 @@ export function isFaltaDeEscopo(err) {
     return /insufficient authentication scopes|access_token_scope_insufficient/i.test(m);
 }
 
+/**
+ * A conta Google não tem caixa do Gmail (conta criada com hotmail, por exemplo).
+ * O consentimento passa e o token é válido; só o envio recusa, com 400.
+ */
+export function isContaSemGmail(err) {
+    const m = [err?.message, err?.response?.data?.error?.message, err?.response?.data?.error?.status, err?.cause?.status].join(' ');
+    return /precondition check failed|failed_?precondition/i.test(m);
+}
+
 // Marca a conexão Google como inválida (sem tentar revogar — o token já está morto),
 // para a UI pedir reconexão. Usado quando um envio retorna invalid_grant.
 export async function markGoogleDisconnected(userId) {

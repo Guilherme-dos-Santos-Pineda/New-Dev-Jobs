@@ -94,7 +94,11 @@ export default function Dashboard() {
                 pararPoll();
                 refreshUser().catch(() => {});
                 // Acabou de terminar: as enviadas saem do feed, então recarrega.
-                if (estavaEnviando.current) { estavaEnviando.current = false; carregar(); toast.show(t('Envio concluído: {n} currículos enviados.', { n: status.sent })); }
+                if (estavaEnviando.current) {
+                    estavaEnviando.current = false;
+                    carregar();
+                    if (status.sent || !status.failed) toast.show(t('Envio concluído: {n} currículos enviados.', { n: status.sent }));
+                }
             } else estavaEnviando.current = true;
             return status;
         } catch { return null; }
@@ -110,6 +114,9 @@ export default function Dashboard() {
     const boas = (lista || []).filter((v) => v.matchScore >= MIN_AUTO && !estado[v.id]);
     const quantasAuto = Math.min(restam, boas.length);
     const enviando = !!fila?.active;
+    // O envio derrubou a conexão: sem isto o cartão só volta a pedir o Gmail, e a
+    // pessoa conecta a mesma conta de novo sem saber o que aconteceu.
+    const erroFila = !conectado && !enviando ? fila?.items?.filter((i) => i.status === 'failed').at(-1)?.error : null;
 
     async function enviarAutomatico() {
         if (iniciando || !quantasAuto) return;
@@ -218,6 +225,15 @@ export default function Dashboard() {
             )}
 
             {!mostraWizard && (<>
+                {erroFila && (
+                    <div className="card vh-retorno">
+                        <div className="vh-retorno-txt">
+                            <div className="vh-retorno-titulo"><i className="ti ti-alert-triangle" /> {t('Seu currículo não foi enviado')}</div>
+                            <div className="muted">{erroFila}</div>
+                        </div>
+                    </div>
+                )}
+
                 {/* ---- A ação principal ---- */}
                 <div className="card vh-hero">
                     {enviando ? (<>

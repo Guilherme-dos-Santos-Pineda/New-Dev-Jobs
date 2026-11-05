@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import { config } from '../config.js';
-import { authorizedClient, isInvalidGrant, isFaltaDeEscopo, markGoogleDisconnected } from './google.js';
+import { authorizedClient, isInvalidGrant, isFaltaDeEscopo, isContaSemGmail, markGoogleDisconnected } from './google.js';
 
 // =========================
 // Envio de email da candidatura
@@ -67,6 +67,14 @@ export async function sendApplicationEmail({ userId, from, to, subject, html, te
         if (isFaltaDeEscopo(err)) {
             await markGoogleDisconnected(userId).catch(() => {});
             const e = new Error('O Google não deu permissão para enviar email. Conecte o Gmail de novo e marque a opção de enviar email.');
+            e.code = 'GOOGLE_REAUTH';
+            throw e;
+        }
+        // Tentar de novo também não cria uma caixa do Gmail: eram 15 minutos de
+        // retentativa por vaga, e o lote inteiro terminava sem aviso nenhum.
+        if (isContaSemGmail(err)) {
+            await markGoogleDisconnected(userId).catch(() => {});
+            const e = new Error('Essa conta Google não tem Gmail, e o envio só funciona por uma que tenha. Conecte uma conta do Gmail.');
             e.code = 'GOOGLE_REAUTH';
             throw e;
         }

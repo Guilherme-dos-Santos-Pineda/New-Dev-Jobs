@@ -4,6 +4,7 @@ import sql from '../lib/sql.js';
 import { config } from '../config.js';
 import { analyzeContent } from './ai.js';
 import { runActor, apifyUsage, temFolgaDeCredito } from './apifyPool.js';
+import { consultasDoPlano } from './roboDoPlano.js';
 import { proximosMonitoraveis } from './recrutadorMonitoravel.js';
 
 // =========================
@@ -229,11 +230,17 @@ export const QUERY_DESCOBERTA = '#vagati OR #vagasti';
 export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
-    region = 'global', excludeCountries, maxRecruiters = 10, creditoMinimo,
+    region = 'global', excludeCountries, maxRecruiters = 10, creditoMinimo, doPlano,
 } = {}) {
     // Robô extra (busca por nicho): só gasta o que sobra do monitoramento.
     if (creditoMinimo && !temFolgaDeCredito(await apifyUsage().catch(() => null), creditoMinimo)) {
         return { found: 0, novos: 0, semFolga: true };
+    }
+
+    // Robô de quem comprou: as buscas saem do perfil de quem tem plano ativo hoje.
+    if (doPlano) {
+        queries = await consultasDoPlano();
+        if (!queries.length) return { found: 0, novos: 0, semCompradores: true };
     }
 
     // Sem query explícita, o padrão depende do modo (ver QUERY_MONITORAMENTO).

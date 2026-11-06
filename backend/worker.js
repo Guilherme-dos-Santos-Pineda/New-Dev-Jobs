@@ -4,6 +4,7 @@ import sql from './lib/sql.js';
 import { getBoss, drenando, POLL_S, SEND_QUEUE, SEND_DLQ, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from './lib/boss.js';
 import { applyToJob, ApplyError } from './services/sender.js';
 import { runDiscovery, runMonitoring } from './services/scraper.js';
+import { garantirRoboDoPlano } from './services/roboDoPlano.js';
 import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
 import { tickCampaigns } from './services/campaigns.js';
@@ -256,6 +257,7 @@ export async function startWorker({ standalone = false } = {}) {
     await boss.work(SCRAPER_MONITORING, { batchSize: 1, pollingIntervalSeconds: POLL_S.scraper }, makeScraperHandler(runMonitoring, 'monitoring'));
 
     // Agendador dos robôs (ScraperSchedules)
+    await garantirRoboDoPlano().catch((e) => console.error('robô do plano não criado:', e.message));
     const pararTimers = startScheduler(boss);
     console.log(`🤖 worker ativo (${standalone ? 'standalone' : 'embutido na API'}): envios${DEV_LABEL()} + scraper (discovery/monitoring) + agendador + manutenção`);
 

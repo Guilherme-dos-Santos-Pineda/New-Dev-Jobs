@@ -105,6 +105,7 @@ export const api = {
     getProfile: () => request('GET', '/profile'),
     updateProfile: (data) => request('PUT', '/profile', data),
     getCatalogo: () => request('GET', '/billing/catalogo'),
+    confirmarPagamento: (sessionId) => request('POST', '/billing/confirmar', { sessionId }),
     autoEnvio: (ativo) => request('PUT', '/auth/auto-envio', { ativo }),
     resetProfile: () => request('POST', '/profile/reset'),
     // A confirmacao digitada vai no corpo: o servidor recusa sem ela, entao um

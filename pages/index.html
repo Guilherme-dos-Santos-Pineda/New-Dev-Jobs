@@ -54,7 +54,8 @@
       "inLanguage": "pt-BR",
       "description": "Você cadastra o perfil, aperta um botão e a gente manda 20 emails personalizados para os recrutadores das vagas que mais combinam com você. De graça. Sem pegadinha.",
       "offers": [
-        { "@type": "Offer", "name": "Grátis", "price": "0", "priceCurrency": "BRL" }
+        { "@type": "Offer", "name": "Grátis", "price": "0", "priceCurrency": "BRL" },
+        { "@type": "Offer", "name": "Automático", "price": "10", "priceCurrency": "BRL" }
       ],
       "publisher": {
         "@type": "Organization",
@@ -511,7 +512,7 @@
     .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
     /* Sem isto o display:grid acima vence o atributo hidden e os planos pagos
        aparecem mesmo escondidos (ver backend/config/planosPagos.js). */
-    .plans[hidden] { display: none; }
+    .plans-um { grid-template-columns: minmax(0, 420px); justify-content: center; margin-top: 30px; }
 
     .newdev { max-width: 980px; margin: 0 auto 56px; padding: 28px 28px; display: flex; align-items: center; gap: 28px;
         border: 1px solid var(--color-border-light, rgba(255,255,255,.1)); border-radius: 16px; }
@@ -1006,7 +1007,7 @@
                 <div class="feat">
                     <div class="feat-ico"><i class="ti ti-chart-line" aria-hidden="true"></i></div>
                     <h3 data-i18n="feat.4.h">você no controle</h3>
-                    <p data-i18n="feat.4.p">Nada sai sem você clicar. Vaga que não serve, um 👎 e ela some. Tudo que você mandou fica registrado.</p>
+                    <p data-i18n="feat.4.p">Nada sai sem você mandar, e o envio automático só liga se você ligar. Vaga que não serve, um 👎 e ela some. Tudo que você mandou fica registrado.</p>
                 </div>
             </div>
             </div>
@@ -1014,8 +1015,8 @@
 
         <!-- ==================== PREÇOS ==================== -->
         <section class="section" id="precos">
-            <h2 class="sec-h" data-i18n="price.h">Quanto custa?<br><strong>Nada. Zero. Grátis.</strong></h2>
-            <p class="sec-sub" data-i18n="price.sub">Cobrar de quem está procurando emprego seria feio. Então não cobramos. Se alguém pedir seu cartão em nosso nome, é golpe.</p>
+            <h2 class="sec-h" data-i18n="price.h">Quanto custa?<br><strong>O básico é de graça. Para sempre.</strong></h2>
+            <p class="sec-sub" data-i18n="price.sub">20 currículos por dia, sem cartão. Quem quiser que eles saiam sozinhos paga R$ 10 por 30 dias e ajuda a manter a ferramenta funcionando. Ninguém é obrigado.</p>
             <ul class="gratis-lista">
                 <li data-i18n="gratis.1"><i class="ti ti-check" aria-hidden="true"></i>20 currículos por dia (mais que isso vira spam, e spam queima seu Gmail)</li>
                 <li data-i18n="gratis.2"><i class="ti ti-check" aria-hidden="true"></i>você escolhe cada vaga, nada sai sem você clicar</li>
@@ -1024,48 +1025,19 @@
             </ul>
             <p class="gratis-honesto" data-i18n="gratis.honesto">A gente não promete emprego. A gente coloca o seu currículo na mesa de quem contrata. O resto é com você (e com a sua entrevista).</p>
             <button class="btn-p gratis-btn" onclick="go('/signup')" data-i18n="gratis.btn">quero meus 20 emails</button>
-            <!-- Planos pagos ESCONDIDOS enquanto PLANOS_PAGOS_ATIVOS = false
-                 (backend/config/planosPagos.js). Para voltar a cobrar: tire o
-                 hidden daqui e esconda a lista grátis acima. -->
-            <div class="plans" hidden>
-                <div class="plan">
-                    <div class="plan-label">free</div>
-                    <div class="plan-price">R$0</div>
-                    <div class="plan-per" data-i18n="price.free.per">para sempre grátis</div>
-                    <ul class="plan-feats">
-                        <li data-i18n="price.free.1"><i class="ti ti-check" aria-hidden="true"></i>7 candidaturas por dia, cerca de 210 por mês</li>
-                        <li data-i18n="price.free.5"><i class="ti ti-check" aria-hidden="true"></i>envio pelo seu Gmail, sem conectar nada</li>
-                        <li data-i18n="price.free.2"><i class="ti ti-check" aria-hidden="true"></i>1 perfil de busca</li>
-                        <li data-i18n="price.free.3"><i class="ti ti-check" aria-hidden="true"></i>matching básico</li>
-                        <li data-i18n="price.free.4"><i class="ti ti-check" aria-hidden="true"></i>sem cartão de crédito</li>
-                    </ul>
-                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.free.btn">começar grátis</button>
-                </div>
+            <div class="plans plans-um">
                 <div class="plan featured">
-                    <div class="pop-badge" data-i18n="price.popular">mais popular</div>
-                    <div class="plan-label">starter</div>
-                    <div class="plan-price">R$80</div>
-                    <div class="plan-per" data-i18n="price.starter.per">pagamento único · 30 dias</div>
-                    <p class="plan-ancora" data-i18n="price.starter.ancora">70 candidaturas por dia. No braço, a cerca de 10 minutos cada, isso é <b>11,7 horas</b> de trabalho.</p>
+                    <div class="plan-label" data-i18n="price.auto.label">automático</div>
+                    <div class="plan-price">R$10</div>
+                    <div class="plan-per" data-i18n="price.auto.per">pagamento único · 30 dias · sem renovação</div>
+                    <p class="plan-ancora" data-i18n="price.auto.ancora">Ajude a manter a ferramenta funcionando.</p>
                     <ul class="plan-feats">
-                        <li data-i18n="price.starter.1"><i class="ti ti-check" aria-hidden="true"></i>70 candidaturas por dia</li>
-                        <li data-i18n="price.starter.2"><i class="ti ti-check" aria-hidden="true"></i>filtragem antes do envio</li>
-                        <li data-i18n="price.starter.3"><i class="ti ti-check" aria-hidden="true"></i>matching com IA</li>
-                        <li data-i18n="price.starter.4"><i class="ti ti-check" aria-hidden="true"></i>histórico de candidaturas</li>
-                        <li data-i18n="price.starter.5"><i class="ti ti-check" aria-hidden="true"></i>suporte por email</li>
+                        <li data-i18n="price.auto.1"><i class="ti ti-check" aria-hidden="true"></i>seu currículo sai sozinho, todo dia de manhã</li>
+                        <li data-i18n="price.auto.2"><i class="ti ti-check" aria-hidden="true"></i>só vagas novas com boa compatibilidade</li>
+                        <li data-i18n="price.auto.3"><i class="ti ti-check" aria-hidden="true"></i>até 50 envios por dia</li>
+                        <li data-i18n="price.auto.4"><i class="ti ti-check" aria-hidden="true"></i>só liga se você ligar, e desliga quando quiser</li>
                     </ul>
-                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.starter.btn">assinar starter</button>
-                </div>
-                <div class="plan">
-                    <div class="plan-label">pro</div>
-                    <div class="plan-price">R$189</div>
-                    <div class="plan-per" data-i18n="price.pro.per">pagamento único · 30 dias</div>
-                    <ul class="plan-feats">
-                        <li data-i18n="price.pro.1"><i class="ti ti-check" aria-hidden="true"></i>200 candidaturas por dia</li>
-                        <li data-i18n="price.pro.2"><i class="ti ti-check" aria-hidden="true"></i>tudo do starter</li>
-                        <li data-i18n="price.pro.6"><i class="ti ti-check" aria-hidden="true"></i>suporte prioritário</li>
-                    </ul>
-                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.pro.btn">assinar pro</button>
+                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.auto.btn">quero o automático</button>
                 </div>
             </div>
             <div class="privacy">
@@ -1087,7 +1059,7 @@
         <section class="section" id="perguntas">
             <h2 class="sec-h" data-i18n="faq.h">Perguntas que você ia fazer<br><strong>de qualquer jeito.</strong></h2>
             <div class="faq">
-                <details open><summary data-i18n="faq.1.q">É pago?</summary><p data-i18n="faq.1.a">Não.</p></details>
+                <details open><summary data-i18n="faq.1.q">É pago?</summary><p data-i18n="faq.1.a">O básico não: 20 currículos por dia, de graça, para sempre. O envio automático custa R$ 10 por 30 dias, sem renovação, e é opcional.</p></details>
                 <details><summary data-i18n="faq.2.q">É confiável?</summary><p data-i18n="faq.2.a">Sim, p*rra. Pra que eu ia querer seu currículo? O email sai do SEU Gmail e a gente só tem permissão pra enviar, nunca pra ler. Pode revogar quando quiser.</p></details>
                 <details><summary data-i18n="faq.3.q">Como funciona?</summary><p data-i18n="faq.3.a">Você cadastra seu perfil, aperta enviar e a gente manda 20 emails personalizados, do seu jeito, pros responsáveis das vagas que mais dão match com as suas skills.</p></details>
                 <details><summary data-i18n="faq.4.q">Por que só 20 por dia?</summary><p data-i18n="faq.4.a">Porque 500 emails por dia é spam, e spam faz o Gmail achar que você é um robô. 20 bem mirados valem mais que 500 no escuro.</p></details>
@@ -1156,7 +1128,7 @@
             'faq.3.q': 'How does it work?',
             'faq.2.a': 'Yes, d*mn it. Why would I want your résumé? The email goes out from YOUR Gmail and we can only send, never read. Revoke it whenever you want.',
             'faq.2.q': 'Can I trust it?',
-            'faq.1.a': 'No.',
+            'faq.1.a': 'The basics, no: 20 résumés a day, free, forever. Automatic sending costs R$ 10 for 30 days, with no renewal, and it’s optional.',
             'faq.1.q': 'Is it paid?',
             'faq.h': 'Questions you were going to ask<br><strong>anyway.</strong>',
             'prova.4': 'résumés that already landed in a recruiter’s inbox',
@@ -1226,30 +1198,17 @@
             'feat.3.h': 'from your Gmail, with your name',
             'feat.3.p': 'The recruiter sees you, not a bot. And you can see the email before it goes out and write it your way.',
             'feat.4.h': 'you are in control',
-            'feat.4.p': 'Nothing goes out without your click. Job doesn’t fit? One 👎 and it’s gone. Everything you sent is logged.',
-            'price.h': 'How much?<br><strong>Nothing. Zero. Free.</strong>',
-            'price.sub': 'Charging people who are looking for a job would be ugly. So we don’t. If anyone asks for your card in our name, it’s a scam.',
-            'price.free.per': 'free forever',
-            'price.free.1': '<i class="ti ti-check" aria-hidden="true"></i>7 applications per day, about 210 a month',
-            'price.free.5': '<i class="ti ti-check" aria-hidden="true"></i>send from your own Gmail, nothing to connect',
-            'price.free.2': '<i class="ti ti-check" aria-hidden="true"></i>1 search profile',
-            'price.free.3': '<i class="ti ti-check" aria-hidden="true"></i>basic matching',
-            'price.free.4': '<i class="ti ti-check" aria-hidden="true"></i>no credit card',
-            'price.free.btn': 'start free',
-            'price.popular': 'most popular',
-            'price.starter.per': 'one-time · 30 days',
-            'price.starter.ancora': '70 applications a day. By hand, at roughly 10 minutes each, that is <b>11.7 hours</b> of work.',
-            'price.starter.1': '<i class="ti ti-check" aria-hidden="true"></i>70 applications per day',
-            'price.starter.2': '<i class="ti ti-check" aria-hidden="true"></i>filtering before sending',
-            'price.starter.3': '<i class="ti ti-check" aria-hidden="true"></i>AI matching',
-            'price.starter.4': '<i class="ti ti-check" aria-hidden="true"></i>application history',
-            'price.starter.5': '<i class="ti ti-check" aria-hidden="true"></i>email support',
-            'price.starter.btn': 'subscribe to starter',
-            'price.pro.per': 'one-time payment · 30 days',
-            'price.pro.1': '<i class="ti ti-check" aria-hidden="true"></i>200 applications per day',
-            'price.pro.2': '<i class="ti ti-check" aria-hidden="true"></i>everything in starter',
-            'price.pro.6': '<i class="ti ti-check" aria-hidden="true"></i>priority support',
-            'price.pro.btn': 'subscribe to pro',
+            'feat.4.p': 'Nothing goes out unless you say so, and automatic sending only runs if you turn it on. Job doesn’t fit? One 👎 and it’s gone. Everything you sent is logged.',
+            'price.h': 'How much?<br><strong>The basics are free. Forever.</strong>',
+            'price.sub': '20 résumés a day, no card. If you want them to go out on their own, it’s R$ 10 for 30 days and it helps keep the tool running. Nobody has to.',
+            'price.auto.label': 'automatic',
+            'price.auto.per': 'one-time · 30 days · no renewal',
+            'price.auto.ancora': 'Help keep the tool running.',
+            'price.auto.1': '<i class="ti ti-check" aria-hidden="true"></i>your résumé goes out on its own every morning',
+            'price.auto.2': '<i class="ti ti-check" aria-hidden="true"></i>only new jobs with a good match',
+            'price.auto.3': '<i class="ti ti-check" aria-hidden="true"></i>up to 50 sends a day',
+            'price.auto.4': '<i class="ti ti-check" aria-hidden="true"></i>only on if you turn it on, off whenever you want',
+            'price.auto.btn': 'I want automatic',
             'privacy.h': 'your privacy is a priority',
             'privacy.1': 'we use only the gmail.send scope, which allows sending only',
             'privacy.2': 'we never read, delete or modify your emails',

@@ -1,4 +1,4 @@
-import { PLANOS_PAGOS_ATIVOS, FREE_SEM_PLANOS_PAGOS } from './planosPagos.js';
+import { FREE_SEM_PLANOS_PAGOS } from './planosPagos.js';
 
 // =========================
 // Planos e limites (comércio)
@@ -17,23 +17,17 @@ import { PLANOS_PAGOS_ATIVOS, FREE_SEM_PLANOS_PAGOS } from './planosPagos.js';
 // ampla (allowManual). `priority` não ordena nada ainda: fica aqui porque a API
 // já o expõe, mas não vire feature de venda enquanto a fila não o usar.
 
-// Enquanto os planos pagos estão desligados (config/planosPagos.js), o grátis
-// é o produto inteiro: 20 por dia e escolha vaga a vaga.
-const FREE_PAGO_LIGADO = {
-    label: 'Free', dailyLimit: 7, allowManual: false, priority: 0,
-    price: 0, period: 'para sempre grátis', popular: false,
-    desc: 'Para começar: envios diários limitados e matching básico.',
-    features: ['7 candidaturas por dia', 'envio pelo seu Gmail, sem conectar nada', '1 perfil de busca', 'matching básico', 'sem cartão de crédito'],
-};
-const FREE_PAGO_DESLIGADO = {
-    ...FREE_PAGO_LIGADO,
+// O grátis é o mesmo com a venda aberta ou não: 20 por dia e escolha vaga a vaga.
+// Decisão do dono: o plano pago vende o envio sozinho, não tira nada de quem não paga.
+const FREE = {
+    label: 'Free', priority: 0, price: 0, popular: false,
     ...FREE_SEM_PLANOS_PAGOS,
-    period: 'grátis', desc: 'Tudo o que a ferramenta faz, sem pagar.',
+    period: 'grátis', desc: 'Tudo o que a ferramenta faz, com um clique seu em cada envio.',
     features: [`${FREE_SEM_PLANOS_PAGOS.dailyLimit} envios por dia`, 'você escolhe vaga a vaga', 'envio pelo seu Gmail', 'sem cartão de crédito'],
 };
 
 export const PLANS = {
-    free: PLANOS_PAGOS_ATIVOS ? FREE_PAGO_LIGADO : FREE_PAGO_DESLIGADO,
+    free: FREE,
     // O id continua 'starter' para não mexer na cobrança nem na env do preço.
     starter: {
         label: 'Automático', dailyLimit: 50, allowManual: true, autoSend: true, priority: 5,

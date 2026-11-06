@@ -382,6 +382,8 @@ try {
     for (const p of (planos.data?.plans || []).filter((x) => x.id !== 'free')) {
         checa(p.purchasable === true, `plano ${p.id} tem preco configurado (STRIPE_PRICE_*)`, `purchasable=${p.purchasable}`);
     }
+    const falsa = await api(c0.token, 'POST', '/billing/confirmar', { sessionId: 'cs_live_sessao_que_nao_existe' });
+    checa(falsa.status === 400 || falsa.data?.concedido === false, 'SEGURANCA: sessao falsa nao concede plano', `HTTP ${falsa.status} ${JSON.stringify(falsa.data)}`);
     const uso = await api(c0.token, 'GET', '/billing/me');
     checa(uso.status === 200, '/billing/me responde', `HTTP ${uso.status}`);
     const hist = await api(c0.token, 'GET', '/billing/history');

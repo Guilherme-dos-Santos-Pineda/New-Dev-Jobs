@@ -43,6 +43,7 @@ const EN = {
     'Enviadas': 'Sent',
     'Envio concluído: {n} currículos enviados.': 'Done: {n} résumés sent.',
     'Seu currículo não foi enviado': 'Your résumé was not sent',
+    'Ajude a manter a ferramenta funcionando. O grátis continua grátis, e o plano pago faz seu currículo sair sozinho todo dia.': 'Help keep the tool running. Free stays free, and the paid plan sends your résumé on its own every day.',
     'O que você está achando?': 'How is it going?',
     'Você já mandou mais de 10 currículos. Conta como está sendo: seu relato aparece no mural e ajuda quem está chegando.': 'You have sent 10 or more résumés. Tell us how it is going: your review shows on the wall and helps newcomers.',
     'Deixar meu feedback': 'Leave my feedback',

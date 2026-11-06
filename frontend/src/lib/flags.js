@@ -10,6 +10,5 @@
 export const FILTRO_DATA_ATIVO = false;
 
 // ESPELHA backend/config/planosPagos.js (o motivo está escrito lá). Desligada:
-// some a página de assinatura e todo convite a pagar. Ao religar, mude NOS DOIS
-// e reexiba a seção de preços da landing.
-export const PLANOS_PAGOS_ATIVOS = false;
+// some a página de assinatura e todo convite a pagar. Mude NOS DOIS.
+export const PLANOS_PAGOS_ATIVOS = true;

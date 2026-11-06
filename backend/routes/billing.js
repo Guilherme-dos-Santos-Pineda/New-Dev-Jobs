@@ -60,7 +60,7 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
             metadata: meta,
             payment_intent_data: { metadata: meta },
             customer_creation: 'always',
-            success_url: `${config.frontendUrl}/app/assinatura?checkout=success`,
+            success_url: `${config.frontendUrl}/app/assinatura?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${config.frontendUrl}/app/assinatura?checkout=cancel`,
         });
         res.json({ url: session.url });
@@ -154,15 +154,37 @@ async function grantOneTime({ userId, plan, customerId, days = 30 }) {
     const [u] = await sql`select "PlanExpiresAt" from "Users" where "Id" = ${userId}`;
     const currentMs = u?.PlanExpiresAt ? new Date(u.PlanExpiresAt).getTime() : null;
     const expiresAt = new Date(computeExpiry(currentMs, days));
-    await sql`
+    // Cada compra gera um cliente novo na Stripe. A mesma compra chega por dois
+    // caminhos (webhook e volta do checkout), e o where impede somar 60 dias.
+    const aplicado = await sql`
         update "Users" set
             "Plan" = ${plan},
             "StripeCustomerId" = coalesce(${customerId || null}, "StripeCustomerId"),
             "StripeSubscriptionId" = null,
             "PlanExpiresAt" = ${expiresAt}
-        where "Id" = ${userId}`;
+        where "Id" = ${userId} and "StripeCustomerId" is distinct from ${customerId || null}
+        returning "Id"`;
+    if (!aplicado.length) return;
     console.log(`💳 pagamento único: user ${userId} → ${plan} por ${days} dias (até ${expiresAt.toISOString()})`);
 }
+
+// POST /api/billing/confirmar  { sessionId } — a volta do checkout confere o
+// pagamento direto na Stripe. É a segunda via do webhook: se ele falhar, quem pagou
+// recebe o plano do mesmo jeito. Só vale para a sessão da própria pessoa.
+const confirmarSchema = z.object({ sessionId: z.string().min(10).max(255) });
+router.post('/confirmar', requireAuth, validate(confirmarSchema), async (req, res) => {
+    if (!stripeConfigured) return res.status(503).json({ error: 'Pagamentos indisponíveis no momento.' });
+    try {
+        const s = await stripe.checkout.sessions.retrieve(req.body.sessionId);
+        const decisao = decideCheckoutSession(s);
+        if (decisao.action !== 'grant' || decisao.userId !== req.user.Id) return res.json({ concedido: false });
+        await grantOneTime({ userId: decisao.userId, plan: decisao.plan, customerId: s.customer, days: decisao.days });
+        res.json({ concedido: true });
+    } catch (e) {
+        console.error('Erro ao confirmar pagamento:', e.message);
+        res.status(400).json({ error: 'Não deu para confirmar o pagamento.' });
+    }
+});
 
 // POST /api/billing/webhook — recebe eventos do Stripe (corpo CRU via express.raw no server.js)
 router.post('/webhook', async (req, res) => {

@@ -61,9 +61,13 @@ export default function Subscription() {
     useEffect(() => {
         const c = params.get('checkout');
         if (!c) return;
-        if (c === 'success') { toast.show('Pagamento concluído! Atualizando seu plano…'); refreshUser(); refreshHist(); refreshSub(); }
-        else if (c === 'cancel') toast.show('Checkout cancelado.', 'error');
-        params.delete('checkout'); setParams(params, { replace: true });
+        const sessao = params.get('session_id');
+        if (c === 'success') {
+            toast.show('Pagamento concluído! Atualizando seu plano…');
+            (sessao ? api.confirmarPagamento(sessao).catch(() => {}) : Promise.resolve())
+                .finally(() => { refreshUser(); refreshHist(); refreshSub(); });
+        } else if (c === 'cancel') toast.show('Checkout cancelado.', 'error');
+        params.delete('checkout'); params.delete('session_id'); setParams(params, { replace: true });
     }, []);  
 
     async function upgrade(planId) {
@@ -288,7 +292,7 @@ export default function Subscription() {
             {/* Planos */}
             <div className="section-title" style={{ marginBottom: 4 }}><i className="ti ti-rocket" /> {t('Planos')}</div>
             <p className="muted" style={{ fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-                {t('Automatize suas candidaturas e ganhe tempo. Faça upgrade quando precisar de mais.')}
+                {t('Ajude a manter a ferramenta funcionando. O grátis continua grátis, e o plano pago faz seu currículo sair sozinho todo dia.')}
             </p>
             {!stripeEnabled && <div className="notice danger"><i className="ti ti-alert-circle" />{t('Pagamentos não configurados no servidor.')}</div>}
             <div className="cards-grid" style={{ marginBottom: 18 }}>

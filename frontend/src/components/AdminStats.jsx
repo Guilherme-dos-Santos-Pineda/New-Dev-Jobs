@@ -27,9 +27,9 @@ export default function AdminStats() {
     const cards = [
         { l: 'Posts coletados', v: nf(raw.total), i: 'ti-database' },
         { l: 'Classificados como vaga', v: nf(raw.classified_jobs), i: 'ti-briefcase' },
-        { l: 'Aprovados', v: nf(raw.approved), i: 'ti-circle-check' },
-        { l: 'Rejeitados', v: nf(raw.rejected), i: 'ti-circle-x' },
-        { l: 'Pendentes', v: nf(raw.pending), i: 'ti-clock' },
+        { l: 'Aceitos à mão', v: nf(raw.approved), i: 'ti-circle-check' },
+        { l: 'Bloqueados', v: nf(raw.rejected), i: 'ti-circle-x' },
+        { l: 'Processados', v: nf(raw.pending), i: 'ti-clock' },
         { l: 'Vagas (banco)', v: nf(jobs.total), i: 'ti-list-check' },
         { l: 'Score médio IA', v: `${jobs.avgscore}%`, i: 'ti-target' },
         { l: '% vaga / coletado', v: `${precision}%`, i: 'ti-percentage' },

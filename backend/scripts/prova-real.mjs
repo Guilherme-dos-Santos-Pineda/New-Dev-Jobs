@@ -376,6 +376,8 @@ try {
         checa((planos.data?.plans || []).every((x) => x.id === 'free'), 'planos pagos desligados: catalogo so tem o gratis');
         const co = await api(c0.token, 'POST', '/billing/checkout', { plan: 'starter' });
         checa(co.status === 403, 'planos pagos desligados: checkout recusa', `HTTP ${co.status}`);
+        const cat = await api(c0.token, 'GET', '/billing/catalogo');
+        checa((cat.data?.plans || []).every((x) => x.id === 'free') && !cat.data?.stripeEnabled, 'conta comum nao ve a compra de teste', JSON.stringify(cat.data?.plans?.map((x) => x.id)));
     }
     for (const p of (planos.data?.plans || []).filter((x) => x.id !== 'free')) {
         checa(p.purchasable === true, `plano ${p.id} tem preco configurado (STRIPE_PRICE_*)`, `purchasable=${p.purchasable}`);
@@ -433,6 +435,8 @@ try {
     checa([401, 403].includes(tentaVer.status), 'SEGURANCA: usuario comum NAO acessa os backups', `HTTP ${tentaVer.status}`);
     const tentaRestaurar = await api(vitima.token, 'POST', `/admin/profile-backups/${Number(bks[0].Id)}/restore`, {});
     checa([401, 403].includes(tentaRestaurar.status), 'SEGURANCA: usuario comum NAO restaura', `HTTP ${tentaRestaurar.status}`);
+    const tentaCv = await api(vitima.token, 'GET', `/admin/users/${vitima.id}/cv`);
+    checa([401, 403].includes(tentaCv.status), 'SEGURANCA: usuario comum NAO abre curriculo pelo admin', `HTTP ${tentaCv.status}`);
 
     // Admin ve e restaura.
     const adminTmp = vivas[vivas.length - 1];

@@ -9,7 +9,7 @@ import { aiState } from '../services/ai.js';
 import { resetApifyPool, apifyUsage } from '../services/apifyPool.js';
 import { createCampaign, listCampaigns, setCampaignStatus, deleteCampaign } from '../services/campaigns.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
-import { removeCv } from '../lib/cvStorage.js';
+import { removeCv, getCvBuffer } from '../lib/cvStorage.js';
 import { decideConcessaoDePlano, DIAS_MAX_CONCESSAO } from '../services/billingLogic.js';
 import { PLANS } from '../config/plans.js';
 import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
@@ -80,6 +80,7 @@ function shapeUser(u) {
         id: u.Id, name: u.Name, email: u.Email, plan: u.Plan, role: u.Role,
         googleConnected: !!u.GoogleConnected, googleEmail: u.GoogleEmail,
         createdAt: u.CreatedAt, apps: u.apps, hasCv: !!u.has_cv, areas: parseArr(u.areas),
+        whatsapp: u.whats || null,
     };
 }
 
@@ -94,7 +95,8 @@ router.get('/users', requireAdmin, async (req, res) => {
         select u."Id", u."Name", u."Email", u."Plan", u."Role", u."GoogleConnected", u."GoogleEmail", u."CreatedAt",
             (select count(*)::int from "Applications" a where a."UserId" = u."Id") as apps,
             exists(select 1 from "Profiles" p where p."UserId" = u."Id" and p."CvPath" is not null) as has_cv,
-            (select p."Areas" from "Profiles" p where p."UserId" = u."Id") as areas
+            (select p."Areas" from "Profiles" p where p."UserId" = u."Id") as areas,
+            (select coalesce(nullif(trim(p."Whatsapp"), ''), nullif(trim(p."Phone"), '')) from "Profiles" p where p."UserId" = u."Id") as whats
         from "Users" u ${where}
         order by u."CreatedAt" desc
         limit ${pageSize} offset ${(page - 1) * pageSize}`;
@@ -124,7 +126,7 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
         }
     } catch { /* opcional */ }
     res.json({
-        user: shapeUser({ ...u, apps: counts.total, has_cv: !!p?.CvPath, areas: p?.Areas }),
+        user: shapeUser({ ...u, apps: counts.total, has_cv: !!p?.CvPath, areas: p?.Areas, whats: p?.Whatsapp?.trim() || p?.Phone?.trim() }),
         profile: p ? {
             skills: parseArr(p.Skills), areas: parseArr(p.Areas), seniorities: parseArr(p.Levels),
             modalities: parseArr(p.Modalities), headline: p.Headline, region: p.Region,
@@ -133,6 +135,20 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
         applications: apps.map((a) => ({ id: a.Id, status: a.Status, matchScore: a.MatchScore, createdAt: a.CreatedAt, title: a.JobTitle, company: a.Company })),
         counts, auth,
     });
+});
+
+// GET /api/admin/users/:id/cv — o PDF, para abrir na tela. Fica no log quem abriu.
+router.get('/users/:id/cv', requireAdmin, async (req, res) => {
+    const [p] = await sql`select "CvPath" from "Profiles" where "UserId" = ${req.params.id}`;
+    if (!p?.CvPath) return res.status(404).json({ error: 'Essa pessoa não tem currículo.' });
+    try {
+        const pdf = await getCvBuffer(p.CvPath);
+        console.log(`📄 currículo aberto: user ${req.params.id} (por ${req.user.Email})`);
+        res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline', 'Cache-Control': 'no-store' }).send(pdf);
+    } catch (e) {
+        console.error('Erro ao abrir currículo:', e.message);
+        res.status(502).json({ error: 'Não deu para abrir o currículo.' });
+    }
 });
 
 // PATCH /api/admin/users/:id/plan — dá plano de cortesia, sem cobrança
@@ -633,9 +649,10 @@ router.get('/raw', requireAdmin, async (req, res) => {
     res.json({ posts: rows.map(shapeRaw), total, page, pageSize });
 });
 
-// POST /api/admin/raw/bulk  { action: approve|reject|reprocess, status? } — em lote
+// POST /api/admin/raw/bulk  { action: reprocess, status? } — em lote. Aceitar e
+// recusar em lote saíram: um clique criava ou apagava vaga de 500 posts.
 const rawBulkSchema = z.object({
-    action: z.enum(['approve', 'reject', 'reprocess']),
+    action: z.enum(['reprocess']),
     status: z.enum(['pending', 'approved', 'rejected']).optional(),
 });
 router.post('/raw/bulk', requireAdmin, validate(rawBulkSchema), async (req, res) => {
@@ -645,19 +662,11 @@ router.post('/raw/bulk', requireAdmin, validate(rawBulkSchema), async (req, res)
     let done = 0;
     for (const p of rows) {
         try {
-            if (action === 'approve') {
-                await sql`update "ScrapedPosts" set "Status" = 'approved' where "Id" = ${p.Id}`;
-                await materializeJobFromPost(p.Id);
-            } else if (action === 'reject') {
-                await sql`update "ScrapedPosts" set "Status" = 'rejected' where "Id" = ${p.Id}`;
-                if (p.LinkedinId) await sql`delete from "Jobs" where "LinkedinId" = ${p.LinkedinId}`;
-            } else if (action === 'reprocess') {
-                await reprocessPost(p.Id);
-            }
+            await reprocessPost(p.Id);
             done += 1;
         } catch { /* segue */ }
     }
-    res.json({ ok: true, action, done, total: rows.length });
+    res.json({ ok: true, action: req.body.action, done, total: rows.length });
 });
 
 // PATCH /api/admin/raw/:id  { status }

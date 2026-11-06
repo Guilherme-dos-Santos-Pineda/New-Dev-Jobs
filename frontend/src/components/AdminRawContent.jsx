@@ -3,8 +3,11 @@ import { api } from '../api.js';
 import { useToast } from './Toast.jsx';
 import { fmtDate } from '../utils.js';
 
-const FILTERS = [['', 'Todos'], ['pending', 'Pendentes'], ['approved', 'Aprovados'], ['rejected', 'Rejeitados']];
-const STATUS_BADGE = { pending: 'warn', approved: 'ok', rejected: 'danger' };
+// 'pending' é só o valor gravado: todo post já passou pelas regras ao chegar, e
+// nada espera por uma pessoa. Na tela isso se chama "processado".
+const FILTERS = [['', 'Todos'], ['pending', 'Processados'], ['approved', 'Aceitos à mão'], ['rejected', 'Bloqueados']];
+const STATUS_BADGE = { pending: 'neutral', approved: 'ok', rejected: 'danger' };
+const STATUS_NOME = { pending: 'processado', approved: 'aceito à mão', rejected: 'bloqueado' };
 
 export default function AdminRawContent() {
     const toast = useToast();
@@ -30,7 +33,7 @@ export default function AdminRawContent() {
 
     async function bulk(action) {
         const target = filter || 'pending';
-        const labels = { approve: 'aceitar todos', reject: 'recusar todos', reprocess: 'reprocessar todos pela IA' };
+        const labels = { reprocess: 'reprocessar todos pela IA' };
         if (!window.confirm(`${labels[action]} os "${target}" (até 500)?`)) return;
         setBulking(action);
         try {
@@ -60,11 +63,13 @@ export default function AdminRawContent() {
                 </div>
                 <button className="btn ghost sm" onClick={() => load(filter, page)}><i className="ti ti-refresh" /></button>
                 <div className="spacer" />
-                <span className="muted" style={{ fontSize: 11.5 }}>em lote ({filter || 'pendentes'}):</span>
+                <span className="muted" style={{ fontSize: 11.5 }}>em lote:</span>
                 <button className="btn ghost sm" disabled={!!bulking} onClick={() => bulk('reprocess')}><i className="ti ti-robot" /> {bulking === 'reprocess' ? '…' : 'Reprocessar IA'}</button>
-                <button className="btn ghost sm" disabled={!!bulking} onClick={() => bulk('approve')}><i className="ti ti-checks" /> {bulking === 'approve' ? '…' : 'Aceitar todos'}</button>
-                <button className="btn ghost sm" disabled={!!bulking} onClick={() => bulk('reject')}><i className="ti ti-x" /> {bulking === 'reject' ? '…' : 'Recusar todos'}</button>
             </div>
+            <p className="muted" style={{ fontSize: 12, marginBottom: 12 }}>
+                Todo post passa pelas regras quando chega, e o que é vaga já entra no feed. Nada aqui espera por você.
+                Use o ✓ só para forçar uma vaga que foi descartada, e o ✕ para apagar a vaga do post e bloquear o post.
+            </p>
 
             {loading ? (
                 <div><div className="skeleton sk-card" style={{ height: 70, marginBottom: 10 }} /><div className="skeleton sk-card" style={{ height: 70 }} /></div>
@@ -78,7 +83,7 @@ export default function AdminRawContent() {
                         <div className="row" style={{ alignItems: 'center', gap: 8 }}>
                             <i className="ti ti-brand-linkedin" style={{ color: 'var(--color-accent)', fontSize: 18 }} />
                             <strong style={{ fontSize: 13 }}>{p.author || 'Autor desconhecido'}</strong>
-                            <span className={`badge ${STATUS_BADGE[p.status] || 'neutral'}`}>{p.status}</span>
+                            <span className={`badge ${STATUS_BADGE[p.status] || 'neutral'}`}>{STATUS_NOME[p.status] || p.status}</span>
                             <span className="muted" style={{ fontSize: 11.5 }}>{fmtDate(p.createdAt)}</span>
                             <div className="spacer" />
                             {p.ai && (
@@ -101,8 +106,8 @@ export default function AdminRawContent() {
                             {p.url && <a className="btn ghost sm" href={p.url} target="_blank" rel="noopener"><i className="ti ti-external-link" /> post</a>}
                             <div className="spacer" />
                             <button className="btn ghost sm" disabled={busy === p.id} onClick={() => reprocess(p)} title="Reprocessar IA"><i className="ti ti-robot" /> {busy === p.id ? '…' : 'IA'}</button>
-                            {p.status !== 'approved' && <button className="btn ghost sm" onClick={() => setStatus(p, 'approved')} title="Aprovar"><i className="ti ti-check" /></button>}
-                            {p.status !== 'rejected' && <button className="btn ghost sm" onClick={() => setStatus(p, 'rejected')} title="Rejeitar"><i className="ti ti-x" /></button>}
+                            {p.status !== 'approved' && <button className="btn ghost sm" onClick={() => setStatus(p, 'approved')} title="Forçar vaga"><i className="ti ti-check" /></button>}
+                            {p.status !== 'rejected' && <button className="btn ghost sm" onClick={() => setStatus(p, 'rejected')} title="Bloquear post e apagar a vaga"><i className="ti ti-x" /></button>}
                         </div>
                     </div>
                 );

@@ -9,6 +9,7 @@ import { countSentToday } from './services/usage.js';
 import { tickCampaigns } from './services/campaigns.js';
 import { apifyExhaustedUntil } from './services/apifyPool.js';
 import { runMaintenance } from './services/maintenance.js';
+import { tickAutoEnvio } from './services/autoEnvio.js';
 
 // =========================
 // Worker de envio (processo separado: `npm run worker`)
@@ -215,6 +216,7 @@ function startScheduler(boss) {
         runDueSchedules(boss).catch((e) => console.error('scheduler tick falhou:', e.message));
         revertExpiredPlans().catch((e) => console.error('revertExpiredPlans falhou:', e.message));
         tickCampaigns().catch((e) => console.error('tickCampaigns falhou:', e.message));
+        tickAutoEnvio().catch((e) => console.error('tickAutoEnvio falhou:', e.message));
     };
     tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
     const agendador = setInterval(tick, 60000);

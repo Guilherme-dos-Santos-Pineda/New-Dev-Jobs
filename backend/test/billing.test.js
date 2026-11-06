@@ -8,6 +8,21 @@ import { planOf, PLANS } from '../config/plans.js';
 const DAY = 86400000;
 
 // ---------- Modo do checkout (recorrente vs pagamento único) ----------
+test('o checkout cobra o valor de plans.js, em centavos', async () => {
+    const { itemDeCheckout } = await import('../services/billingLogic.js');
+    const item = itemDeCheckout(PLANS.starter);
+    assert.equal(item.price_data.unit_amount, 1000);
+    assert.equal(item.price_data.currency, 'brl');
+    assert.equal(item.quantity, 1);
+});
+
+test('com a cobrança desligada, só a conta de teste compra', async () => {
+    const { compraLiberada, PLANOS_PAGOS_ATIVOS } = await import('../config/planosPagos.js');
+    assert.equal(compraLiberada('GuilhermeSantosPineda@gmail.com'), true);
+    assert.equal(compraLiberada('outra.pessoa@gmail.com'), PLANOS_PAGOS_ATIVOS);
+    assert.equal(compraLiberada(undefined), PLANOS_PAGOS_ATIVOS);
+});
+
 test('checkoutModeForPrice: preço recorrente → assinatura', () => {
     assert.equal(checkoutModeForPrice({ recurring: { interval: 'month' } }), 'subscription');
 });

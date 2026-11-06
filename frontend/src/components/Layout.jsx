@@ -94,7 +94,7 @@ function MenuUsuario({ user, onBug, onSair, compacto }) {
                     </div>
                     <button role="menuitem" onClick={() => ir('/app/perfil')}><i className="ti ti-user" /> {t('Meu perfil')}</button>
                     <button role="menuitem" onClick={() => ir('/app/feedback')}><i className="ti ti-message-2" /> {t('Depoimentos')}</button>
-                    {PLANOS_PAGOS_ATIVOS && <button role="menuitem" onClick={() => ir('/app/assinatura')}><i className="ti ti-crown" /> {t('Assinatura')}</button>}
+                    {(PLANOS_PAGOS_ATIVOS || user?.podeComprar) && <button role="menuitem" onClick={() => ir('/app/assinatura')}><i className="ti ti-crown" /> {t('Assinatura')}</button>}
                     {user?.isAdmin && <button role="menuitem" onClick={() => ir('/app/admin')}><i className="ti ti-shield-cog" /> Admin</button>}
                     <div className="mu-sep" />
                     <button role="menuitem" onClick={() => { setAberto(false); onBug(); }}><i className="ti ti-bug" /> {t('Relatar um problema')}</button>

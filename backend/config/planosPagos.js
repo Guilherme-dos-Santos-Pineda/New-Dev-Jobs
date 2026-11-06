@@ -15,5 +15,11 @@
 // lugar deixa o app oferecendo plano que o backend recusa, ou o contrário.
 export const PLANOS_PAGOS_ATIVOS = false;
 
+// Compra de verdade antes de abrir para todos. Quem está aqui vê a página de
+// assinatura e passa pelo checkout mesmo com a chave desligada; o resto, não.
+const COMPRA_EM_TESTE = ['guilhermesantospineda@gmail.com'];
+
+export const compraLiberada = (email) => PLANOS_PAGOS_ATIVOS || COMPRA_EM_TESTE.includes(String(email || '').toLowerCase());
+
 /** O plano grátis enquanto os pagos estão desligados. */
 export const FREE_SEM_PLANOS_PAGOS = { dailyLimit: 20, allowManual: true };

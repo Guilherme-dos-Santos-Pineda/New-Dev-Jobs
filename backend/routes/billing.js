@@ -5,10 +5,10 @@ import { config } from '../config.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { PLANS } from '../config/plans.js';
-import { PLANOS_PAGOS_ATIVOS } from '../config/planosPagos.js';
+import { PLANOS_PAGOS_ATIVOS, compraLiberada } from '../config/planosPagos.js';
 import { planUsage } from '../services/usage.js';
-import { stripe, stripeConfigured, planFromPriceId, priceIdForPlan } from '../services/stripeClient.js';
-import { checkoutModeForPrice, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
+import { stripe, stripeConfigured, planFromPriceId } from '../services/stripeClient.js';
+import { itemDeCheckout, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
 
 // =========================
 // Comércio / planos (Fase 5+6) — Stripe real
@@ -21,17 +21,20 @@ const router = Router();
 // GET /api/billing/plans — catálogo público (tela de preços/upgrade)
 // Com os planos pagos desligados (config/planosPagos.js) o catálogo só tem o
 // grátis: a tela não tem o que oferecer e a landing deixa de mostrar preço.
-router.get('/plans', (_req, res) => {
-    res.json({
-        stripeEnabled: stripeConfigured && PLANOS_PAGOS_ATIVOS,
-        pagosAtivos: PLANOS_PAGOS_ATIVOS,
-        plans: Object.entries(PLANS).filter(([id]) => PLANOS_PAGOS_ATIVOS || id === 'free').map(([id, p]) => ({
-            id, label: p.label, dailyLimit: p.dailyLimit, allowManual: p.allowManual, priority: p.priority,
-            price: p.price, period: p.period, popular: p.popular, desc: p.desc, features: p.features,
-            purchasable: id !== 'free' && Boolean(priceIdForPlan(id)),
-        })),
-    });
+const catalogo = (liberado) => ({
+    stripeEnabled: stripeConfigured && liberado,
+    pagosAtivos: liberado,
+    plans: Object.entries(PLANS).filter(([id, p]) => (liberado || id === 'free') && p.aVenda !== false).map(([id, p]) => ({
+        id, label: p.label, dailyLimit: p.dailyLimit, allowManual: p.allowManual, priority: p.priority,
+        price: p.price, period: p.period, popular: p.popular, desc: p.desc, features: p.features,
+        purchasable: id !== 'free',
+    })),
 });
+
+router.get('/plans', (_req, res) => res.json(catalogo(PLANOS_PAGOS_ATIVOS)));
+
+// GET /api/billing/catalogo — o mesmo catálogo, do ponto de vista de quem está logado
+router.get('/catalogo', requireAuth, (req, res) => res.json(catalogo(compraLiberada(req.user.Email))));
 
 // GET /api/billing/me — plano + uso diário do usuário atual
 router.get('/me', requireAuth, async (req, res) => {
@@ -39,31 +42,24 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 // POST /api/billing/checkout  { plan } — cria a sessão de checkout (assinatura)
-const checkoutSchema = z.object({ plan: z.enum(['starter', 'pro']) });
+const checkoutSchema = z.object({ plan: z.enum(['starter']) });
 router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res) => {
     // A trava é aqui, não só no botão: com a chave desligada ninguém compra,
     // nem chamando a API direto.
-    if (!PLANOS_PAGOS_ATIVOS) return res.status(403).json({ error: 'Os planos pagos estão desativados. Tudo é grátis por enquanto.' });
+    if (!compraLiberada(req.user.Email)) return res.status(403).json({ error: 'Os planos pagos estão desativados. Tudo é grátis por enquanto.' });
     if (!stripeConfigured) return res.status(503).json({ error: 'Pagamentos indisponíveis no momento.' });
-    const price = priceIdForPlan(req.body.plan);
-    if (!price) return res.status(503).json({ error: `Preço do plano ${req.body.plan} não configurado (STRIPE_PRICE_*).` });
 
     try {
-        // Detecta o tipo do preço em runtime: recorrente → assinatura; único → pagamento
-        // avulso (libera 30 dias, sem renovação automática). Assim o mesmo código serve
-        // os dois ambientes sem quebrar durante a transição.
-        const priceObj = await stripe.prices.retrieve(price);
-        const mode = checkoutModeForPrice(priceObj);
+        // Pagamento único: libera 30 dias, sem renovação automática.
         const meta = { userId: req.user.Id, plan: req.body.plan };
         const session = await stripe.checkout.sessions.create({
-            mode,
-            line_items: [{ price, quantity: 1 }],
+            mode: 'payment',
+            line_items: [itemDeCheckout(PLANS[req.body.plan])],
             client_reference_id: req.user.Id,
             customer_email: req.user.Email,
             metadata: meta,
-            ...(mode === 'subscription'
-                ? { subscription_data: { metadata: meta } }
-                : { payment_intent_data: { metadata: meta }, customer_creation: 'always' }),
+            payment_intent_data: { metadata: meta },
+            customer_creation: 'always',
             success_url: `${config.frontendUrl}/app/assinatura?checkout=success`,
             cancel_url: `${config.frontendUrl}/app/assinatura?checkout=cancel`,
         });

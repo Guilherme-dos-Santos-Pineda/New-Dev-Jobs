@@ -33,6 +33,21 @@ export function isPlanExpired(expiresAtMs, nowMs = Date.now()) {
 }
 
 // price_id → plano (recebe o mapa de prices para ser puro/testável).
+/**
+ * O item do checkout, com o valor vindo de plans.js. Sem preço criado na Stripe
+ * nem env na VM: o que a tela anuncia é o que a Stripe cobra.
+ */
+export function itemDeCheckout(plano) {
+    return {
+        quantity: 1,
+        price_data: {
+            currency: 'brl',
+            unit_amount: Math.round(plano.price * 100),
+            product_data: { name: `New Dev Jobs ${plano.label} (30 dias)` },
+        },
+    };
+}
+
 export function planForPriceId(priceId, prices = {}) {
     if (!priceId) return null;
     if (priceId === prices.starter) return 'starter';

@@ -9,6 +9,7 @@ import { MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, UF_OPTIONS, maskPhone, m
 import { useT } from '../lib/i18n.jsx';
 import TagInput from '../components/TagInput.jsx';
 import EmailSettings from './Settings.jsx';
+import AutoEnvio from '../components/AutoEnvio.jsx';
 
 const SUGGESTED = ['JavaScript', 'TypeScript', 'Node.js', 'React', 'Python', 'C#', '.NET', 'Java', 'SQL', 'AWS', 'Docker', 'Git'];
 const POSTING_OPTIONS = [
@@ -270,6 +271,7 @@ export default function Profile() {
                             <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={(e) => handleCv(e.target.files?.[0])} />
                     </div>
                     <EmailSettings parte="conta" />
+                    <AutoEnvio />
                     <div className="mais-opcoes">
                         <div className="mais-titulo">{t('Mais opções')} <span>{t('não precisa mexer para começar')}</span></div>
                     <div className={`mais-item ${section === 'skills' ? 'aberto' : ''}`}>

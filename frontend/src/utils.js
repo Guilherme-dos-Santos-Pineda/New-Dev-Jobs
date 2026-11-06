@@ -31,6 +31,13 @@ export const MODALITY_OPTIONS = [
     { value: 'presencial', label: 'Presencial' },
 ];
 
+/** Link do WhatsApp a partir do número do perfil. Sem DDI, assume Brasil. */
+export function linkWhatsapp(numero) {
+    let d = String(numero || '').replace(/\D/g, '');
+    if (d.length === 10 || d.length === 11) d = `55${d}`;
+    return d.length >= 12 ? `https://wa.me/${d}` : null;
+}
+
 // Espelha ALLOWED_STATES (backend/config/profileOptions.js).
 export const UF_OPTIONS = [
     { value: 'AC', label: 'AC' }, { value: 'AL', label: 'AL' }, { value: 'AP', label: 'AP' }, { value: 'AM', label: 'AM' }, { value: 'BA', label: 'BA' }, { value: 'CE', label: 'CE' }, { value: 'DF', label: 'DF' },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useToast } from './Toast.jsx';
-import { fmtDate, scoreClass } from '../utils.js';
+import { fmtDate, scoreClass, linkWhatsapp } from '../utils.js';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 const PLAN_BADGE = { free: 'neutral', starter: 'info', pro: 'ok' };
@@ -58,6 +58,16 @@ export default function AdminUsers() {
         finally { setDeleting(false); }
     }
 
+    async function verCv(u) {
+        // A aba abre ANTES do await, senão o navegador bloqueia como popup.
+        const aba = window.open('', '_blank');
+        try {
+            const url = URL.createObjectURL(await api.adminCv(u.id));
+            if (aba) aba.location = url;
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (e) { aba?.close(); toast.show(e.message, 'error'); }
+    }
+
     // Concessão de plano sem cobrança: sócio, amigo, cortesia, teste.
     // O backend garante que isto não encosta em Role; o aviso na tela existe
     // para quem usa não achar que está promovendo alguém a admin.
@@ -112,6 +122,8 @@ Isto NÃO dá acesso de admin.`)) return;
                                     <td className="mono">{nf(u.apps)}</td>
                                     <td className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(u.createdAt)}</td>
                                     <td className="col-actions">
+                                        {u.hasCv && <button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); verCv(u); }}>CV</button>}
+                                        {linkWhatsapp(u.whatsapp) && <a className="btn ghost sm" href={linkWhatsapp(u.whatsapp)} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>WhatsApp</a>}
                                         <button className="btn ghost sm" title="Detalhes" onClick={(e) => { e.stopPropagation(); openDetail(u); }}><i className="ti ti-eye" /></button>
                                         <button className="btn ghost sm" title="Apagar" onClick={(e) => { e.stopPropagation(); del(u); }}><i className="ti ti-trash" /></button>
                                     </td>

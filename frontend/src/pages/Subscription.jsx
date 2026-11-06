@@ -43,7 +43,7 @@ export default function Subscription() {
     const [query, setQuery] = useState('');
     const [histOpen, setHistOpen] = useState(false); // histórico minimizado por padrão (planos em destaque)
 
-    const { data: plansData, loading: loadingPlans } = useCachedResource('billing:plans', () => api.getPlans());
+    const { data: plansData, loading: loadingPlans } = useCachedResource('billing:catalogo', () => api.getCatalogo());
     const { data: histData, loading: loadingHist, refresh: refreshHist } = useCachedResource('billing:history', () => api.billingHistory());
     const { data: subData, refresh: refreshSub } = useCachedResource('billing:subscription', () => api.getSubscription());
 

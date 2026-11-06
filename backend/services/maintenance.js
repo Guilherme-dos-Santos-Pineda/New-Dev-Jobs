@@ -44,9 +44,11 @@ export async function reclassifyPending(limite = LOTE_CLASSIFICACAO) {
 // espaço gasto guardando o log de execuções, não o produto. O plano gratuito do
 // Supabase tem 500 MB; nesse ritmo o banco enche antes de o negócio começar.
 //
-// O que se perde: histórico de runs e o conteúdo bruto dos posts já processados.
-// Post cujo processamento ainda não terminou ('pending') fica, independentemente
-// da idade — apagá-lo perderia trabalho de verdade.
+// O que se perde: histórico de runs e o conteúdo bruto dos posts. A vaga fica em
+// "Jobs" com o texto inteiro. 'pending' não é trabalho por fazer: todo post é
+// processado ao chegar e fica assim para sempre, e por isso filtrar por ele deixou
+// a limpeza sem apagar nada até 06/11/2026. Só o bloqueio ('rejected') fica: é o
+// que impede o post de voltar como vaga.
 const RETENCAO_DIAS = Number(process.env.RETENTION_DAYS) || 45;
 
 export async function pruneScraperHistory(dias = RETENCAO_DIAS) {
@@ -58,7 +60,7 @@ export async function pruneScraperHistory(dias = RETENCAO_DIAS) {
     const posts = await sql`
         delete from "ScrapedPosts"
         where "CreatedAt" < now() - make_interval(days => ${dias})
-          and "Status" <> 'pending'
+          and "Status" <> 'rejected'
         returning "Id"`;
     return { runs: runs.length, posts: posts.length };
 }

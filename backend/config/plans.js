@@ -34,14 +34,16 @@ const FREE_PAGO_DESLIGADO = {
 
 export const PLANS = {
     free: PLANOS_PAGOS_ATIVOS ? FREE_PAGO_LIGADO : FREE_PAGO_DESLIGADO,
+    // O id continua 'starter' para não mexer na cobrança nem na env do preço.
     starter: {
-        label: 'Starter', dailyLimit: 70, allowManual: true, priority: 5,
-        price: 80, period: 'pagamento único · 30 dias', popular: true,
-        desc: 'Ideal para quem está começando: mais envios e filtragem.',
-        features: ['70 candidaturas por dia', 'filtragem antes do envio', 'matching com IA', 'histórico de candidaturas', 'suporte por email'],
+        label: 'Automático', dailyLimit: 50, allowManual: true, autoSend: true, priority: 5,
+        price: 10, period: 'pagamento único · 30 dias', popular: true,
+        desc: 'Seu currículo sai todo dia para as vagas novas, sem você precisar entrar.',
+        features: ['envio automático todo dia', 'até 50 envios por dia', 'só vagas novas com boa compatibilidade', 'desliga quando quiser'],
     },
     pro: {
-        label: 'Pro', dailyLimit: 200, allowManual: true, priority: 10,
+        // Fora de venda: fica para quem já tem (concessão), que não perde nada.
+        label: 'Pro', dailyLimit: 200, allowManual: true, autoSend: true, aVenda: false, priority: 10,
         price: 189, period: 'pagamento único · 30 dias', popular: false,
         desc: 'Para quem quer dominar o mercado: alto volume e recursos avançados.',
         features: ['200 candidaturas por dia', 'tudo do starter', 'suporte prioritário'],

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { useAuth } from './auth.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import lazyWithReload from './lib/lazyWithReload.js';
@@ -26,6 +27,12 @@ function PageFallback() {
     return <div className="center" style={{ minHeight: '60vh' }}><div className="spinner" /></div>;
 }
 
+// Com os planos pagos desligados a página nem existe, salvo para a conta de teste.
+function Assinatura() {
+    const { user } = useAuth();
+    return PLANOS_PAGOS_ATIVOS || user?.podeComprar ? <Subscription /> : <Navigate to="/app" replace />;
+}
+
 export default function App() {
     return (
         <Suspense fallback={<PageFallback />}>
@@ -47,7 +54,7 @@ export default function App() {
                     <Route path="feedback" element={<Feedback />} />
                     <Route path="perfil" element={<Profile />} />
                     {/* Com os planos pagos desligados a página nem existe: link antigo cai nas vagas. */}
-                    <Route path="assinatura" element={PLANOS_PAGOS_ATIVOS ? <Subscription /> : <Navigate to="/app" replace />} />
+                    <Route path="assinatura" element={<Assinatura />} />
                     <Route path="admin" element={<Admin />} />
                     {/* compat: rotas antigas */}
                     <Route path="vagas" element={<Navigate to="/app" replace />} />

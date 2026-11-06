@@ -7,12 +7,13 @@ import { getMatches } from '../services/jobsQuery.js';
 import { enqueue, getStatus, stop } from '../services/sendQueue.js';
 import { planOf } from '../config/plans.js';
 import { planUsage } from '../services/usage.js';
+import { MATCH_MINIMO } from '../services/autoEnvio.js';
 
 const router = Router();
 
 // Envio automático só dispara em vagas com match razoável (evita mandar pra vaga
 // pouco relacionada). Seleção manual ignora este corte (o usuário decide).
-const MIN_AUTO_MATCH = 50;
+const MIN_AUTO_MATCH = MATCH_MINIMO;
 
 const queueSchema = z.object({
     mode: z.enum(['auto', 'manual']).optional(),

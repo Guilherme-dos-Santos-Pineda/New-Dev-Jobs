@@ -27,6 +27,7 @@ export async function planUsage(userId, planName) {
         label: plan.label,
         dailyLimit: plan.dailyLimit,
         allowManual: plan.allowManual,
+        autoSend: !!plan.autoSend,
         usedToday,
         remainingToday: Math.max(0, plan.dailyLimit - usedToday),
     };

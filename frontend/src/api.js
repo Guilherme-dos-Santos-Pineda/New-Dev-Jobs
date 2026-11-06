@@ -104,6 +104,8 @@ export const api = {
     // profile
     getProfile: () => request('GET', '/profile'),
     updateProfile: (data) => request('PUT', '/profile', data),
+    getCatalogo: () => request('GET', '/billing/catalogo'),
+    autoEnvio: (ativo) => request('PUT', '/auth/auto-envio', { ativo }),
     resetProfile: () => request('POST', '/profile/reset'),
     // A confirmacao digitada vai no corpo: o servidor recusa sem ela, entao um
     // DELETE disparado por engano (ou por CSRF) nao apaga nada.
@@ -198,6 +200,11 @@ export const api = {
     adminRawStatus: (id, status) => request('PATCH', `/admin/raw/${id}`, { status }),
     adminReprocess: (id) => request('POST', `/admin/raw/${id}/reprocess`),
     adminRawBulk: (action, status) => request('POST', '/admin/raw/bulk', { action, status }),
+    adminCv: async (id) => {
+        const r = await fetch(`${API_BASE}/api/admin/users/${id}/cv`, { headers: await authHeader() });
+        if (!r.ok) throw new Error('Não deu para abrir o currículo.');
+        return r.blob();
+    },
     adminAiStats: () => request('GET', '/admin/ai-stats'),
     adminApifyReset: () => request('POST', '/admin/apify/reset'),
     // Perfis apagados: so admin ve. Se a conta foi tomada, quem esta com ela nao

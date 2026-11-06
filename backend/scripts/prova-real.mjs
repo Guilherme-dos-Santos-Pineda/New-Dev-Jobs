@@ -384,6 +384,8 @@ try {
     }
     const falsa = await api(c0.token, 'POST', '/billing/confirmar', { sessionId: 'cs_live_sessao_que_nao_existe' });
     checa(falsa.status === 400 || falsa.data?.concedido === false, 'SEGURANCA: sessao falsa nao concede plano', `HTTP ${falsa.status} ${JSON.stringify(falsa.data)}`);
+    const convite = await api(c0.token, 'GET', '/billing/convite');
+    checa(convite.status === 200 && convite.data?.convidar === false, 'conta sem envios nao recebe o convite do plano', JSON.stringify(convite.data));
     const uso = await api(c0.token, 'GET', '/billing/me');
     checa(uso.status === 200, '/billing/me responde', `HTTP ${uso.status}`);
     const hist = await api(c0.token, 'GET', '/billing/history');

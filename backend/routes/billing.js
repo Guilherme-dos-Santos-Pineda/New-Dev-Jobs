@@ -4,11 +4,11 @@ import sql from '../lib/sql.js';
 import { config } from '../config.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { PLANS } from '../config/plans.js';
+import { PLANS, planOf } from '../config/plans.js';
 import { PLANOS_PAGOS_ATIVOS, compraLiberada } from '../config/planosPagos.js';
 import { planUsage } from '../services/usage.js';
 import { stripe, stripeConfigured, planFromPriceId } from '../services/stripeClient.js';
-import { itemDeCheckout, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
+import { deveConvidar, itemDeCheckout, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
 
 // =========================
 // Comércio / planos (Fase 5+6) — Stripe real
@@ -42,6 +42,18 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 // POST /api/billing/checkout  { plan } — cria a sessão de checkout (assinatura)
+// GET /api/billing/convite — já é hora de oferecer o envio automático?
+router.get('/convite', requireAuth, async (req, res) => {
+    if (!compraLiberada(req.user.Email)) return res.json({ convidar: false });
+    try {
+        const [{ n }] = await sql`select count(*)::int as n from "Applications" where "UserId" = ${req.user.Id}`;
+        res.json({ convidar: deveConvidar({ enviados: n, autoSend: !!planOf(req.user.Plan).autoSend }) });
+    } catch (e) {
+        console.warn(`convite: conferência falhou: ${e.message}`);
+        res.json({ convidar: false });
+    }
+});
+
 const checkoutSchema = z.object({ plan: z.enum(['starter']) });
 router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res) => {
     // A trava é aqui, não só no botão: com a chave desligada ninguém compra,

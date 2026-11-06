@@ -33,6 +33,13 @@ export function isPlanExpired(expiresAtMs, nowMs = Date.now()) {
 }
 
 // price_id → plano (recebe o mapa de prices para ser puro/testável).
+export const ENVIOS_PARA_CONVIDAR = 40;
+
+/** Convida quem já usa bastante e ainda não tem o envio automático. */
+export function deveConvidar({ enviados, autoSend }) {
+    return !autoSend && enviados >= ENVIOS_PARA_CONVIDAR;
+}
+
 /**
  * O item do checkout, com o valor vindo de plans.js. Sem preço criado na Stripe
  * nem env na VM: o que a tela anuncia é o que a Stripe cobra.

@@ -8,6 +8,13 @@ import { planOf, PLANS } from '../config/plans.js';
 const DAY = 86400000;
 
 // ---------- Modo do checkout (recorrente vs pagamento único) ----------
+test('convida a partir de 40 envios, só quem não tem o envio automático', async () => {
+    const { deveConvidar } = await import('../services/billingLogic.js');
+    assert.equal(deveConvidar({ enviados: 39, autoSend: false }), false);
+    assert.equal(deveConvidar({ enviados: 40, autoSend: false }), true);
+    assert.equal(deveConvidar({ enviados: 400, autoSend: true }), false);
+});
+
 test('o checkout cobra o valor de plans.js, em centavos', async () => {
     const { itemDeCheckout } = await import('../services/billingLogic.js');
     const item = itemDeCheckout(PLANS.starter);

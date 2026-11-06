@@ -32,8 +32,8 @@ export const PLANS = {
     starter: {
         label: 'Automático', dailyLimit: 50, allowManual: true, autoSend: true, priority: 5,
         price: 10, period: 'pagamento único · 30 dias', popular: true,
-        desc: 'Seu currículo sai todo dia para as vagas novas, sem você precisar entrar.',
-        features: ['envio automático todo dia', 'até 50 envios por dia', 'só vagas novas com boa compatibilidade', 'desliga quando quiser'],
+        desc: 'Você para de entrar todo dia para mandar currículo: a gente manda por você.',
+        features: ['seu currículo sai sozinho todo dia de manhã, sem você entrar', '50 envios por dia, em vez de 20', 'só vagas novas, com 50% ou mais de compatibilidade', 'sai do seu Gmail, com o seu nome', 'liga e desliga quando quiser'],
     },
     pro: {
         // Fora de venda: fica para quem já tem (concessão), que não perde nada.

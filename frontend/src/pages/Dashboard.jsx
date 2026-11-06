@@ -12,6 +12,7 @@ import PerguntaRetorno from '../components/PerguntaRetorno.jsx';
 import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
 import CommunityBanner from '../components/CommunityBanner.jsx';
 import PedidoFeedback from '../components/PedidoFeedback.jsx';
+import ConviteAutomatico from '../components/ConviteAutomatico.jsx';
 
 // =========================
 // Vagas para você (a tela inicial)
@@ -290,6 +291,7 @@ export default function Dashboard() {
 
                 <PerguntaRetorno />
                 <PedidoFeedback />
+                <ConviteAutomatico />
                 <CommunityBanner variant="button" style={{ marginBottom: 14 }} />
 
                 {/* ---- As vagas ---- */}

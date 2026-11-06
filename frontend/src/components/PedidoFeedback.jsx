@@ -27,11 +27,6 @@ export default function PedidoFeedback() {
 
     if (!pedir) return null;
 
-    function depois() {
-        try { localStorage.setItem(CHAVE, String(Date.now() + PAUSA_MS)); } catch { /* sem armazenamento, só fecha */ }
-        setPedir(false);
-    }
-
     return (
         <div className="card vh-retorno">
             <div className="vh-retorno-txt">

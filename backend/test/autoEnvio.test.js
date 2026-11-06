@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { escolherVagas, horaDeEnviar } from '../services/autoEnvio.js';
+import { escolherVagas, horaDeEnviar, proximoEnvio } from '../services/autoEnvio.js';
 import { PLANS, planOf } from '../config/plans.js';
 
 const agora = Date.UTC(2026, 10, 10, 12);
@@ -31,6 +31,25 @@ test('sem vaga nova, nada sai', () => {
 test('só envia a partir das 9h de Brasília', () => {
     assert.equal(horaDeEnviar(Date.UTC(2026, 10, 10, 11, 59)), false);
     assert.equal(horaDeEnviar(Date.UTC(2026, 10, 10, 12, 0)), true);
+});
+
+test('próximo envio: hoje às 9h se ainda não saiu, senão amanhã', () => {
+    const noveDia10 = Date.UTC(2026, 10, 10, 12);
+    const noveDia11 = Date.UTC(2026, 10, 11, 12);
+    const seisDaManha = Date.UTC(2026, 10, 10, 9);
+    assert.equal(proximoEnvio(new Date('2026-11-09'), seisDaManha), noveDia10);
+    assert.equal(proximoEnvio(new Date('2026-11-10'), Date.UTC(2026, 10, 10, 15)), noveDia11);
+    assert.equal(proximoEnvio(null, seisDaManha), noveDia10);
+});
+
+test('quem liga às 22h de Brasília recebe na manhã seguinte', () => {
+    // 01h UTC do dia 11: a rota grava now() - 12h, que é o dia 10.
+    assert.equal(proximoEnvio(new Date('2026-11-10'), Date.UTC(2026, 10, 11, 1)), Date.UTC(2026, 10, 11, 12));
+});
+
+test('a rota não usa current_date ao ligar, senão pula a manhã seguinte', async () => {
+    const rota = await readFile(new URL('../routes/auth.js', import.meta.url), 'utf8');
+    assert.match(rota, /"AutoEnvioUltimo" = \(now\(\) - interval '12 hours'\)::date/);
 });
 
 test('envio automático é recurso pago, e o plano grátis não tem', () => {

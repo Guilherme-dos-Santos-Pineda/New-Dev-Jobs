@@ -35,6 +35,10 @@ async function authHeader() {
     return cachedToken ? { Authorization: `Bearer ${cachedToken}` } : {};
 }
 
+// Durante um deploy o nginx devolve uma página HTML, e sem internet o fetch falha.
+// Nos dois casos a pessoa via o erro técnico cru ("Unexpected token <").
+const SERVIDOR_FORA = 'Não conseguimos falar com o servidor agora. Tente de novo em instantes.';
+
 async function request(method, path, body, opts = {}) {
     const { isForm, _retry } = opts;
     const headers = { ...(await authHeader()) };
@@ -48,7 +52,12 @@ async function request(method, path, body, opts = {}) {
         payload = JSON.stringify(body);
     }
 
-    const res = await fetch(`${API_BASE}/api${path}`, { method, headers, body: payload });
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/api${path}`, { method, headers, body: payload });
+    } catch {
+        throw new Error(SERVIDOR_FORA);
+    }
 
     // Token pode ter expirado: força refresh da sessão e tenta de novo UMA vez.
     // Evita o "sessão caiu" quando o access_token expira mas o refresh ainda é válido.
@@ -61,10 +70,12 @@ async function request(method, path, body, opts = {}) {
     }
 
     const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    let data = null;
+    let legivel = true;
+    try { data = text ? JSON.parse(text) : null; } catch { legivel = false; }
 
-    if (!res.ok) {
-        const err = new Error(data?.error || `Erro ${res.status}`);
+    if (!res.ok || !legivel) {
+        const err = new Error(data?.error || SERVIDOR_FORA);
         err.status = res.status;
         // Distingue "o servidor recusou o MEU token" de "eu nem tinha token para
         // mandar". Sem isso, uma falta transitória de token (sessão ainda sendo

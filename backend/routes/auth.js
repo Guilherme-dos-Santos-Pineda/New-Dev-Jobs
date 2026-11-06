@@ -6,6 +6,7 @@ import { getAuthUrl, consumeState, exchangeCodeAndStore, disconnect } from '../s
 import { planUsage } from '../services/usage.js';
 import { planOf } from '../config/plans.js';
 import { compraLiberada } from '../config/planosPagos.js';
+import { proximoEnvio } from '../services/autoEnvio.js';
 import { assertCanSend } from '../services/sender.js';
 
 const router = Router();
@@ -31,6 +32,7 @@ export async function publicUser(user) {
         planExpiresAt: user.PlanExpiresAt ? new Date(user.PlanExpiresAt).getTime() : null,
         planLimits: { dailyLimit: usage.dailyLimit, allowManual: usage.allowManual, autoSend: usage.autoSend },
         autoEnvio: !!user.AutoEnvio,
+        autoEnvioProximo: user.AutoEnvio ? proximoEnvio(user.AutoEnvioUltimo) : null,
         podeComprar: compraLiberada(user.Email),
         usage: { usedToday: usage.usedToday, remainingToday: usage.remainingToday, dailyLimit: usage.dailyLimit },
         isAdmin: config.isAdminEmail(user.Email) || user.Role === 'admin',
@@ -53,14 +55,15 @@ router.put('/settings', requireAuth, async (req, res) => {
 });
 
 // PUT /api/auth/auto-envio  { ativo }
-// Ligar conta a partir de amanhã: quem liga à tarde não vê currículo saindo na hora.
+// Conta a partir do próximo horário das 9h, nunca na hora. O dia é em UTC, e às 22h
+// de Brasília já é "amanhã": gravar current_date pularia a manhã seguinte.
 router.put('/auto-envio', requireAuth, async (req, res) => {
     const ativo = req.body?.ativo === true;
     if (ativo) {
         if (!planOf(req.user.Plan).autoSend) return res.status(402).json({ error: 'O envio automático faz parte do plano pago.', upgrade: true });
         try { await assertCanSend(req.user.Id); }
         catch (e) { return res.status(e.status || 403).json({ error: e.message }); }
-        await sql`update "Users" set "AutoEnvio" = true, "AutoEnvioDesde" = now(), "AutoEnvioUltimo" = current_date where "Id" = ${req.user.Id}`;
+        await sql`update "Users" set "AutoEnvio" = true, "AutoEnvioDesde" = now(), "AutoEnvioUltimo" = (now() - interval '12 hours')::date where "Id" = ${req.user.Id}`;
     } else {
         await sql`update "Users" set "AutoEnvio" = false where "Id" = ${req.user.Id}`;
     }

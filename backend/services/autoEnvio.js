@@ -31,6 +31,14 @@ export function escolherVagas(matches, restam, agora = Date.now()) {
 
 export const horaDeEnviar = (agora = Date.now()) => new Date(agora).getUTCHours() >= HORA_UTC;
 
+/** Quando sai o próximo envio de quem está com o automático ligado. */
+export function proximoEnvio(ultimo, agora = Date.now()) {
+    const hoje = new Date(agora).toISOString().slice(0, 10);
+    const ultimoDia = ultimo ? new Date(ultimo).toISOString().slice(0, 10) : '';
+    const horaDeHoje = Date.parse(`${hoje}T${HORA_UTC}:00:00Z`);
+    return Math.max(ultimoDia >= hoje ? horaDeHoje + DIA_MS : horaDeHoje, agora);
+}
+
 async function enviarDoDia(usuario) {
     // enqueue() substitui o lote anterior: apagaria um envio em andamento.
     const [emAndamento] = await sql`select 1 from "SendQueue" where "UserId" = ${usuario.Id} and "Status" = 'queued' limit 1`;

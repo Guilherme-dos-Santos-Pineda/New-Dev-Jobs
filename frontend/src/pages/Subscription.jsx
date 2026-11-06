@@ -5,6 +5,7 @@ import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
+import AutoEnvio from '../components/AutoEnvio.jsx';
 
 const money = (cents, currency = 'brl') =>
     ((cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: (currency || 'brl').toUpperCase() });
@@ -35,6 +36,7 @@ export default function Subscription() {
     const toast = useToast();
     const [params, setParams] = useSearchParams();
     const [busy, setBusy] = useState('');
+    const [pagou, setPagou] = useState(false);
 
     // Filtros do histórico
     const [fStatus, setFStatus] = useState('all');
@@ -64,6 +66,7 @@ export default function Subscription() {
         const sessao = params.get('session_id');
         if (c === 'success') {
             toast.show('Pagamento concluído! Atualizando seu plano…');
+            setPagou(true);
             (sessao ? api.confirmarPagamento(sessao).catch(() => {}) : Promise.resolve())
                 .finally(() => { refreshUser(); refreshHist(); refreshSub(); });
         } else if (c === 'cancel') toast.show('Checkout cancelado.', 'error');
@@ -72,8 +75,16 @@ export default function Subscription() {
 
     async function upgrade(planId) {
         setBusy(planId);
-        try { const { url } = await api.checkout(planId); window.location.href = url; }
-        catch (e) { toast.show(e.message, 'error'); setBusy(''); }
+        try {
+            // Uma tentativa a mais: um deploy reinicia o servidor por alguns segundos,
+            // e a pessoa não pode perder a compra por isso.
+            const { url } = await api.checkout(planId).catch(async (e) => {
+                if (e.status && e.status < 500) throw e;
+                await new Promise((ok) => setTimeout(ok, 4000));
+                return api.checkout(planId);
+            });
+            window.location.href = url;
+        } catch (e) { toast.show(e.message, 'error'); setBusy(''); }
     }
 
     // Estatísticas (sobre todo o histórico, independem dos filtros)
@@ -118,6 +129,9 @@ export default function Subscription() {
                 <h1>{t('Assinatura e pagamentos')}</h1>
                 <p>{t('Gerencie seu plano e veja todo o histórico de pagamentos.')}</p>
             </div>
+
+            {pagou && <div className="notice"><i className="ti ti-circle-check" />{t('Pagamento confirmado, obrigado! Falta um passo: ligue o envio automático aqui embaixo.')}</div>}
+            <AutoEnvio style={{ marginBottom: 18 }} />
 
             {/* Resumo do plano atual + uso */}
             <div className="card fade-in" style={{ marginBottom: 18 }}>

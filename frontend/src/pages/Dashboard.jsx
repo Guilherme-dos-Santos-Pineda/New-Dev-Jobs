@@ -13,6 +13,7 @@ import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
 import CommunityBanner from '../components/CommunityBanner.jsx';
 import PedidoFeedback from '../components/PedidoFeedback.jsx';
 import ConviteAutomatico from '../components/ConviteAutomatico.jsx';
+import AutoEnvio from '../components/AutoEnvio.jsx';
 
 // =========================
 // Vagas para você (a tela inicial)
@@ -289,6 +290,7 @@ export default function Dashboard() {
                     <div className="vh-cota muted">{t('{r} de {n} envios livres hoje', { r: restam, n: limite })} · <Link to="/app/perfil" className="link-sutil">{t('Ajustar o que eu procuro')}</Link></div>
                 )}
 
+                <AutoEnvio style={{ marginBottom: 14 }} />
                 <PerguntaRetorno />
                 <PedidoFeedback />
                 <ConviteAutomatico />

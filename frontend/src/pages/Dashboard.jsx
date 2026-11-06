@@ -10,6 +10,7 @@ import { haQuanto } from '../lib/tempo.js';
 import WizardInicial from '../components/WizardInicial.jsx';
 import PerguntaRetorno from '../components/PerguntaRetorno.jsx';
 import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
+import CommunityBanner from '../components/CommunityBanner.jsx';
 
 // =========================
 // Vagas para você (a tela inicial)
@@ -287,6 +288,7 @@ export default function Dashboard() {
                 )}
 
                 <PerguntaRetorno />
+                <CommunityBanner variant="button" style={{ marginBottom: 14 }} />
 
                 {/* ---- As vagas ---- */}
                 {lista === null ? (

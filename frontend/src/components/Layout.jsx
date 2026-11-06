@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { api } from '../api.js';
 import { PLANOS_PAGOS_ATIVOS } from '../lib/flags.js';
+import { GRUPO_WHATSAPP } from '../lib/comunidade.js';
 import { prefetch } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
 import { useInstalarApp } from '../lib/instalarApp.js';
@@ -93,6 +94,7 @@ function MenuUsuario({ user, onBug, onSair, compacto }) {
                         <span>{user?.email}</span>
                     </div>
                     <button role="menuitem" onClick={() => ir('/app/perfil')}><i className="ti ti-user" /> {t('Meu perfil')}</button>
+                    <a role="menuitem" href={GRUPO_WHATSAPP} target="_blank" rel="noopener" onClick={() => setAberto(false)}><i className="ti ti-brand-whatsapp" /> {t('Comunidade no WhatsApp')}</a>
                     <button role="menuitem" onClick={() => ir('/app/feedback')}><i className="ti ti-message-2" /> {t('Depoimentos')}</button>
                     {(PLANOS_PAGOS_ATIVOS || user?.podeComprar) && <button role="menuitem" onClick={() => ir('/app/assinatura')}><i className="ti ti-crown" /> {t('Assinatura')}</button>}
                     {user?.isAdmin && <button role="menuitem" onClick={() => ir('/app/admin')}><i className="ti ti-shield-cog" /> Admin</button>}

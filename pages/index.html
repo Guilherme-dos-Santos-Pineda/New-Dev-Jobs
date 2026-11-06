@@ -376,6 +376,14 @@
         margin-bottom: 34px;
     }
     .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .comunidade-btn {
+        display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 9px 16px;
+        font-size: 13.5px; font-weight: 600; color: var(--color-text); text-decoration: none;
+        border: 1px solid #25D366; border-radius: 999px;
+    }
+    .comunidade-btn .ti { color: #25D366; font-size: 17px; }
+    .comunidade-btn:hover { background: rgba(37, 211, 102, 0.12); }
+    .cta-bar .comunidade-btn { color: inherit; margin-top: 0; }
     .btn-p {
         background: var(--grad-accent);
         color: var(--color-on-accent);
@@ -834,6 +842,7 @@
                 <li><a href="#como-funciona" data-i18n="nav.how">como funciona</a></li>
                 <li><a href="#precos" data-i18n="nav.pricing">é grátis</a></li>
                 <li><a href="docs.html" data-i18n="nav.docs">documentação</a></li>
+                <li><a href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG" target="_blank" rel="noopener" data-i18n="nav.community">comunidade</a></li>
             </ul>
 
             <div class="nav-actions">
@@ -858,6 +867,7 @@
                     <button class="btn-p" onclick="go('/signup')" data-i18n="hero.cta1"><i class="ti ti-send" aria-hidden="true"></i> quero meus 20 emails</button>
                     <button class="btn-s" onclick="document.getElementById('perguntas').scrollIntoView({behavior:'smooth'})" data-i18n="hero.cta2">tá, qual é a pegadinha?</button>
                 </div>
+                <a class="comunidade-btn" href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG" target="_blank" rel="noopener" data-i18n="hero.community"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> entrar na comunidade no WhatsApp</a>
                 <p class="hero-note" data-i18n="hero.note"><i class="ti ti-circle-check" aria-hidden="true"></i> De graça. Sem cartão. Sem "teste grátis de 7 dias". (A vaga a gente não garante. O currículo chegar no recrutador, isso sim.)</p>
 
             </div>
@@ -1091,7 +1101,7 @@
             <p data-i18n="cta.p">Leva um minuto. É grátis. O pior que pode acontecer é um recrutador te responder.</p>
             <button class="btn-white" onclick="go('/signup')" data-i18n="cta.btn">quero meus 20 emails</button>
             <p style="margin-top:16px;font-size:13px;">
-                <a href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG" target="_blank" rel="noopener" style="color:var(--color-cta-bar-sub);text-decoration:underline;text-underline-offset:3px;" data-i18n="cta.community"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Venha fazer parte da comunidade no WhatsApp</a>
+                <a class="comunidade-btn" href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG" target="_blank" rel="noopener" data-i18n="cta.community"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Venha fazer parte da comunidade no WhatsApp</a>
             </p>
         </div>
 
@@ -1162,11 +1172,13 @@
             'nav.how': 'how it works',
             'nav.pricing': 'it’s free',
             'nav.docs': 'docs',
+            'nav.community': 'community',
             'nav.login': '<i class="ti ti-login-2" aria-hidden="true"></i> <span class="nav-cta-txt">sign in</span>',
             'hero.h1': 'Built so even the dumbest intern can land a job.',
             'hero.sub': 'You set up your profile, press <b>one</b> button and we send 20 personalized emails, your way, to the recruiters of the jobs that best match your skills. No 47-step job portal. No “sign up on our careers site”. No crying in the shower.',
             'hero.cta1': '<i class="ti ti-send" aria-hidden="true"></i> I want my 20 emails',
             'hero.cta2': 'ok, what’s the catch?',
+            'hero.community': '<i class="ti ti-brand-whatsapp" aria-hidden="true"></i> join the WhatsApp community',
             'hero.note': '<i class="ti ti-circle-check" aria-hidden="true"></i> Free. No card. No “7-day free trial”. (We don’t guarantee the job. We do guarantee your résumé reaches the recruiter.)',
             'carta.rot': 'The email that goes out from your account',
             'carta.de': 'From',

@@ -398,6 +398,29 @@ try {
     const bugsAdmin = await api(vivas[2].token, 'GET', '/bugs');
     checa([401, 403].includes(bugsAdmin.status), 'SEGURANCA: usuario comum nao acessa a lista de bugs do admin', `HTTP ${bugsAdmin.status}`);
 
+    // Mural: pedido de feedback, voto e resposta. O relato de teste é apagado aqui
+    // mesmo, porque o mural é público.
+    const pedido = await api(vivas[1].token, 'GET', '/feedback/pedir');
+    checa(pedido.status === 200 && pedido.data?.pedir === false, 'conta sem envios nao recebe pedido de feedback', JSON.stringify(pedido.data));
+    const mural0 = await api(vivas[1].token, 'GET', '/feedback');
+    checa(mural0.status === 200 && typeof mural0.data?.interacao === 'boolean', '/feedback responde', `HTTP ${mural0.status}`);
+    if (mural0.data?.interacao) {
+        const relato = await api(vivas[1].token, 'POST', '/feedback', { message: 'Relato da prova automatizada.' });
+        const fid = relato.data?.feedback?.id;
+        const proprio = await api(vivas[1].token, 'POST', `/feedback/${fid}/voto`, { voto: 1 });
+        checa(proprio.status === 400, 'ninguem vota no proprio relato', `HTTP ${proprio.status}`);
+        const voto = await api(vivas[2].token, 'POST', `/feedback/${fid}/voto`, { voto: 1 });
+        checa(voto.status === 200, 'outra pessoa curte o relato', `HTTP ${voto.status}`);
+        const resposta = await api(vivas[2].token, 'POST', `/feedback/${fid}/comentarios`, { message: 'Resposta da prova.' });
+        checa(resposta.status === 201, 'outra pessoa responde o relato', `HTTP ${resposta.status}`);
+        const lido = (await api(vivas[3].token, 'GET', '/feedback')).data?.feedback?.find((f) => String(f.id) === String(fid));
+        checa(lido?.likes === 1 && lido?.comentarios?.length === 1, 'voto e resposta aparecem para terceiros', JSON.stringify(lido).slice(0, 120));
+        checa(!/\s\S{2,}$/.test(lido?.comentarios?.[0]?.author?.replace(/\s\S\.$/, '') || ''), 'SEGURANCA: resposta nao mostra nome completo', lido?.comentarios?.[0]?.author);
+        const alheia = await api(vivas[3].token, 'DELETE', `/feedback/comentarios/${lido?.comentarios?.[0]?.id}`);
+        checa(alheia.status === 403, 'SEGURANCA: ninguem apaga a resposta de outro', `HTTP ${alheia.status}`);
+        await api(vivas[1].token, 'DELETE', `/feedback/${fid}`);
+    }
+
     const rk = await api(c0.token, 'GET', '/ranking');
     checa(rk.status === 200, '/ranking responde', `HTTP ${rk.status}`);
     const nomes = (rk.data?.ranking || rk.data?.users || rk.data || []).map((u) => u?.name || u?.Name || '').filter(Boolean);

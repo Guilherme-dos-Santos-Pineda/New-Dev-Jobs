@@ -241,4 +241,8 @@ export const api = {
     postFeedback: (data) => request('POST', '/feedback', data),
     updateFeedback: (id, data) => request('PUT', `/feedback/${id}`, data),
     deleteFeedback: (id) => request('DELETE', `/feedback/${id}`),
+    feedbackPedir: () => request('GET', '/feedback/pedir'),
+    votarFeedback: (id, voto) => request('POST', `/feedback/${id}/voto`, { voto }),
+    comentarFeedback: (id, message) => request('POST', `/feedback/${id}/comentarios`, { message }),
+    apagarComentario: (id) => request('DELETE', `/feedback/comentarios/${id}`),
 };

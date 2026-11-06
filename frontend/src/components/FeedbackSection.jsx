@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useToast } from './Toast.jsx';
 import { useT } from '../lib/i18n.jsx';
 import { fmtDate } from '../utils.js';
+import { useAuth } from '../auth.jsx';
 
 function Stars({ value = 0, onChange, size }) {
     return (
@@ -28,6 +29,71 @@ function Msg({ text, limit = 160 }) {
                 <button type="button" className="fb-more" onClick={() => setOpen((v) => !v)}>
                     {open ? t('ver menos') : t('ver mais')}
                 </button>
+            )}
+        </div>
+    );
+}
+
+// Curtir, não curtir e responder. O próprio relato só recebe resposta.
+function Interacoes({ f, onMudou }) {
+    const { t } = useT();
+    const toast = useToast();
+    const { user } = useAuth();
+    const [aberto, setAberto] = useState(false);
+    const [texto, setTexto] = useState('');
+    const [ocupado, setOcupado] = useState(false);
+    const trava = useRef(false);
+    const comentarios = f.comentarios || [];
+
+    async function fazer(acao) {
+        if (trava.current) return false;
+        trava.current = true;
+        setOcupado(true);
+        try {
+            await acao();
+            await onMudou();
+            return true;
+        } catch (e) {
+            toast.show(e.message, 'error');
+            return false;
+        } finally {
+            trava.current = false;
+            setOcupado(false);
+        }
+    }
+
+    async function enviar(e) {
+        e.preventDefault();
+        if (!texto.trim()) return;
+        if (await fazer(() => api.comentarFeedback(f.id, texto))) { setTexto(''); setAberto(false); }
+    }
+
+    return (
+        <div className="fb-inter">
+            <div className="fb-acoes">
+                <button type="button" className={`fb-acao ${f.meuVoto === 1 ? 'on' : ''}`} disabled={f.mine || ocupado} aria-label={t('Curtir')}
+                    onClick={() => fazer(() => api.votarFeedback(f.id, f.meuVoto === 1 ? 0 : 1))}><i className="ti ti-thumb-up" /> {f.likes || 0}</button>
+                <button type="button" className={`fb-acao ${f.meuVoto === -1 ? 'on' : ''}`} disabled={f.mine || ocupado} aria-label={t('Não curtir')}
+                    onClick={() => fazer(() => api.votarFeedback(f.id, f.meuVoto === -1 ? 0 : -1))}><i className="ti ti-thumb-down" /> {f.dislikes || 0}</button>
+                <button type="button" className="fb-acao" onClick={() => setAberto((v) => !v)}><i className="ti ti-message-2" /> {t('Responder')}</button>
+            </div>
+            {comentarios.map((c) => (
+                <div key={c.id} className="fb-resposta">
+                    <div className="fb-resposta-cab">
+                        <strong>{c.author}</strong>
+                        <span className="muted">{fmtDate(c.createdAt)}</span>
+                        {(c.mine || user?.isAdmin) && (
+                            <button type="button" className="fb-more" disabled={ocupado} onClick={() => window.confirm(t('Apagar esta resposta?')) && fazer(() => api.apagarComentario(c.id))}>{t('apagar')}</button>
+                        )}
+                    </div>
+                    <div className="fb-msg">{c.message}</div>
+                </div>
+            ))}
+            {aberto && (
+                <form className="fb-responder" onSubmit={enviar}>
+                    <textarea className="input" rows={2} maxLength={500} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={t('Escreva sua resposta')} autoFocus />
+                    <button className="btn primary sm" disabled={ocupado || !texto.trim()}>{ocupado ? t('Enviando…') : t('Responder')}</button>
+                </form>
             )}
         </div>
     );
@@ -122,6 +188,7 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
                         <button className="btn ghost sm" onClick={remove}><i className="ti ti-trash" /></button>
                     </div>
                     <Msg text={mine.message} />
+                    {data?.interacao && <Interacoes f={mine} onMudou={load} />}
                 </div>
             ) : (
                 <form onSubmit={submit} className="fb-editor">
@@ -172,6 +239,7 @@ export default function FeedbackSection({ limit = 0, compact = false, title = tr
                                 </span>
                             </div>
                             <Msg text={f.message} />
+                            {data?.interacao && !compact && <Interacoes f={f} onMudou={load} />}
                         </div>
                     ))}
                 </div>

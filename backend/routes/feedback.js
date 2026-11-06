@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
+import { config } from '../config.js';
+import { abreviarNome, interacaoDisponivel, interacoesDoMural, perguntarFeedback, responder, votar } from '../services/feedbackMural.js';
 
 const router = Router();
 
 function shape(f, uid) {
     return {
         id: f.Id,
-        author: f.Author || 'Usuário',
+        author: abreviarNome(f.Author),
         rating: f.Rating,
         message: f.Message,
         createdAt: f.CreatedAt,
@@ -49,12 +51,69 @@ router.get('/', requireAuth, async (req, res) => {
         from "Feedback" f join "Users" u on u."Id" = f."UserId"
         order by f."CreatedAt" desc limit 100`;
     const all = rows.map((f) => shape(f, req.user.Id));
+
+    // Votos e respostas são um extra: se a leitura falhar, o mural aparece sem eles.
+    let interacao = false;
+    try {
+        if (await interacaoDisponivel()) {
+            const porId = await interacoesDoMural(all.map((f) => f.id), req.user.Id);
+            for (const f of all) Object.assign(f, porId.get(String(f.id)));
+            interacao = true;
+        }
+    } catch (e) { console.warn(`mural: votos e respostas falharam: ${e.message}`); }
+
     const limit = Number(req.query.limit) || 0;
     res.json({
         feedback: limit > 0 ? all.slice(0, limit) : all,
         summary: { ...(await buildSummary()), count: all.length },
         mine: all.find((f) => f.mine) || null,
+        interacao,
     });
+});
+
+// GET /api/feedback/pedir — já é hora de pedir feedback a esta pessoa?
+router.get('/pedir', requireAuth, async (req, res) => {
+    try {
+        res.json({ pedir: await perguntarFeedback(req.user.Id) });
+    } catch (e) {
+        console.warn(`mural: conferência do pedido falhou: ${e.message}`);
+        res.json({ pedir: false });
+    }
+});
+
+// POST /api/feedback/:id/voto  { voto: 1 | -1 | 0 } — 0 tira o voto
+router.post('/:id/voto', requireAuth, async (req, res) => {
+    if (!await interacaoDisponivel()) return res.status(503).json({ error: 'Ainda não disponível.' });
+    const voto = req.body?.voto;
+    if (![1, -1, 0].includes(voto)) return res.status(400).json({ error: 'Voto inválido.' });
+    const [f] = await sql`select "UserId" from "Feedback" where "Id" = ${req.params.id}`;
+    if (!f) return res.status(404).json({ error: 'Não encontrado' });
+    if (f.UserId === req.user.Id) return res.status(400).json({ error: 'Você não pode votar no próprio relato.' });
+    await votar(req.params.id, req.user.Id, voto);
+    res.json({ ok: true });
+});
+
+// POST /api/feedback/:id/comentarios  { message }
+router.post('/:id/comentarios', requireAuth, async (req, res) => {
+    if (!await interacaoDisponivel()) return res.status(503).json({ error: 'Ainda não disponível.' });
+    const message = (req.body?.message || '').trim();
+    if (!message) return res.status(400).json({ error: 'Escreva sua resposta.' });
+    if (message.length > 500) return res.status(400).json({ error: 'Resposta muito longa (máx. 500).' });
+    const [f] = await sql`select "Id" from "Feedback" where "Id" = ${req.params.id}`;
+    if (!f) return res.status(404).json({ error: 'Não encontrado' });
+    if (!await responder(f.Id, req.user.Id, message)) return res.status(429).json({ error: 'Muitas respostas em pouco tempo. Tente mais tarde.' });
+    res.status(201).json({ ok: true });
+});
+
+// DELETE /api/feedback/comentarios/:id — o autor ou o admin
+router.delete('/comentarios/:id', requireAuth, async (req, res) => {
+    if (!await interacaoDisponivel()) return res.status(503).json({ error: 'Ainda não disponível.' });
+    const [c] = await sql`select "UserId" from "FeedbackComentarios" where "Id" = ${req.params.id}`;
+    if (!c) return res.status(404).json({ error: 'Não encontrado' });
+    const admin = config.isAdminEmail(req.user.Email) || req.user.Role === 'admin';
+    if (c.UserId !== req.user.Id && !admin) return res.status(403).json({ error: 'Você só pode apagar a sua resposta.' });
+    await sql`delete from "FeedbackComentarios" where "Id" = ${req.params.id}`;
+    res.json({ ok: true });
 });
 
 // POST /api/feedback  { message, rating? } — um relato por usuário (cria ou atualiza)

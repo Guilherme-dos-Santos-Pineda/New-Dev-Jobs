@@ -11,6 +11,10 @@ export const SESSION_REJECTED = 'sessionRejected';
 
 export function AuthProvider({ children }) {
     const [session, setSession] = useState(null);
+    // A sessão começa nula enquanto é lida do storage. Sem esta marca, "ainda não
+    // li" virava "não tem sessão": a tela ia para /login, voltava para /app e o
+    // endereço se perdia, com a query junto (?google=..., ?checkout=...).
+    const [sessaoLida, setSessaoLida] = useState(false);
     const [user, setUser] = useState(null); // dados do app (plano, google, etc.)
     const [googleConfigured, setGoogleConfigured] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -20,8 +24,10 @@ export function AuthProvider({ children }) {
     // Observa a sessão do Supabase
     useEffect(() => {
         if (!supabase) { setLoading(false); return; }
-        supabase.auth.getSession().then(({ data }) => setSession(data.session));
-        const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+        supabase.auth.getSession()
+            .then(({ data }) => setSession(data.session))
+            .finally(() => setSessaoLida(true));
+        const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => { setSession(s); setSessaoLida(true); });
         return () => sub.subscription.unsubscribe();
     }, []);
 
@@ -35,6 +41,7 @@ export function AuthProvider({ children }) {
 
     // Quando a sessão muda, carrega o usuário do app
     useEffect(() => {
+        if (!sessaoLida) return undefined;
         let alive = true;
         (async () => {
             if (!session) { if (alive) { setUser(null); setMeError(null); setLoading(false); } return; }
@@ -83,7 +90,7 @@ export function AuthProvider({ children }) {
             }
         })();
         return () => { alive = false; };
-    }, [session, loadUser]);
+    }, [session, sessaoLida, loadUser]);
 
     const refreshUser = useCallback(async () => {
         try {

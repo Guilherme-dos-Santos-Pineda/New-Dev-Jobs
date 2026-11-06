@@ -7,6 +7,9 @@ import sql from '../lib/sql.js';
 // só sem os botões: consultar tabela inexistente derrubaria a rota.
 
 export const ENVIOS_PARA_PEDIR = 10;
+// Decisão do dono: só contam os envios a partir daqui. Sem isso, todo mundo que já
+// tinha 10 envios receberia o pedido de uma vez.
+const PEDIDO_VALE_DESDE = '2026-11-06T04:00:00Z';
 const RESPOSTAS_POR_HORA = 20;
 
 /** Pede feedback a quem já usou de verdade e ainda não deixou o seu. */
@@ -64,7 +67,7 @@ export async function interacoesDoMural(ids, uid) {
 
 export async function perguntarFeedback(userId) {
     const [r] = await sql`
-        select (select count(*)::int from "Applications" where "UserId" = ${userId}) as enviados,
+        select (select count(*)::int from "Applications" where "UserId" = ${userId} and "CreatedAt" >= ${PEDIDO_VALE_DESDE}::timestamptz) as enviados,
                exists (select 1 from "Feedback" where "UserId" = ${userId}) as "jaDeu"`;
     return devePedirFeedback(r);
 }

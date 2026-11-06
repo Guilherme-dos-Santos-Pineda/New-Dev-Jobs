@@ -100,10 +100,6 @@
         --color-accent-muted: #A6A9AC;
         --color-on-accent: #FAF9F6;
 
-        --color-featured-bg: #FAF9F6;
-        --color-featured-text: #101112;
-        --color-featured-price: #101112;
-        --color-featured-muted: #6E7175;
 
         --color-cta-bar-text: #F1F0EB;
         --color-cta-bar-sub: #A6A9AC;
@@ -112,7 +108,6 @@
         --color-btn-white-text: #101112;
 
         --color-logo-mark-icon: #F1F0EB;
-        --color-pop-badge-text: #FDFDFC;
 
         --color-hero-tag: #6E7175;
         --color-feat-icon: #A6A9AC;
@@ -160,10 +155,6 @@
         --color-accent-muted: #63666A;
         --color-on-accent: #0E0F10;
 
-        --color-featured-bg: #141517;
-        --color-featured-text: #F2F2F0;
-        --color-featured-price: #F2F2F0;
-        --color-featured-muted: #9A9D9F;
 
         --color-cta-bar-text: #F2F2F0;
         --color-cta-bar-sub: #9A9D9F;
@@ -172,7 +163,6 @@
         --color-btn-white-text: #0E0F10;
 
         --color-logo-mark-icon: #0E0F10;
-        --color-pop-badge-text: #0E0F10;
 
         --color-hero-tag: #9A9D9F;
         --color-feat-icon: #63666A;
@@ -192,8 +182,8 @@
     }
 
     /* Transição suave de tema */
-    body, nav, section, .feat, .step-n, .plan, .privacy, .cta-bar, footer,
-    .hero-visual, .nav-cta, .btn-p, .btn-s, .plan-btn {
+    body, nav, section, .feat, .step-n, .privacy, .cta-bar, footer,
+    .hero-visual, .nav-cta, .btn-p, .btn-s {
         transition: background-color var(--transition-theme),
                     color var(--transition-theme),
                     border-color var(--transition-theme),
@@ -222,8 +212,8 @@
     /* UMA familia so: tamanho e peso fazem a hierarquia inteira. Numero alinha
        por tabular-nums, nao por fonte monoespacada, que e o que permite ter
        uma familia so sem perder a coluna. */
-    h1, h2, h3, .sec-h, .plan-price { font-family: var(--fonte); }
-    .plan-price, .carta-pe, .hero-note { font-variant-numeric: tabular-nums; }
+    h1, h2, h3, .sec-h { font-family: var(--fonte); }
+    .carta-pe, .hero-note { font-variant-numeric: tabular-nums; }
 
     /* ============================================
        NAV
@@ -506,14 +496,6 @@
     .feat h3 { font-size: 14.5px; font-weight: 600; color: var(--color-text); margin-bottom: 5px; letter-spacing: -0.2px; }
     .feat p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.65; font-weight: 400; }
 
-    /* ============================================
-       PLANS
-       ============================================ */
-    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
-    /* Sem isto o display:grid acima vence o atributo hidden e os planos pagos
-       aparecem mesmo escondidos (ver backend/config/planosPagos.js). */
-    .plans-um { grid-template-columns: minmax(0, 420px); justify-content: center; margin-top: 30px; }
-
     .newdev { max-width: 980px; margin: 0 auto 56px; padding: 28px 28px; display: flex; align-items: center; gap: 28px;
         border: 1px solid var(--color-border-light, rgba(255,255,255,.1)); border-radius: 16px; }
     .newdev h2 { font-size: 24px; line-height: 1.25; margin: 0 0 10px; letter-spacing: -0.5px; }
@@ -538,78 +520,6 @@
     @media (max-width: 720px) {
         .prova { grid-template-columns: 1fr 1fr; padding: 0 16px; }
         .prova-num b { font-size: 26px; }
-    }
-    .gratis-lista { list-style: none; padding: 0; margin: 8px auto 0; max-width: 520px; display: grid; gap: 12px; }
-    .gratis-lista li { display: flex; align-items: flex-start; gap: 10px; font-size: 16px; line-height: 1.5; }
-    .gratis-lista i { color: var(--color-success, #14704A); font-size: 19px; margin-top: 2px; }
-    .gratis-honesto { text-align: center; color: var(--color-text-secondary, #666); font-size: 14.5px; margin: 26px auto 18px; max-width: 520px; }
-    .gratis-btn { display: block; margin: 0 auto 34px; }
-    .plan {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border-light);
-        border-radius: var(--radius-lg);
-        padding: 30px 26px;
-        display: flex; flex-direction: column;
-        box-shadow: var(--shadow-sm);
-    }
-    .plan:hover { border-color: var(--color-border); }
-    /* O plano do meio se destaca por CONTORNO de tinta, nao por um bloco azul
-       no meio da tabela: o bloco colorido tirava a comparacao lado a lado. */
-    .plan.featured {
-        background: var(--color-surface);
-        border: 1px solid var(--color-text);
-    }
-    .plan.featured:hover { transform: scale(1.03) translateY(-3px); }
-    .plan-label {
-        font-family: var(--fonte); font-variant-numeric: tabular-nums;
-        font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-        color: var(--color-text-secondary); margin-bottom: 14px;
-    }
-    .plan.featured .plan-label { color: var(--color-featured-text); }
-    .plan-price { font-size: 34px; font-weight: 600; letter-spacing: -1.5px; color: var(--color-text); line-height: 1; }
-    .plan.featured .plan-price { color: var(--color-featured-price); }
-    .plan-per { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 400; margin-top: 5px; margin-bottom: 22px; }
-    .plan.featured .plan-per { color: var(--color-featured-muted); }
-    /* Ancora de preco: compara com o custo de NAO ter o produto. */
-    .plan-ancora {
-        font-size: 12px; line-height: 1.5; color: var(--color-text-secondary);
-        padding: 9px 11px; margin-bottom: 18px;
-        border-left: 2px solid var(--color-border); background: var(--color-bg-secondary);
-    }
-    .plan-ancora b { color: var(--color-text); font-weight: 600; }
-    .plan-feats { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; flex: 1; }
-    .plan-feats li {
-        font-size: 12.5px; color: var(--color-text-secondary);
-        display: flex; align-items: flex-start; gap: 8px; font-weight: 400; line-height: 1.45;
-    }
-    .plan-feats li i { font-size: 14px; color: var(--color-check); margin-top: 1px; flex-shrink: 0; }
-    .plan.featured .plan-feats li { color: var(--color-featured-text); }
-    .plan.featured .plan-feats li i { color: var(--color-accent-dark); }
-    .plan-btn {
-        width: 100%; padding: 12px;
-        font-size: 13.5px; font-weight: 600; cursor: pointer;
-        font-family: inherit;
-        border: 1px solid var(--color-border);
-        border-radius: 3px;
-        background: var(--color-surface);
-        color: var(--color-text);
-        margin-top: auto;
-    }
-    .plan-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-    .plan.featured .plan-btn {
-        background: var(--grad-accent); color: var(--color-on-accent);
-        border-color: transparent; box-shadow: var(--glow-accent);
-    }
-    .plan.featured .plan-btn:hover { color: var(--color-on-accent); filter: brightness(1.12); }
-    .pop-badge {
-        display: inline-block;
-        background: var(--grad-accent);
-        color: var(--color-pop-badge-text);
-        font-family: var(--fonte); font-variant-numeric: tabular-nums;
-        font-size: 9px; letter-spacing: 1px;
-        padding: 4px 10px; border-radius: 999px;
-        margin-bottom: 14px; align-self: flex-start;
-        box-shadow: var(--glow-accent);
     }
 
     /* ============================================
@@ -684,7 +594,7 @@
     .feat { grid-template-columns: 1fr; }
     .plan, .hero-visual, .privacy, .hero-trust, .vs-col { box-shadow: none; }
     .plan:hover, .feat:hover { transform: none; box-shadow: none; }
-    .btn-p:hover, .btn-s:hover, .btn-white:hover, .plan-btn:hover { transform: none; }
+    .btn-p:hover, .btn-s:hover, .btn-white:hover { transform: none; }
     .step-n { background: none; color: var(--color-text-tertiary); font-weight: 400; }
 
     /* ============================================
@@ -751,9 +661,6 @@
         }
         .menu-toggle-input:checked ~ .nav-links { display: flex; }
         .nav-cta { padding: 8px 14px; font-size: 12.5px; }
-        .plans { grid-template-columns: 1fr; }
-        .plan.featured { transform: none; }
-        .plan.featured:hover { transform: translateY(-3px); }
         .section { padding: 48px 16px; }
         .cta-bar { margin: 16px 16px 40px; padding: 44px 20px; }
         footer { padding: 20px 16px; flex-direction: column; text-align: center; }
@@ -842,7 +749,7 @@
 
             <ul class="nav-links">
                 <li><a href="#como-funciona" data-i18n="nav.how">como funciona</a></li>
-                <li><a href="#precos" data-i18n="nav.pricing">é grátis</a></li>
+                <li><a href="#perguntas" data-i18n="nav.pricing">é grátis</a></li>
                 <li><a href="docs.html" data-i18n="nav.docs">documentação</a></li>
                 <li><a href="https://chat.whatsapp.com/KqCxMcuoALJHXd9I9VA6KG" target="_blank" rel="noopener" data-i18n="nav.community">comunidade</a></li>
             </ul>
@@ -1013,33 +920,8 @@
             </div>
         </section>
 
-        <!-- ==================== PREÇOS ==================== -->
-        <section class="section" id="precos">
-            <h2 class="sec-h" data-i18n="price.h">Quanto custa?<br><strong>O básico é de graça. Para sempre.</strong></h2>
-            <p class="sec-sub" data-i18n="price.sub">20 currículos por dia, sem cartão. Quem quiser que eles saiam sozinhos paga R$ 10 por 30 dias e ajuda a manter a ferramenta funcionando. Ninguém é obrigado.</p>
-            <ul class="gratis-lista">
-                <li data-i18n="gratis.1"><i class="ti ti-check" aria-hidden="true"></i>20 currículos por dia (mais que isso vira spam, e spam queima seu Gmail)</li>
-                <li data-i18n="gratis.2"><i class="ti ti-check" aria-hidden="true"></i>você escolhe cada vaga, nada sai sem você clicar</li>
-                <li data-i18n="gratis.3"><i class="ti ti-check" aria-hidden="true"></i>o email sai do seu Gmail, com o seu nome</li>
-                <li data-i18n="gratis.4"><i class="ti ti-check" aria-hidden="true"></i>sem cartão, sem assinatura, sem letra miúda</li>
-            </ul>
-            <p class="gratis-honesto" data-i18n="gratis.honesto">A gente não promete emprego. A gente coloca o seu currículo na mesa de quem contrata. O resto é com você (e com a sua entrevista).</p>
-            <button class="btn-p gratis-btn" onclick="go('/signup')" data-i18n="gratis.btn">quero meus 20 emails</button>
-            <div class="plans plans-um">
-                <div class="plan featured">
-                    <div class="plan-label" data-i18n="price.auto.label">automático</div>
-                    <div class="plan-price">R$10</div>
-                    <div class="plan-per" data-i18n="price.auto.per">pagamento único · 30 dias · sem renovação</div>
-                    <p class="plan-ancora" data-i18n="price.auto.ancora">Ajude a manter a ferramenta funcionando.</p>
-                    <ul class="plan-feats">
-                        <li data-i18n="price.auto.1"><i class="ti ti-check" aria-hidden="true"></i>seu currículo sai sozinho todo dia às 9h, sem você entrar</li>
-                        <li data-i18n="price.auto.3"><i class="ti ti-check" aria-hidden="true"></i>50 envios por dia, em vez de 20</li>
-                        <li data-i18n="price.auto.2"><i class="ti ti-check" aria-hidden="true"></i>só vagas novas, com 50% ou mais de compatibilidade</li>
-                        <li data-i18n="price.auto.4"><i class="ti ti-check" aria-hidden="true"></i>só liga se você ligar, e desliga quando quiser</li>
-                    </ul>
-                    <button class="plan-btn" onclick="go('/signup')" data-i18n="price.auto.btn">quero o automático</button>
-                </div>
-            </div>
+        <!-- ==================== PRIVACIDADE ==================== -->
+        <section class="section">
             <div class="privacy">
                 <i class="ti ti-shield-check" aria-hidden="true"></i>
                 <div>
@@ -1051,7 +933,6 @@
                         <li data-i18n="privacy.4">nenhuma senha armazenada em nossos servidores</li>
                     </ul>
                 </div>
-            </div>
             </div>
         </section>
 
@@ -1135,12 +1016,6 @@
             'prova.3': 'companies you didn’t even know were hiring',
             'prova.2': 'recruiters watched closely (in a good way)',
             'prova.1': 'tech jobs live, with the hiring person’s email',
-            'gratis.btn': 'I want my 20 emails',
-            'gratis.honesto': 'We don’t promise you a job. We put your résumé on the desk of the person who hires. The rest is up to you (and your interview).',
-            'gratis.4': '<i class="ti ti-check" aria-hidden="true"></i>no card, no subscription, no fine print',
-            'gratis.3': '<i class="ti ti-check" aria-hidden="true"></i>the email goes out from your Gmail, with your name',
-            'gratis.2': '<i class="ti ti-check" aria-hidden="true"></i>you choose every job, nothing goes out without your click',
-            'gratis.1': '<i class="ti ti-check" aria-hidden="true"></i>20 résumés a day (more than that is spam, and spam burns your Gmail)',
             title: 'New Dev Jobs: even the dumbest intern gets in',
             'nav.how': 'how it works',
             'nav.pricing': 'it’s free',
@@ -1199,16 +1074,6 @@
             'feat.3.p': 'The recruiter sees you, not a bot. And you can see the email before it goes out and write it your way.',
             'feat.4.h': 'you are in control',
             'feat.4.p': 'Nothing goes out unless you say so, and automatic sending only runs if you turn it on. Job doesn’t fit? One 👎 and it’s gone. Everything you sent is logged.',
-            'price.h': 'How much?<br><strong>The basics are free. Forever.</strong>',
-            'price.sub': '20 résumés a day, no card. If you want them to go out on their own, it’s R$ 10 for 30 days and it helps keep the tool running. Nobody has to.',
-            'price.auto.label': 'automatic',
-            'price.auto.per': 'one-time · 30 days · no renewal',
-            'price.auto.ancora': 'Help keep the tool running.',
-            'price.auto.1': '<i class="ti ti-check" aria-hidden="true"></i>your résumé goes out on its own every day at 9am, without you logging in',
-            'price.auto.2': '<i class="ti ti-check" aria-hidden="true"></i>only new jobs, with a 50% or higher match',
-            'price.auto.3': '<i class="ti ti-check" aria-hidden="true"></i>50 sends a day instead of 20',
-            'price.auto.4': '<i class="ti ti-check" aria-hidden="true"></i>only on if you turn it on, off whenever you want',
-            'price.auto.btn': 'I want automatic',
             'privacy.h': 'your privacy is a priority',
             'privacy.1': 'we use only the gmail.send scope, which allows sending only',
             'privacy.2': 'we never read, delete or modify your emails',

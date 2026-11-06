@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { supabaseAdmin, supabaseConfigured, STORAGE_BUCKET } from './supabaseAdmin.js';
+import { criarCacheLimitado } from './cacheLimitado.js';
 
 // =========================
 // Armazenamento de currículos (Supabase Storage, bucket privado "cvs")
@@ -9,6 +10,11 @@ import { supabaseAdmin, supabaseConfigured, STORAGE_BUCKET } from './supabaseAdm
 // no bucket, ex.: "<userId>/cv_1700000000000_meu_cv.pdf".
 // CVs antigos ficaram salvos em disco (uploads/) com caminho absoluto — o
 // getCvBuffer detecta esse caso e lê do disco como fallback.
+
+// Cada envio baixava o PDF do Storage de novo: ~190 KB por envio, ~3 GB por mês a
+// 580 envios por dia, contando no egress do Supabase. A key leva o horário do
+// upload, então currículo novo é arquivo novo e o cache nunca fica velho.
+const cvs = criarCacheLimitado(Number(process.env.CV_CACHE_BYTES) || 32 * 1024 * 1024);
 
 function ensureConfigured() {
     if (!supabaseConfigured) throw new Error('Supabase Storage não configurado (SUPABASE_URL/SERVICE_ROLE_KEY ausentes)');
@@ -48,16 +54,22 @@ export async function getCvBuffer(cvPath) {
         return fs.readFileSync(cvPath);
     }
 
+    const guardado = cvs.ler(cvPath);
+    if (guardado) return guardado;
+
     ensureConfigured();
     const { data, error } = await supabaseAdmin.storage.from(STORAGE_BUCKET).download(cvPath);
     if (error) throw new Error(`Falha ao baixar CV do Storage: ${error.message}`);
-    return Buffer.from(await data.arrayBuffer());
+    const buffer = Buffer.from(await data.arrayBuffer());
+    cvs.guardar(cvPath, buffer);
+    return buffer;
 }
 
 /**
  * Remove um CV do Storage (best-effort). Ignora caminhos legados de disco.
  */
 export async function removeCv(cvPath) {
+    cvs.apagar(cvPath);
     if (!cvPath || isLegacyDiskPath(cvPath) || !supabaseConfigured) return;
     try {
         await supabaseAdmin.storage.from(STORAGE_BUCKET).remove([cvPath]);

@@ -1,6 +1,6 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
-import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga, areaForaDeTI, contratoDaVaga, vagaEmEspanhol } from './classify.js';
+import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga, areaForaDeTI, contratoDaVaga, vagaEmEspanhol, regioesDaVaga } from './classify.js';
 import { idsComDislike } from './jobFeedback.js';
 import { vagasDoFeed } from './feedCache.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
@@ -86,6 +86,13 @@ export function passesFilters(job, profile, { semEmail = false } = {}) {
     const region = profile.Region || 'br';
     if (region === 'br' && !jobIsBR(job)) return false;
     if (region === 'intl' && (jobIsBR(job) || vagaEmEspanhol(job))) return false;
+
+    // Só tira a vaga de outra região: ~38% não dizem o país e continuam aparecendo.
+    const regioes = region === 'intl' ? parseArr(profile.Regions) : [];
+    if (regioes.length) {
+        const daVaga = regioesDaVaga(job);
+        if (daVaga.length && !daVaga.some((r) => regioes.includes(r))) return false;
+    }
     const required = parseArr(profile.RequiredKeywords).map((k) => k.toLowerCase());
     if (required.length) {
         const text = textoDoFiltro(job);

@@ -5,7 +5,7 @@ import { FILTRO_DATA_ATIVO } from '../lib/flags.js';
 import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
 import { useToast } from '../components/Toast.jsx';
 import { useAuth } from '../auth.jsx';
-import { CONTRACT_OPTIONS, MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, UF_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
+import { REGION_OPTIONS, CONTRACT_OPTIONS, MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, UF_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
 import { useT } from '../lib/i18n.jsx';
 import TagInput from '../components/TagInput.jsx';
 import EmailSettings from './Settings.jsx';
@@ -20,7 +20,7 @@ const POSTING_OPTIONS = [
 const EMPTY = {
     skills: [], seniorities: [], modalities: [], areas: [], salaryMin: '', salaryMax: '', headline: '',
     phone: '', whatsapp: '', linkedin: '', github: '', portfolio: '',
-    requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br', contracts: [],
+    requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br', contracts: [], regions: [],
     states: [], cities: [], showPcd: false,
 };
 
@@ -66,6 +66,7 @@ export default function Profile() {
             strictLevel: !!p.strictLevel, postingDays: p.postingDays ?? '', region: p.region || 'br',
             states: p.states || [], cities: p.cities || [], showPcd: !!p.showPcd,
             contracts: p.contracts || [], contratoLigado: !!p.contratoLigado,
+            regions: p.regions || [], regiaoLigada: !!p.regiaoLigada,
         };
         setForm(novo);
         salvoRef.current = JSON.stringify(novo);
@@ -409,6 +410,18 @@ export default function Profile() {
                                 </select>
                                 <div className="hint">Só receberá vagas da região escolhida. (Por enquanto o foco é Brasil.)</div>
                             </div>
+                            {form.region === 'intl' && form.regiaoLigada && (
+                                <div className="field">
+                                    <label>{t('Regiões')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({t('opcional')})</span></label>
+                                    <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>{t('Sem marcar nada, aparecem todas. Vaga que não informa o país continua aparecendo.')}</div>
+                                    <div className="chips">
+                                        {REGION_OPTIONS.map((o) => (
+                                            <span key={o.value} className={`chip toggle ${form.regions.includes(o.value) ? 'on' : ''}`}
+                                                onClick={() => toggleIn('regions', o.value)}>{t(o.label)}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <div className="field">
                                 <label>Keywords obrigatórias <span className="badge ok">eliminatório</span></label>
                                 <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>Vagas que NÃO contenham nenhuma dessas palavras serão descartadas.</div>

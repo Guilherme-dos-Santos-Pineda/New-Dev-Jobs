@@ -32,6 +32,9 @@ export const ALLOWED_MODALITIES = ['remoto', 'hibrido', 'presencial'];
 /** Contratos. Espelha contratoDaVaga() em services/classify.js e CONTRACT_OPTIONS em frontend/src/utils.js. */
 export const ALLOWED_CONTRACTS = ['clt', 'pj'];
 
+/** Regiões de fora do Brasil. Espelha regioesDaVaga() em services/classify.js e REGION_OPTIONS em frontend/src/utils.js. */
+export const ALLOWED_REGIONS = ['america-norte', 'europa', 'latam', 'asia', 'oriente'];
+
 /** Estados. Espelha UF_OPTIONS em frontend/src/utils.js. */
 export const ALLOWED_STATES = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 

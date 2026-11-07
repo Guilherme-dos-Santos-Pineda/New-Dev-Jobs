@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
-import { ALLOWED_AREAS, ALLOWED_LEVELS, ALLOWED_MODALITIES, ALLOWED_CONTRACTS, ALLOWED_STATES } from '../config/profileOptions.js';
+import { ALLOWED_AREAS, ALLOWED_LEVELS, ALLOWED_MODALITIES, ALLOWED_CONTRACTS, ALLOWED_REGIONS, ALLOWED_STATES } from '../config/profileOptions.js';
 import { parseLinkedInText } from '../services/linkedinParser.js';
 import { pdfToText } from '../services/pdfText.js';
 import { normalizeList, normalizeDomain } from '../services/normalize.js';
@@ -22,7 +22,7 @@ const EMPTY_PROFILE = {
     Skills: [], Seniority: null, Modality: null, SalaryMin: null, SalaryMax: null,
     Headline: null, Phone: null, Whatsapp: null, Linkedin: null, Github: null, Portfolio: null,
     RequiredKeywords: [], BlockedWords: [], BlockedDomains: [], Levels: [], Modalities: [], Areas: [],
-    StrictLevel: false, PostingDays: null, Region: 'br', States: [], Cities: [], ShowPcd: false, Contracts: [],
+    StrictLevel: false, PostingDays: null, Region: 'br', States: [], Cities: [], ShowPcd: false, Contracts: [], Regions: [],
 };
 
 let temColunaContratos = false;
@@ -36,6 +36,19 @@ async function gravaContratos(userId, contratos) {
         temColunaContratos = !!c;
     }
     if (temColunaContratos) await sql`update "Profiles" set "Contracts" = ${sql.json(contratos)} where "UserId" = ${userId}`;
+}
+
+let temColunaRegioes = false;
+
+/** A coluna vem da migration 0023. Sem ela o resto do perfil salva normalmente. */
+async function gravaRegioes(userId, regioes) {
+    if (!temColunaRegioes) {
+        const [c] = await sql`
+            select 1 from information_schema.columns
+            where table_name = 'Profiles' and column_name = 'Regions'`;
+        temColunaRegioes = !!c;
+    }
+    if (temColunaRegioes) await sql`update "Profiles" set "Regions" = ${sql.json(regioes)} where "UserId" = ${userId}`;
 }
 
 async function upsertProfile(userId, f) {
@@ -59,6 +72,7 @@ async function upsertProfile(userId, f) {
             "States" = excluded."States", "Cities" = excluded."Cities", "ShowPcd" = excluded."ShowPcd", "UpdatedAt" = now()`;
 
     await gravaContratos(userId, f.Contracts || []);
+    await gravaRegioes(userId, f.Regions || []);
 
     // Skills, região, palavras bloqueadas e senioridade decidem o que passa em
     // passesFilters — o memo do getMatches precisa cair junto com a alteração.
@@ -96,6 +110,9 @@ function publicProfile(p) {
         contracts: parseArr(p.Contracts),
         // Sem a coluna (migration 0022) a tela esconde o campo.
         contratoLigado: p.Contracts !== undefined,
+        regions: parseArr(p.Regions),
+        // Sem a coluna (migration 0023) a tela esconde o campo.
+        regiaoLigada: p.Regions !== undefined,
         cvName: p.CvName,
         hasCv: !!p.CvPath,
         updatedAt: p.UpdatedAt,
@@ -146,6 +163,7 @@ router.put('/', requireAuth, async (req, res) => {
         Cities: [...new Set(toArr(b.cities).map((x) => x.replace(/[<>]/g, '').slice(0, 60)))].slice(0, 20),
         ShowPcd: !!b.showPcd,
         Contracts: filterAllowed(b.contracts, ALLOWED_CONTRACTS),
+        Regions: filterAllowed(b.regions, ALLOWED_REGIONS),
     });
 
     res.json({ profile: publicProfile(await getProfile(req.user.Id)) });

@@ -25,6 +25,14 @@ export const SENIORITY_OPTIONS = [
     { value: 'especialista', label: 'Especialista' },
 ];
 
+export const REGION_OPTIONS = [
+    { value: 'america-norte', label: 'EUA e Canadá' },
+    { value: 'europa', label: 'Europa' },
+    { value: 'latam', label: 'América Latina' },
+    { value: 'asia', label: 'Ásia e Oceania (com Índia e Paquistão)' },
+    { value: 'oriente', label: 'Oriente Médio' },
+];
+
 export const CONTRACT_OPTIONS = [
     { value: 'clt', label: 'CLT' },
     { value: 'pj', label: 'PJ' },

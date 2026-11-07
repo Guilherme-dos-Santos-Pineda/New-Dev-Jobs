@@ -315,6 +315,37 @@ export function contratoDaVaga(job) {
     ].filter(Boolean);
 }
 
+// Sigla de estado americano depois da vírgula: "Birmingham, AL" é EUA.
+const ESTADO_EUA = /,\s*(?:al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy)\b/i;
+
+const LUGARES_DA_REGIAO = {
+    'america-norte': /united states|estados unidos|\bnyc\b|\busa?\b|\bu\.s\.a?\b|new york|san francisco|california|texas|seattle|boston|chicago|north carolina|florida|atlanta|canada|toronto|vancouver|ontario|montreal/i,
+    europa: /united kingdom|reino unido|\buk\b|london|manchester|england|scotland|ireland|dublin|portugal|lisboa|lisbon|oeiras|cascais|germany|berlin|munich|france|paris|spain|espa[ñn]a|madrid|barcelona|netherlands|amsterdam|italy|poland|europe|europa/i,
+    latam: /m[ée]xico|cdmx|guadalajara|monterrey|quer[ée]taro|colombia|col[ôo]mbia|bogot[áa]|medell[íi]n|chile|argentina|buenos aires|per[úu]\b|\blima\b|latam|uruguay|montevideo|ecuador|equador|venezuela|costa rica|panam[áa]|honduras|guatemala/i,
+    asia: /\bindia\b|bangalore|bengaluru|hyderabad|mumbai|delhi|\bpune\b|chennai|noida|gurgaon|gurugram|kolkata|ahmedabad|vadodara|\bncr\b|indore|mohali|jaipur|coimbatore|\bsurat\b|prayagraj|rajasthan|punjab|uttar pradesh|tamil nadu|madhya pradesh|gujarat|kerala|maharashtra|pakistan|lahore|karachi|islamabad|sri lanka|singapore|malaysia|indonesia|jakarta|nepal|bangladesh|vietnam|h[àa] n[ộo]i|philippines|australia|melbourne|sydney|new zealand/i,
+    oriente: /dubai|\buae\b|abu dhabi|saudi|riyadh|qatar|doha|kuwait|bahrain/i,
+};
+const DOMINIO_DA_REGIAO = {
+    in: 'asia', pk: 'asia', uk: 'europa', pt: 'europa', de: 'europa', fr: 'europa', es: 'europa', ie: 'europa',
+    mx: 'latam', ar: 'latam', cl: 'latam', pe: 'latam', uy: 'latam', ec: 'latam', ae: 'oriente', sa: 'oriente', qa: 'oriente',
+    us: 'america-norte', ca: 'america-norte',
+};
+
+/**
+ * Regiões da vaga de fora do Brasil. Vazio: não dá para saber.
+ *
+ * Lê o campo de local e, sem ele, o domínio do email. Não lê o post: citar a sede
+ * em Londres não faz a vaga ser em Londres, e erro aqui esconderia vaga.
+ */
+export function regioesDaVaga(job) {
+    const local = legivel(job.Location);
+    const achadas = Object.keys(LUGARES_DA_REGIAO).filter((r) => LUGARES_DA_REGIAO[r].test(local));
+    if (ESTADO_EUA.test(local) && !achadas.includes('america-norte') && !LUGARES_DA_REGIAO.asia.test(local)) achadas.unshift('america-norte');
+    if (achadas.length || local) return achadas;
+    const fim = String(job.Email || '').split(/[,;\s]/)[0].split('.').pop().toLowerCase();
+    return DOMINIO_DA_REGIAO[fim] ? [DOMINIO_DA_REGIAO[fim]] : [];
+}
+
 /** Heurística de país da vaga (mesma lógica do scraper). */
 export function jobIsBR(job) {
     const dom = (job.Email || '').split('@')[1]?.toLowerCase() || '';

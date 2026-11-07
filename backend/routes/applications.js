@@ -7,6 +7,7 @@ import { applyToJob } from '../services/sender.js';
 import { planUsage } from '../services/usage.js';
 import { planOf } from '../config/plans.js';
 import { getMatches, invalidateMatches } from '../services/jobsQuery.js';
+import { linkDoPost } from '../services/linkDoPost.js';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ function shapeApp(a) {
         // Descricao da vaga a que a pessoa JA se candidatou: e o registro dela.
         // Nao e o mesmo caso do feed, onde o email de contato fica oculto porque a
         // vaga ainda nao foi enviada. Aqui o email ja aparece em "to" desde sempre.
-        description: a.Description, lang: a.Lang,
+        description: a.Description, lang: a.Lang, postUrl: linkDoPost(a.PostId),
     };
 }
 
@@ -28,7 +29,7 @@ router.get('/', requireAuth, async (req, res) => {
     const pageSize = Math.min(60, Math.max(6, Number(req.query.pageSize) || 24));
     const [{ total }] = await sql`select count(*)::int as total from "Applications" where "UserId" = ${req.user.Id}`;
     const rows = await sql`
-        select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description"
+        select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description", j."LinkedinId" as "PostId"
         from "Applications" a join "Jobs" j on j."Id" = a."JobId"
         where a."UserId" = ${req.user.Id}
         order by a."CreatedAt" desc, a."Id" desc

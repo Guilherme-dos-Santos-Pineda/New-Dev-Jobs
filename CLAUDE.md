@@ -139,12 +139,11 @@ regra existente, não acrescente uma nova que a contradiga.
 - Cada passo **afirma o resultado esperado**, nunca só o status HTTP: a maioria dos bugs daqui devolve **200 com o conteúdo errado** (perfil salvo pela metade, filtro ignorado, email de contato vazando). Foi assim que apareceram o `suporte` descartado no `PUT /profile` e o token que continuava válido depois do logout.
 - Rodar antes de cada mudança de preço/plano e depois de mexer em perfil, feed, auth ou cobrança.
 
-## Filtro de data de postagem (DESLIGADO por ora)
-- **A chave é `FILTRO_DATA_ATIVO`** e vive em DOIS arquivos que precisam concordar: [backend/config/filtroData.js](backend/config/filtroData.js) e `frontend/src/lib/flags.js` (o bundle não importa código do backend). Religar em um só: o front devolve o seletor sem o filtro funcionar, ou o backend filtra sem a pessoa conseguir configurar.
-- Desligado em 30/09/2026 por decisão do dono, temporariamente. Motivo: o scraper está parado por falta de crédito Apify e a base não recebe vaga nova desde 12/09; um filtro de "últimos N dias" sobre base parada esvazia sozinho até dar zero.
-- Efeito medido ao desligar: um usuário saiu de **116 para 762** vagas, e outro, com filtro de 7 dias, saiu de **ZERO para 829**. Ele não recebia nada e não tinha como saber por quê.
-- **O valor de cada pessoa continua salvo em `PostingDays`**: ninguém perde a configuração, e ao religar todo mundo recupera o que tinha. Não apague a coluna nem o código dos filtros.
-- `hasFilters` no Profile não conta `postingDays` enquanto a chave estiver desligada, senão o resumo anuncia "filtros ativos" por um filtro que não filtra.
+## Filtro de vagas recentes (LIGADO desde 07/11/2026)
+- **A chave é `FILTRO_DATA_ATIVO`** e vive em DOIS arquivos que precisam concordar: [backend/config/filtroData.js](backend/config/filtroData.js) e `frontend/src/lib/flags.js` (o bundle não importa código do backend). Coberto em `backend/test/filtroData.test.js`.
+- Fica em Mais opções, Filtros avançados, com 24 horas, 7, 14, 30 e 60 dias. **Conta de `CreatedAt`**, a data em que a vaga entrou aqui, a mesma que a lista mostra: o post pode ser até uma semana mais velho.
+- Ficou desligado de 30/09 a 07/11/2026 porque o scraper parou, e "últimos N dias" sobre base parada esvazia até dar zero: um usuário foi de **ZERO para 829** vagas ao desligar. **Se o scraper parar de novo, desligue nos dois arquivos.**
+- **O valor de cada pessoa fica salvo em `PostingDays`**, ligado ou não. Não apague a coluna nem o código dos filtros.
 
 ## Matching (não regredir)
 - **Vaga de outra profissão NUNCA entra no feed.** `detectArea` (em `services/classify.js`) devolve `'nontech'` para RH, contábil, compras, logística, saúde, jurídico, engenharias não-software etc., e `passesFilters` barra isso **antes** do `if (!profile)` — vale até para quem não configurou o perfil. Foi assim que "Assistente Operacional de Logística" aparecia para um dev.
@@ -300,6 +299,7 @@ regra existente, não acrescente uma nova que a contradiga.
   - A URL do Gmail é montada **no navegador** (`gmailComposeUrl` em `frontend/src/utils.js`), não no servidor: o endereço do recrutador não precisa viver em log de servidor. E `window.open` é chamado **antes** do `await`, senão o navegador bloqueia como popup.
   - A candidatura fica com `Status='manual'` (não `'sent'`): não sabemos se a pessoa mandou de fato. `SentAt` é preenchido porque é o que `countSentToday` conta, e o recurso escasso é o **endereço liberado**, não o clique em enviar.
   - `/applications` devolve o email em `to` **de propósito e desde sempre** (é o registro de uma vaga a que a pessoa já se candidatou). Não confundir com o feed.
+  - **O link do post no LinkedIn só aparece em Enviadas** (`postUrl`, `linkDoPost`), pelo mesmo motivo: o post traz o email do recrutador, e no feed daria para colher contato sem gastar cota.
 - Segredos só no `.env` (gitignored) e no painel do provedor — **nunca** no código/commits. ⚠️ O repositório é **público**.
 - `/ranking` **não expõe nome completo** (abrevia: "Primeiro S."). Logout do front chama `POST /api/auth/logout` (purga o token do cache do middleware — sem isso o token deslogado valeria por até 60s).
 - Headers de segurança dos **sites estáticos** (app + landing) vivem no [deploy/oracle/nginx-newdevjobs.conf](deploy/oracle/nginx-newdevjobs.conf) (`add_header ... always` — X-Frame-Options etc.); o helmet cobre **só a API**. Os `_headers`/`_redirects` em `pages/` e `frontend/public/` são resquício de Render/Cloudflare Pages e o `deploy-static.sh` os remove da webroot.

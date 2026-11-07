@@ -136,6 +136,14 @@ function DetalheCandidatura({ a, onClose, t }) {
                     </div>
                 )}
 
+                {a.postUrl && (
+                    <div className="det-secao">
+                        <a className="btn sm" href={a.postUrl} target="_blank" rel="noopener noreferrer">
+                            <i className="ti ti-external-link" /> {t('Ver o post no LinkedIn')}
+                        </a>
+                    </div>
+                )}
+
                 <div className="det-rodape">
                     <div className="det-match">
                         <span className="det-rotulo">{t('Match score')}</span>

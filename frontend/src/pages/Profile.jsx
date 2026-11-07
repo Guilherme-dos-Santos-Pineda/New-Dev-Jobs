@@ -13,7 +13,7 @@ import AutoEnvio from '../components/AutoEnvio.jsx';
 
 const SUGGESTED = ['JavaScript', 'TypeScript', 'Node.js', 'React', 'Python', 'C#', '.NET', 'Java', 'SQL', 'AWS', 'Docker', 'Git'];
 const POSTING_OPTIONS = [
-    { v: '', l: 'Sem filtro (todas as vagas)' }, { v: 7, l: 'Últimos 7 dias' },
+    { v: '', l: 'Sem filtro (todas as vagas)' }, { v: 1, l: 'Últimas 24 horas' }, { v: 7, l: 'Últimos 7 dias' },
     { v: 14, l: 'Últimos 14 dias' }, { v: 30, l: 'Últimos 30 dias' }, { v: 60, l: 'Últimos 60 dias' },
 ];
 
@@ -428,18 +428,15 @@ export default function Profile() {
                                 </label>
                             </div>
 
-                            {/* Filtro de data DESLIGADO por ora (backend/config/filtroData.js).
-                                O campo some da tela junto com o filtro: deixar um seletor que
-                                nao faz nada e pior do que nao ter seletor, porque a pessoa
-                                configura, nao ve efeito e conclui que o produto esta quebrado.
-                                O valor de cada um continua salvo no banco; ao religar a chave,
-                                volte este bloco. */}
+                            {/* Conta de quando a vaga entrou aqui, a mesma data que a lista mostra.
+                                Sem a chave o campo some: seletor que não faz nada parece produto quebrado. */}
                             {FILTRO_DATA_ATIVO && (
                                 <div className="field">
-                                    <label>Data de postagem</label>
+                                    <label>{t('Vagas recentes')}</label>
                                     <select className="select" value={form.postingDays} onChange={(e) => set('postingDays', e.target.value)}>
-                                        {POSTING_OPTIONS.map((o) => <option key={o.l} value={o.v}>{o.l}</option>)}
+                                        {POSTING_OPTIONS.map((o) => <option key={o.l} value={o.v}>{t(o.l)}</option>)}
                                     </select>
+                                    <span className="muted" style={{ fontSize: 12 }}>{t('Conta a partir de quando a vaga entrou aqui.')}</span>
                                 </div>
                             )}
                         </div>

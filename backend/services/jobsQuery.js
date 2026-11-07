@@ -93,8 +93,7 @@ export function passesFilters(job, profile) {
 
     if (bloqueadaPeloUsuario(job, profile)) return false;
 
-    // FILTRO_DATA_ATIVO desligado por ora (config/filtroData.js). O valor de
-    // cada pessoa segue salvo; é só religar a chave.
+    // A chave está em config/filtroData.js.
     if (FILTRO_DATA_ATIVO && profile.PostingDays && job.CreatedAt) {
         const created = new Date(job.CreatedAt).getTime();
         if ((Date.now() - created) / 86400000 > profile.PostingDays) return false;

@@ -29,6 +29,9 @@ export const ALLOWED_LEVELS = ['estagio', 'junior', 'pleno', 'senior', 'lead', '
 /** Modalidades. Espelha detectModality() em services/classify.js. */
 export const ALLOWED_MODALITIES = ['remoto', 'hibrido', 'presencial'];
 
+/** Contratos. Espelha contratoDaVaga() em services/classify.js e CONTRACT_OPTIONS em frontend/src/utils.js. */
+export const ALLOWED_CONTRACTS = ['clt', 'pj'];
+
 /** Estados. Espelha UF_OPTIONS em frontend/src/utils.js. */
 export const ALLOWED_STATES = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 

@@ -25,6 +25,11 @@ export const SENIORITY_OPTIONS = [
     { value: 'especialista', label: 'Especialista' },
 ];
 
+export const CONTRACT_OPTIONS = [
+    { value: 'clt', label: 'CLT' },
+    { value: 'pj', label: 'PJ' },
+];
+
 export const MODALITY_OPTIONS = [
     { value: 'remoto', label: 'Remoto' },
     { value: 'hibrido', label: 'Híbrido' },

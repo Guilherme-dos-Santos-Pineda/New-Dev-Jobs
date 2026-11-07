@@ -8,9 +8,9 @@ const agora = Date.UTC(2026, 10, 10, 12);
 const dias = (n) => new Date(agora - n * 86400000).toISOString();
 const vaga = (id, matchScore, idade) => ({ id, matchScore, createdAt: dias(idade) });
 
-test('só vaga da última semana com match de 50% ou mais', () => {
-    const ids = escolherVagas([vaga(1, 90, 1), vaga(2, 49, 1), vaga(3, 90, 8), vaga(4, 50, 7)], 20, agora);
-    assert.deepEqual(ids, [1, 4]);
+test('só vaga da última semana, e sem piso de compatibilidade', () => {
+    const ids = escolherVagas([vaga(1, 90, 1), vaga(2, 15, 1), vaga(3, 90, 8), vaga(4, 50, 7)], 20, agora);
+    assert.deepEqual(ids, [1, 4, 2]);
 });
 
 test('sai primeiro o melhor match, e a mais nova no empate', () => {

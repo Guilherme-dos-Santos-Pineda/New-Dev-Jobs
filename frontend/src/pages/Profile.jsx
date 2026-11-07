@@ -5,7 +5,7 @@ import { FILTRO_DATA_ATIVO } from '../lib/flags.js';
 import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
 import { useToast } from '../components/Toast.jsx';
 import { useAuth } from '../auth.jsx';
-import { MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, UF_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
+import { CONTRACT_OPTIONS, MODALITY_OPTIONS, LEVEL_OPTIONS, AREA_OPTIONS, UF_OPTIONS, maskPhone, maskWhatsapp, normalizeLinkedin, normalizeKeyword } from '../utils.js';
 import { useT } from '../lib/i18n.jsx';
 import TagInput from '../components/TagInput.jsx';
 import EmailSettings from './Settings.jsx';
@@ -13,14 +13,14 @@ import AutoEnvio from '../components/AutoEnvio.jsx';
 
 const SUGGESTED = ['JavaScript', 'TypeScript', 'Node.js', 'React', 'Python', 'C#', '.NET', 'Java', 'SQL', 'AWS', 'Docker', 'Git'];
 const POSTING_OPTIONS = [
-    { v: '', l: 'Sem filtro (todas as vagas)' }, { v: 1, l: 'Últimas 24 horas' }, { v: 7, l: 'Últimos 7 dias' },
-    { v: 14, l: 'Últimos 14 dias' }, { v: 30, l: 'Últimos 30 dias' }, { v: 60, l: 'Últimos 60 dias' },
+    { v: '', l: 'Sem filtro (todas as vagas)' }, { v: 30, l: 'Últimos 30 dias' },
+    { v: 60, l: 'Últimos 60 dias' }, { v: 90, l: 'Últimos 90 dias' },
 ];
 
 const EMPTY = {
     skills: [], seniorities: [], modalities: [], areas: [], salaryMin: '', salaryMax: '', headline: '',
     phone: '', whatsapp: '', linkedin: '', github: '', portfolio: '',
-    requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br',
+    requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br', contracts: [],
     states: [], cities: [], showPcd: false,
 };
 
@@ -65,6 +65,7 @@ export default function Profile() {
             blockedDomains: p.blockedDomains || [],
             strictLevel: !!p.strictLevel, postingDays: p.postingDays ?? '', region: p.region || 'br',
             states: p.states || [], cities: p.cities || [], showPcd: !!p.showPcd,
+            contracts: p.contracts || [], contratoLigado: !!p.contratoLigado,
         };
         setForm(novo);
         salvoRef.current = JSON.stringify(novo);
@@ -215,6 +216,18 @@ export default function Profile() {
                                     ))}
                                 </div>
                             </div>
+                            {form.contratoLigado && (
+                                <div className="field">
+                                    <label>{t('Tipo de contrato')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({t('opcional')})</span></label>
+                                    <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>{t('Vaga que não informa o contrato continua aparecendo.')}</div>
+                                    <div className="chips">
+                                        {CONTRACT_OPTIONS.map((o) => (
+                                            <span key={o.value} className={`chip toggle ${form.contracts.includes(o.value) ? 'on' : ''}`}
+                                                onClick={() => toggleIn('contracts', o.value)}>{o.label}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {mostraLocal && (
                                 <div className="field">
                                     <label>{t('Estados e cidades')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({t('opcional')})</span></label>

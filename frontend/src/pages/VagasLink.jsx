@@ -8,10 +8,29 @@ import { haQuanto } from '../lib/tempo.js';
 
 // Vagas cujo post não tem email: a candidatura é pelo link, fora daqui. Não gastam
 // envio, e por isso a tela não tem fila nem "Enviar". Ver services/vagasPorLink.js.
+
+// A marca diz "abriu", não "se candidatou": isso acontece fora daqui. Fica no
+// navegador, é só para a pessoa não se perder na lista.
+const CHAVE = 'vagasLinkAbertas';
+const GUARDA_NO_MAXIMO = 500;
+
+function lerAbertas() {
+    try {
+        const lista = JSON.parse(localStorage.getItem(CHAVE) || '[]');
+        return new Set(Array.isArray(lista) ? lista : []);
+    } catch { return new Set(); }
+}
 export default function VagasLink() {
     const { t } = useT();
     const { data, loading } = useCachedResource('vagas-link', api.vagasPorLink);
     const [aberta, setAberta] = useState(null);
+    const [abertas, setAbertas] = useState(lerAbertas);
+
+    function marcar(id) {
+        const novas = new Set(abertas).add(id);
+        setAbertas(novas);
+        try { localStorage.setItem(CHAVE, JSON.stringify([...novas].slice(-GUARDA_NO_MAXIMO))); } catch { /* sem armazenamento, vale até fechar a tela */ }
+    }
     const vagas = data?.vagas || [];
 
     return (
@@ -36,7 +55,7 @@ export default function VagasLink() {
             ) : (
                 <div className="card lista-card vh-lista">
                     {vagas.map((v) => (
-                        <div key={v.id} className="vh-vaga">
+                        <div key={v.id} className={`vh-vaga ${abertas.has(v.id) ? 'feita' : ''}`}>
                             <div className="vh-linha">
                                 <button className="vh-info" onClick={() => setAberta(aberta === v.id ? null : v.id)} aria-expanded={aberta === v.id}>
                                     <span className="vh-titulo">{v.title}</span>
@@ -46,7 +65,8 @@ export default function VagasLink() {
                                     </span>
                                 </button>
                                 <span className="vh-acoes">
-                                    <a className="btn sm" href={v.url} target="_blank" rel="noopener noreferrer">
+                                    {abertas.has(v.id) && <span className="badge ok"><i className="ti ti-check" /> {t('Aberta')}</span>}
+                                    <a className="btn sm" href={v.url} target="_blank" rel="noopener noreferrer" onClick={() => marcar(v.id)}>
                                         <i className="ti ti-external-link" /> {t('Abrir vaga')}
                                     </a>
                                 </span>

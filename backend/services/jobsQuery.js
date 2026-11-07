@@ -1,6 +1,6 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
-import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga, areaForaDeTI } from './classify.js';
+import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga, areaForaDeTI, contratoDaVaga, vagaEmEspanhol } from './classify.js';
 import { idsComDislike } from './jobFeedback.js';
 import { vagasDoFeed } from './feedCache.js';
 import { emailDeContatoValido, LIKE_EMAIL } from './emailContato.js';
@@ -85,7 +85,7 @@ export function passesFilters(job, profile, { semEmail = false } = {}) {
     // Preferência de país do usuário (br | intl)
     const region = profile.Region || 'br';
     if (region === 'br' && !jobIsBR(job)) return false;
-    if (region === 'intl' && jobIsBR(job)) return false;
+    if (region === 'intl' && (jobIsBR(job) || vagaEmEspanhol(job))) return false;
     const required = parseArr(profile.RequiredKeywords).map((k) => k.toLowerCase());
     if (required.length) {
         const text = textoDoFiltro(job);
@@ -122,6 +122,14 @@ export function passesFilters(job, profile, { semEmail = false } = {}) {
     }
 
     if (foraDoLocal(job, profile)) return false;
+
+    // Só tira a vaga que diz outro contrato: 51% dos posts não dizem nenhum, e
+    // esconder esses esvaziaria a lista.
+    const contratos = parseArr(profile.Contracts);
+    if (contratos.length) {
+        const daVaga = contratoDaVaga(job);
+        if (daVaga.length && !daVaga.some((c) => contratos.includes(c))) return false;
+    }
 
     // Área profissional: descarta vagas de outro cargo (ex.: QA não recebe vaga de Dev).
     // Só filtra quando a área da vaga é identificável (≠ 'other'), p/ não perder vaga boa.

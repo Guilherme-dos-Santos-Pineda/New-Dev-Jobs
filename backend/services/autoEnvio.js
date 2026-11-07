@@ -9,21 +9,27 @@ import { assertCanSend } from './sender.js';
 // Envio automático (plano pago)
 // =========================
 // Único caminho em que currículo sai sem clique, por isso é estreito: só quem
-// ligou, só vaga da última semana com match bom, e dentro do limite do dia.
+// ligou, só vaga da última semana que passa nos filtros do perfil, e dentro do
+// limite do dia. Os melhores matches saem primeiro.
+//
+// Sem piso de compatibilidade (decisão do dono, 07/11/2026): com 50% de corte a
+// pessoa típica não tinha NENHUMA vaga na semana (23 de 40), e quem paga para não
+// entrar todo dia não recebia nada. Com mais vagas na base, o piso pode voltar.
 //
 // Só vaga nova de propósito. Medido em 05/11/2026: a pessoa típica ganha 13 vagas
 // boas por mês, ~3 por semana. Mandar o estoque antigo sozinho gastaria tudo no
 // primeiro dia, em vaga que provavelmente já fechou.
 
+/** Corte do botão "enviar para as melhores" em Vagas. O envio das 9h não usa. */
 export const MATCH_MINIMO = 50;
 const DIAS_DE_VAGA_NOVA = 7;
 const HORA_UTC = 12; // 9h em Brasília
 const DIA_MS = 86400000;
 
-/** Os ids que saem hoje: novos, com match bom, os melhores primeiro. */
+/** Os ids que saem hoje: novos, os melhores primeiro. */
 export function escolherVagas(matches, restam, agora = Date.now()) {
     return matches
-        .filter((m) => m.matchScore >= MATCH_MINIMO && agora - new Date(m.createdAt).getTime() <= DIAS_DE_VAGA_NOVA * DIA_MS)
+        .filter((m) => agora - new Date(m.createdAt).getTime() <= DIAS_DE_VAGA_NOVA * DIA_MS)
         .sort((a, b) => b.matchScore - a.matchScore || new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, Math.max(0, restam))
         .map((m) => m.id);

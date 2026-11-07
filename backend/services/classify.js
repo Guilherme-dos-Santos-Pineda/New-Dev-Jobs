@@ -271,7 +271,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 8;
+export const CLASSIFY_VERSION = 9;
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 
@@ -280,12 +280,40 @@ const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curit
 // Guadalajara, CDMX, Honduras e Panamá estavam no feed dos usuários.
 // Sem .it, .co e .do: "runtalent.it" e "inovan.do" são empresas brasileiras
 // (trocadilho com o domínio) e .co é genérico de startup, não só da Colômbia.
-const TLD_FORA = /\.(?:mx|ar|cl|pe|uy|ec|bo|py|ve|cr|pa|hn|gt|sv|ni|es|pt|in|uk|de|fr)$/;
+const TLD_FORA = /\.(?:ao|mz|mx|ar|cl|pe|uy|ec|bo|py|ve|cr|pa|hn|gt|sv|ni|es|pt|in|uk|de|fr)$/;
 const LUGAR_FORA = /m[ée]xico|\bcdmx\b|guadalajara|monterrey|quer[ée]taro|costa rica|panam[áa]|honduras|guatemala|el salvador|nicar[áa]gua|colombia|bogot[áa]|medell[íi]n|per[úu]\b|(?<!faria )\blima\b|chile|argentina|buenos aires|uruguay|montevideo|ecuador|venezuela|espa[ñn]a|madrid|barcelona|portugal|lisboa|\bindia\b|bangalore|hyderabad|united states|\busa\b/i;
 // Palavras que só existem em espanhol (as que coincidem com o português,
 // como "requisitos", não contam).
 const ESPANHOL = /\b(?:experiencia|vacante|postula|postúlate|ofrecemos|conocimientos|inglés|empresa líder|sueldo|prestaciones|desarrollador|ingeniero|trabajo|años de)\b/gi;
 const PORTUGUES = /\b(?:experiência|vaga|currículo|oferecemos|conhecimentos|inglês|salário|benefícios|desenvolvedor|engenheiro|trabalho|anos de)\b/gi;
+
+// Palavras de anúncio que só existem em português. Uma lista curta deixava vaga
+// brasileira sem cidade no texto cair como gringa.
+const VAGA_EM_PORTUGUES = /\b(?:vagas?|currículo|contratando|desenvolvedor|oportunidade|experiência|conhecimentos?|atuação|benefícios|engenheiro)\b/i;
+// Outros países de língua portuguesa: o post é em português, mas a vaga é de fora.
+const DE_FORA_EM_PORTUGUES = /portugal|lisboa|oeiras|cascais|coimbra|sénior|angola|luanda|moçambique|maputo/i;
+
+// Recrutador escreve com letra estilizada (𝗢𝗣𝗢𝗥𝗧𝗨𝗡𝗜𝗗𝗔𝗗𝗘), que nenhuma regra
+// lê. Sem isto o post em português virava "gringa": medido em 07/11/2026.
+const legivel = (s) => String(s || '').normalize('NFKC');
+
+/** Post escrito em espanhol. Quem quer gringa quer inglês: reclamaram do México. */
+export function vagaEmEspanhol(job) {
+    const desc = legivel(job.Description);
+    const es = (desc.match(ESPANHOL) || []).length;
+    return es >= 2 && es > (desc.match(PORTUGUES) || []).length;
+}
+
+const SEM_ENDERECO = /\S+@\S+|https?:\/\/\S+/g;
+
+/** Contratos que a vaga cita, em ['clt', 'pj']. Vazio: o post não diz. */
+export function contratoDaVaga(job) {
+    const texto = legivel(`${job.JobTitle || ''} ${job.Description || ''}`).replace(SEM_ENDERECO, ' ');
+    return [
+        /\bclt\b/i.test(texto) && 'clt',
+        /\bpj\b|pessoa jur[íi]dica/i.test(texto) && 'pj',
+    ].filter(Boolean);
+}
 
 /** Heurística de país da vaga (mesma lógica do scraper). */
 export function jobIsBR(job) {
@@ -293,16 +321,19 @@ export function jobIsBR(job) {
     if (dom.endsWith('.br')) return true;
     const local = String(job.Location || '');
     if (BR_HINT.test(local) || /\/(?:sp|rj|mg|rs|pr|sc|ba|pe|ce|df|go|es)\b/i.test(local)) return true;
+    // "(SP)" e "-SP" só depois de descartar lugar de fora: "Lima - PE" é Peru.
+    if (!LUGAR_FORA.test(local) && /[(\-–]\s?(?:sp|rj|mg|rs|pr|sc|ba|pe|ce|df|go|es)\b/i.test(local)) return true;
     // abler.in é plataforma de vagas brasileira: o domínio não diz o país.
     if (TLD_FORA.test(dom) && !dom.endsWith('abler.in')) return false;
     if (LUGAR_FORA.test(local) && !BR_HINT.test(local)) return false;
-    const desc = String(job.Description || '');
+    const desc = legivel(job.Description);
     const es = (desc.match(ESPANHOL) || []).length;
     const pt = (desc.match(PORTUGUES) || []).length;
     if (es > pt) return false;
-    const text = `${local} ${job.JobTitle || ''} ${desc}`;
+    const text = `${local} ${legivel(job.JobTitle)} ${desc}`;
     if (BR_HINT.test(text)) return true;
-    return /[ãõçáéíóúâê]/i.test(desc) && /\b(vaga|currículo|contratando|desenvolvedor)\b/i.test(text);
+    if (DE_FORA_EM_PORTUGUES.test(text)) return false;
+    return /[ãõçáéíóúâê]/i.test(desc) && VAGA_EM_PORTUGUES.test(text);
 }
 
 /**

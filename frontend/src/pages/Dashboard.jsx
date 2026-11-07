@@ -7,6 +7,7 @@ import { useCachedResource } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
 import { scoreClass, gmailComposeUrl, LIMITE_URL, AREA_OPTIONS } from '../utils.js';
 import { haQuanto } from '../lib/tempo.js';
+import CartaoVagasLink from '../components/CartaoVagasLink.jsx';
 import WizardInicial from '../components/WizardInicial.jsx';
 import PerguntaRetorno from '../components/PerguntaRetorno.jsx';
 import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
@@ -295,6 +296,7 @@ export default function Dashboard() {
                 <PedidoFeedback />
                 <ConviteAutomatico />
                 <CommunityBanner variant="button" style={{ marginBottom: 14 }} />
+                <CartaoVagasLink />
 
                 {/* ---- As vagas ---- */}
                 {lista === null ? (

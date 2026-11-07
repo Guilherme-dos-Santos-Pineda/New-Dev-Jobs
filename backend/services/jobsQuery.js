@@ -53,7 +53,7 @@ function textoDoFiltro(job) {
     return `${job.JobTitle || ''} ${job.Company || ''} ${job.Description || ''} ${parseArr(job.Skills).join(' ')}`.toLowerCase();
 }
 
-export function passesFilters(job, profile) {
+export function passesFilters(job, profile, { semEmail = false } = {}) {
     // Vaga de outra profissão NUNCA entra, com ou sem perfil e com ou sem filtro
     // de área. Esta é uma plataforma de vagas de tecnologia: "Assistente
     // Operacional de Logística" no feed de um dev não é filtro mal configurado,
@@ -73,7 +73,8 @@ export function passesFilters(job, profile) {
     // Sem isto a vaga era oferecida, entrava na fila, o Gmail recusava
     // ("Recipient address required") e o worker retentava por horas com a linha
     // presa em `queued` — o painel do usuário ficava "enviando" para sempre.
-    if (!emailDeContatoValido(job.Email)) return false;
+    // `semEmail` é só das vagas por link, que não passam pelo envio (vagasPorLink.js).
+    if (!semEmail && !emailDeContatoValido(job.Email)) return false;
 
     // Só quem marcou no perfil vê. Vem antes do `if (!profile)` porque quem ainda
     // não tem perfil também não marcou.

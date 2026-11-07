@@ -132,6 +132,15 @@ regra existente, não acrescente uma nova que a contradiga.
 
 - **"Algum recrutador te respondeu?"** (`PerguntaRetorno.jsx`, `services/retornoEnvios.js`, migration `0018`). A permissão do Gmail é só de enviar, então perguntar é o único jeito de saber se o produto funciona. Aparece 14 dias depois do primeiro envio, de novo a cada 30 e nunca mais depois de "Consegui emprego". "Agora não" cala 7 dias, só naquele aparelho. Uma linha por resposta, sem sobrescrever: a sequência dá o tempo até a contratação. Sem a tabela o cartão não aparece. O resultado sai no `npm run funil`.
 
+## Vagas por link (desde 07/11/2026)
+- **Post sem email e com link aparece em `/app/links`** ([backend/services/vagasPorLink.js](backend/services/vagasPorLink.js)). Sugestão do Reddit, e é a maior fonte de vaga nova que sobrou: ~500 de TI no Brasil em 26 dias, perto de 19 por dia, contra ~40 com email. Lê `ScrapedPosts`: **sem migration, sem crédito da Apify e sem IA**. Só os últimos 30 dias, dentro da retenção de 45.
+- **Não entra em `Jobs` de propósito.** Fila, cota, envio automático, destaques e contagens exigem email e nem veem essas vagas. "Abrir vaga" leva ao post e não gasta envio.
+- **O filtro é o `passesFilters` do feed**, com `{ semEmail: true }`. Só esta tela passa a opção: no feed, vaga sem email continua barrada.
+- **Só aqui o link do post é seguro**: o post não tem email. Quem tem email continua com o link só em Enviadas.
+- O título é a primeira linha do post, sem a IA, então erra às vezes ("Vaga para Consultor de Poços" caiu em `po`). Na amostra de 40, duas ficaram duvidosas. Título vago (`other`) fica de fora.
+- Fica em memória, igual ao feed: ~4 MB de egress na primeira carga depois de cada deploy, e só os posts novos a cada 10 minutos, se alguém pedir.
+- O menu continua com três itens: a entrada é um cartão em Vagas, que some sem vaga para mostrar.
+
 ## Prova real (ponta a ponta)
 - **O harness falha alto:** há `catch` explícito (o `finally` chamava `process.exit()` antes de a exceção subir, e um crash virava "todas passaram" com metade das verificações) e um piso mínimo — rodada curta é falha.
 - `npm run prova` cria 10 contas em **produção**, percorre a jornada inteira (cadastro → login → perfil → feed → dashboard → travas de envio → cobrança → bugs/ranking → logout), faz **247 verificações** e apaga tudo no `finally` — inclusive se falhar no meio.

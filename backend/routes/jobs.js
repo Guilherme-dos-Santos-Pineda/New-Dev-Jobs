@@ -6,6 +6,7 @@ import { composeForJob, ComposeError } from '../services/compose.js';
 import { semContato } from '../services/highlights.js';
 import { invalidateMatches } from '../services/jobsQuery.js';
 import { feedbackDisponivel, votar, meusLikes, MOTIVOS } from '../services/jobFeedback.js';
+import { vagasPorLinkDe } from '../services/vagasPorLink.js';
 
 const router = Router();
 
@@ -49,6 +50,12 @@ router.get('/matches', requireAuth, async (req, res) => {
         { ...m, description: description ? semContato(description).slice(0, PREVIEW_CHARS) : description }
     ));
     res.json({ matches: safe, total: matches.length, candidatable, filtered: Math.max(0, candidatable - matches.length) });
+});
+
+// GET /api/jobs/links — vagas sem email, com candidatura pelo link do post.
+// Fica ANTES de /:id, senão "links" seria lido como id de vaga.
+router.get('/links', requireAuth, async (req, res) => {
+    res.json(await vagasPorLinkDe(req.user.Id));
 });
 
 // GET /api/jobs/feedback/mine — os 👍 do usuário, e se o recurso está ligado

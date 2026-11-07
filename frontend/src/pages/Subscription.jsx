@@ -30,6 +30,10 @@ const invStatus = (s) => INV_STATUS[s] || { label: s || 'sem status', cls: 'neut
 const METHOD_LABEL = { card: 'Cartão', pix: 'PIX', boleto: 'Boleto' };
 const PROVIDER_LABEL = { stripe: 'Stripe', woovi: 'Woovi' };
 
+// Volta do checkout: quanto tempo espera a Stripe confirmar antes de avisar que está em processamento.
+const TENTATIVAS_CONFIRMAR = 12;
+const INTERVALO_CONFIRMAR_MS = 5000;
+
 export default function Subscription() {
     const { user, refreshUser } = useAuth();
     const { t } = useT();
@@ -65,10 +69,21 @@ export default function Subscription() {
         if (!c) return;
         const sessao = params.get('session_id');
         if (c === 'success') {
-            toast.show('Pagamento concluído! Atualizando seu plano…');
-            setPagou(true);
-            (sessao ? api.confirmarPagamento(sessao).catch(() => {}) : Promise.resolve())
-                .finally(() => { refreshUser(); refreshHist(); refreshSub(); });
+            toast.show(t('Confirmando seu pagamento…'));
+            // Pix e boleto podem voltar antes de confirmar: a sessão só vira paga depois,
+            // então pergunta de novo em vez de dizer que deu certo sem saber.
+            (async () => {
+                let concedido = false;
+                for (let i = 0; sessao && !concedido && i < TENTATIVAS_CONFIRMAR; i++) {
+                    if (i) await new Promise((ok) => setTimeout(ok, INTERVALO_CONFIRMAR_MS));
+                    concedido = (await api.confirmarPagamento(sessao).catch(() => null))?.concedido === true;
+                }
+                if (concedido) {
+                    setPagou(true);
+                    toast.show(t('Pagamento confirmado! Seu plano já está ativo.'));
+                } else toast.show(t('Pagamento em processamento. Seu plano entra assim que a confirmação chegar.'));
+                refreshUser(); refreshHist(); refreshSub();
+            })();
         } else if (c === 'cancel') toast.show('Checkout cancelado.', 'error');
         params.delete('checkout'); params.delete('session_id'); setParams(params, { replace: true });
     }, []);  

@@ -128,6 +128,16 @@ test('decideCheckoutSession: pagamento NÃO pago → ignore (não libera)', () =
     const d = decideCheckoutSession({ mode: 'payment', payment_status: 'unpaid', client_reference_id: 'u1', metadata: { plan: 'pro' } });
     assert.equal(d.action, 'ignore');
 });
+test('decideCheckoutSession: pagamento que confirma depois só libera quando a sessão vira paid', () => {
+    const sessao = { mode: 'payment', client_reference_id: 'u1', metadata: { plan: 'starter' } };
+    assert.equal(decideCheckoutSession({ ...sessao, payment_status: 'unpaid' }).action, 'ignore');
+    assert.equal(decideCheckoutSession({ ...sessao, payment_status: 'paid' }).action, 'grant');
+});
+test('webhook trata a confirmação de pagamento pendente (Pix, boleto)', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const rota = await readFile(new URL('../routes/billing.js', import.meta.url), 'utf8');
+    assert.match(rota, /case 'checkout\.session\.async_payment_succeeded':/);
+});
 test('decideCheckoutSession: pago mas sem plano/usuário → ignore (dados faltando)', () => {
     assert.equal(decideCheckoutSession({ mode: 'payment', payment_status: 'paid', metadata: {} }).action, 'ignore');
     assert.equal(decideCheckoutSession({ mode: 'payment', payment_status: 'paid', client_reference_id: 'u1' }).action, 'ignore');

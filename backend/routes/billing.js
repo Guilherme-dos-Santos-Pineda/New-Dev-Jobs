@@ -213,6 +213,9 @@ router.post('/webhook', async (req, res) => {
 
     try {
         switch (event.type) {
+            // Pagamento que confirma depois (Pix, boleto): o `completed` chega com
+            // payment_status 'unpaid' e é ignorado; quem traz o 'paid' é o async_payment_succeeded.
+            case 'checkout.session.async_payment_succeeded':
             case 'checkout.session.completed': {
                 const s = event.data.object;
                 const decision = decideCheckoutSession(s);

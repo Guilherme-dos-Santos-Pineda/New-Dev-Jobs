@@ -129,8 +129,8 @@ No **Google Cloud Console → Credenciais → OAuth client**, em *Authorized red
 No **Supabase → Authentication → URL Configuration**: defina o **Site URL** e adicione `https://<frontend>.onrender.com/**` em *Redirect URLs*.
 
 ## 5. Stripe webhook
-1. Stripe → **Developers → Webhooks → Add endpoint**: `https://<api>.onrender.com/api/billing/webhook`.
-2. Eventos: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+1. Stripe → **Developers → Webhooks → Add endpoint**: `https://newdevjobs.xyz/api/billing/webhook`.
+2. Eventos: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`.
 3. Copie o **Signing secret** (`whsec_...`) para `STRIPE_WEBHOOK_SECRET` no env group e redeploy a API.
 
 ### Webhook em dev (opcional)

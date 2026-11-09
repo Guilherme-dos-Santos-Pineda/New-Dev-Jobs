@@ -30,7 +30,8 @@ export async function assertCanSend(userId) {
  * Candidata-se a uma vaga (renderiza template + envia email + registra).
  * @returns { applicationId, skipped }
  */
-export async function applyToJob(userId, jobId) {
+// `editado` ({ subject, body }) vale só para este envio: ver services/emailEditado.js.
+export async function applyToJob(userId, jobId, editado = null) {
     const { user, profile } = await assertCanSend(userId);
     const [job] = await sql`select * from "Jobs" where "Id" = ${jobId}`;
     if (!job) throw new ApplyError('Vaga não encontrada', 404);
@@ -50,7 +51,7 @@ export async function applyToJob(userId, jobId) {
     if (await jaContatado(userId, job.Email)) return { skipped: true, motivo: 'recrutador' };
 
     const match = computeMatch(profile, job);
-    const tpl = await resolveTemplate(userId, 'pt');
+    const tpl = editado ? { subject: editado.subject, body: editado.body } : await resolveTemplate(userId, 'pt');
     const rendered = renderEmail({ subjectTemplate: tpl.subject, bodyTemplate: tpl.body, user, profile, job });
 
     const cvBuffer = await getCvBuffer(profile.CvPath);

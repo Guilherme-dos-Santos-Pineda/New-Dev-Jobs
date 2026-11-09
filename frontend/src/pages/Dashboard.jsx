@@ -155,7 +155,8 @@ export default function Dashboard() {
         } catch (e) { toast.show(e.message, 'error'); }
     }
 
-    async function enviar(vaga) {
+    // `editado` vem da prévia: assunto e texto só desta vaga.
+    async function enviar(vaga, editado = null) {
         if (trava.current || restam <= 0) return;
         trava.current = true;
         setOcupado(vaga.id);
@@ -164,11 +165,12 @@ export default function Dashboard() {
         const aba = envioDireto ? null : window.open('', '_blank');
         try {
             if (envioDireto) {
-                await api.apply(vaga.id);
+                await api.apply(vaga.id, editado);
                 setEstado((s) => ({ ...s, [vaga.id]: 'enviado' }));
                 toast.show(t('Currículo enviado para {empresa}.', { empresa: vaga.company || t('o recrutador') }));
             } else {
-                const email = await api.composeJob(vaga.id);
+                const pronto = await api.composeJob(vaga.id);
+                const email = editado ? { ...pronto, subject: editado.subject, body: editado.body } : pronto;
                 const url = gmailComposeUrl(email);
                 if (aba && url.length <= LIMITE_URL) aba.location = url; else aba?.close();
                 setEstado((s) => ({ ...s, [vaga.id]: 'aberto' }));
@@ -413,9 +415,18 @@ export default function Dashboard() {
                                 <div className="ep-cab">
                                     <div><span>{t('De')}</span><b>{previa.dados.fromName || t('Você')}</b> {conectado ? <span className="muted">&lt;{previa.dados.from}&gt;</span> : <span className="muted">{t('(seu Gmail)')}</span>}</div>
                                     <div><span>{t('Para')}</span><b>{t('quem postou a vaga')}{previa.dados.company ? ` (${previa.dados.company})` : ''}</b> <span className="muted">{t('o endereço aparece quando você envia')}</span></div>
-                                    <div><span>{t('Assunto')}</span><b>{previa.dados.subject}</b></div>
+                                    <div><span>{t('Assunto')}</span>{previa.editando
+                                        ? <input className="input ep-assunto" value={previa.assunto} maxLength={200} aria-label={t('Assunto')}
+                                            onChange={(e) => setPrevia((p) => ({ ...p, assunto: e.target.value }))} />
+                                        : <b>{previa.assunto ?? previa.dados.subject}</b>}</div>
                                 </div>
-                                <div className="ep-corpo">{previa.dados.text}</div>
+                                {previa.editando ? (
+                                    <div className="ep-editar">
+                                        <textarea className="input" value={previa.corpo} rows={12} maxLength={10000} aria-label={t('Texto do email')}
+                                            onChange={(e) => setPrevia((p) => ({ ...p, corpo: e.target.value }))} />
+                                        <div className="hint">{t('Vale só para esta vaga. O modelo do seu perfil não muda.')}</div>
+                                    </div>
+                                ) : <div className="ep-corpo">{previa.corpo ?? previa.dados.text}</div>}
                                 <div className="ep-anexo">
                                     {previa.dados.attachment
                                         ? <><i className="ti ti-paperclip" /> {previa.dados.attachment}</>
@@ -424,12 +435,26 @@ export default function Dashboard() {
                             </>)}
                         </div>
                         <div className="modal-foot">
-                            <Link to="/app/perfil?section=modelo" className="btn ghost sm" onClick={() => setPrevia(null)}><i className="ti ti-pencil" /> {t('Editar o modelo')}</Link>
+                            {previa.dados && !estado[previa.vaga.id] && !previa.editando && (
+                                <button className="btn ghost sm" onClick={() => setPrevia((p) => ({ ...p, editando: true, assunto: p.assunto ?? p.dados.subject, corpo: p.corpo ?? p.dados.text }))}>
+                                    <i className="ti ti-pencil" /> {t('Editar este email')}
+                                </button>
+                            )}
+                            {previa.editando && (
+                                <button className="btn ghost sm" onClick={() => setPrevia((p) => ({ ...p, editando: false, assunto: undefined, corpo: undefined }))}>
+                                    {t('Desfazer edição')}
+                                </button>
+                            )}
                             {estado[previa.vaga.id] ? (
                                 <span className="badge ok"><i className="ti ti-check" /> {t('Enviado')}</span>
                             ) : (
-                                <button className="btn primary sm" disabled={!previa.dados || restam <= 0 || ocupado === previa.vaga.id}
-                                    onClick={async () => { await enviar(previa.vaga); setPrevia(null); }}>
+                                <button className="btn primary sm"
+                                    disabled={!previa.dados || restam <= 0 || ocupado === previa.vaga.id || (previa.assunto != null && (!previa.assunto.trim() || !previa.corpo?.trim()))}
+                                    onClick={async () => {
+                                        const editado = previa.assunto != null ? { subject: previa.assunto, body: previa.corpo } : null;
+                                        await enviar(previa.vaga, editado);
+                                        setPrevia(null);
+                                    }}>
                                     <i className="ti ti-send" /> {t('Enviar para esta vaga')}
                                 </button>
                             )}

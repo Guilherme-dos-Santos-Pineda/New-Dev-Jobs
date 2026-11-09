@@ -7,6 +7,7 @@ import { applyToJob } from '../services/sender.js';
 import { planUsage } from '../services/usage.js';
 import { planOf } from '../config/plans.js';
 import { getMatches, invalidateMatches } from '../services/jobsQuery.js';
+import { emailEditado } from '../services/emailEditado.js';
 import { linkDoPost } from '../services/linkDoPost.js';
 
 const router = Router();
@@ -72,7 +73,7 @@ router.post('/preview', requireAuth, async (req, res) => {
     });
 });
 
-// POST /api/applications  { jobId }
+// POST /api/applications  { jobId, subject?, body? }  (assunto e texto editados valem só para este envio)
 // Um envio por vez por usuário. O processo é um só em produção (worker
 // embutido), então um cadeado em memória basta para a conferência de cota e o
 // envio não correrem em paralelo: sem ele, 20 cliques simultâneos passariam
@@ -82,6 +83,8 @@ const enviando = new Set();
 router.post('/', requireAuth, async (req, res) => {
     const jobId = Number(req.body?.jobId);
     if (!jobId) return res.status(400).json({ error: 'jobId é obrigatório' });
+    const { editado, erro } = emailEditado(req.body);
+    if (erro) return res.status(400).json({ error: erro });
     const uid = String(req.user.Id);
     if (enviando.has(uid)) return res.status(429).json({ error: 'Espere o envio anterior terminar.' });
     enviando.add(uid);
@@ -99,7 +102,7 @@ router.post('/', requireAuth, async (req, res) => {
         if (uso.remainingToday <= 0) return res.status(429).json({ error: `Você já usou os ${uso.dailyLimit} envios de hoje. Amanhã tem mais.` });
         const noFeed = (await getMatches(req.user.Id)).some((m) => String(m.id) === String(jobId));
         if (!noFeed) return res.status(403).json({ error: 'Esta vaga não está entre as suas.' });
-        const r = await applyToJob(req.user.Id, jobId);
+        const r = await applyToJob(req.user.Id, jobId, editado);
         if (r.skipped) {
             const erros = { recrutador: 'Você já mandou currículo para este recrutador nos últimos 30 dias.', bloqueada: 'Esta vaga é de uma empresa que você bloqueou.' };
             return res.status(409).json({ error: erros[r.motivo] || 'Você já se candidatou a esta vaga' });

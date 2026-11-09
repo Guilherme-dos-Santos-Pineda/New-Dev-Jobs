@@ -139,7 +139,8 @@ export const api = {
         const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
         return request('GET', `/applications${qs ? `?${qs}` : ''}`);
     },
-    apply: (jobId) => request('POST', '/applications', { jobId }),
+    // editado ({ subject, body }): só para este envio, o modelo do perfil não muda.
+    apply: (jobId, editado) => request('POST', '/applications', { jobId, ...(editado || {}) }),
 
     // jobs matches + fila de envio
     getMatches: () => request('GET', '/jobs/matches'),

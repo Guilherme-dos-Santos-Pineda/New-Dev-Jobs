@@ -2187,3 +2187,8 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .ep-anexo { margin: 0 24px 18px; padding: 10px 12px; border: 1px solid var(--color-border-light); border-radius: var(--radius); font-size: 13px; display: flex; align-items: center; gap: 8px; background: var(--color-bg-secondary); }
 .ep-sem-anexo { color: var(--color-warn); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .email-previa .modal-foot { justify-content: space-between; }
+
+/* Email editado só para uma vaga (prévia em Vagas) */
+.ep-assunto { flex: 1; min-width: 200px; }
+.ep-editar { padding: 16px 24px; }
+.ep-editar textarea { width: 100%; min-height: 240px; font: inherit; line-height: 1.6; resize: vertical; }

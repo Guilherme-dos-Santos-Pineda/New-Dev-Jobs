@@ -23,16 +23,19 @@ export const ATOR_VAGAS = 'worldunboxer~rapid-linkedin-scraper';
 export const FONTE = 'vaga-linkedin';
 export const ROBO_DAS_VAGAS = 'Vagas anunciadas no LinkedIn';
 
+// Front vem PRIMEIRO: é a busca com descrição, e a vaga que outra busca grava antes
+// fica sem ela (o conflito no LinkedinId não regrava). Na primeira execução,
+// rodando depois, as 38 de front já tinham entrado sem descrição.
 export const BUSCAS = [
-    {
-        nome: 'ti-brasil', local: 'Brazil', descricao: false, max: 500,
-        titulos: ['Desenvolvedor', 'Software Engineer', 'Back-end', 'Full Stack', 'Mobile Developer', 'Engenheiro de Dados',
-            'Analista de Dados', 'QA', 'DevOps', 'Analista de Suporte', 'Analista de Sistemas', 'Product Owner',
-            'UX Designer', 'SAP', 'Estágio TI', 'Desenvolvedor Júnior'],
-    },
     {
         nome: 'front-brasil', local: 'Brazil', descricao: true, max: 80,
         titulos: ['Front-end', 'Desenvolvedor Front-end', 'Frontend Developer', 'React Developer', 'Angular Developer'],
+    },
+    {
+        nome: 'ti-brasil', local: 'Brazil', descricao: false, max: 700,
+        titulos: ['Desenvolvedor', 'Software Engineer', 'Back-end', 'Full Stack', 'Mobile Developer', 'Engenheiro de Dados',
+            'Analista de Dados', 'QA', 'DevOps', 'Analista de Suporte', 'Analista de Sistemas', 'Product Owner',
+            'UX Designer', 'SAP', 'Estágio TI', 'Desenvolvedor Júnior'],
     },
     {
         nome: 'ti-america-latina', local: 'Latin America', descricao: false, max: 150,

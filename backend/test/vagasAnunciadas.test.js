@@ -68,12 +68,16 @@ test('mesmo título em empresas diferentes não é repetição', () => {
     assert.equal(semRepetidas([a, { ...a, Id: 'link-3' }]).length, 1);
 });
 
+test('front vem primeiro, para ganhar a descrição antes das outras buscas', () => {
+    assert.equal(BUSCAS[0].nome, 'front-brasil');
+});
+
 test('a resposta leva a empresa', () => {
     const [v] = vagasParaPerfil([vagaDoPost(comoPost(linhaDaVaga(item())))], { Region: 'br' });
     assert.equal(v.company, 'Acme');
 });
 
-test('o custo diário tem teto: no máximo ~1030 vagas, só front com descrição', () => {
-    assert.equal(BUSCAS.reduce((s, b) => s + b.max, 0), 1030);
+test('o custo diário tem teto: no máximo ~1230 vagas, só front com descrição', () => {
+    assert.equal(BUSCAS.reduce((s, b) => s + b.max, 0), 1230);
     assert.deepEqual(BUSCAS.filter((b) => b.descricao).map((b) => b.nome), ['front-brasil']);
 });

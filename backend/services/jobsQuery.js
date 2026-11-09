@@ -244,7 +244,7 @@ const MATCHES_MAX = Number(process.env.MATCHES_MAX) || 1500;
  * O corte barato NUNCA pode ser mais restritivo que passesFilters: se divergirem,
  * vaga boa some em silêncio, sem erro e sem log. Confira com `npm run check:feed`.
  */
-export function candidatasDoPerfil(vagas, profile, resolvidas = new Set()) {
+export function candidatasDoPerfil(vagas, profile, resolvidas = new Set(), { semEmail = false } = {}) {
     const dias = FILTRO_DATA_ATIVO && Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
     const desde = dias ? Date.now() - dias * 86400000 : null;
     const paraFora = (profile?.Region || 'br') === 'intl';
@@ -273,7 +273,7 @@ export function candidatasDoPerfil(vagas, profile, resolvidas = new Set()) {
             if (!exigidas.some((k) => texto.includes(k))) continue;
         }
         if (temBloqueio && bloqueadaPeloUsuario(j, profile)) continue;
-        if (!passesFilters(j, profile)) continue;
+        if (!passesFilters(j, profile, { semEmail })) continue;
         saida.push(j);
         if (saida.length >= MATCHES_MAX) break;
     }

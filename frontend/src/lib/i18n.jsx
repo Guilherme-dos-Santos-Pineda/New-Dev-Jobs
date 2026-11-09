@@ -75,6 +75,7 @@ const EN = {
     'Mais {n} vagas para você': '{n} more jobs for you',
     'Não têm email: a candidatura é pelo link do post, e não gasta seus envios do dia.': 'They have no email: you apply through the link in the post, and it does not use your daily sends.',
     'Estas vagas não têm email. Você se candidata pelo link do post, e elas não gastam seus envios do dia.': 'These jobs have no email. You apply through the link in the post, and they do not use your daily sends.',
+    'Estas vagas não têm email. Você se candidata pelo link do anúncio, e elas não gastam seus envios do dia.': 'These jobs have no email. You apply through the link in the listing, and they do not use your daily sends.',
     'Nenhuma vaga por link combina com você agora.': 'No jobs by link match you right now.',
     'Vagas recentes': 'Recent jobs',
     'Sem filtro (todas as vagas)': 'No filter (all jobs)',

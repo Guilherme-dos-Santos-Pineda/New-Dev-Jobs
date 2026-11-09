@@ -643,7 +643,10 @@ router.get('/raw', requireAdmin, async (req, res) => {
     const status = req.query.status || null;
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(50, Math.max(5, Number(req.query.pageSize) || 20));
-    const where = status ? sql`where "Status" = ${status}` : sql``;
+    // As vagas anunciadas (vagasAnunciadas.js) chegam às centenas por dia e não são posts para revisar.
+    const where = status
+        ? sql`where "Status" = ${status} and "Source" is distinct from 'vaga-linkedin'`
+        : sql`where "Source" is distinct from 'vaga-linkedin'`;
     const [{ total }] = await sql`select count(*)::int as total from "ScrapedPosts" ${where}`;
     const rows = await sql`select * from "ScrapedPosts" ${where} order by "CreatedAt" desc limit ${pageSize} offset ${(page - 1) * pageSize}`;
     res.json({ posts: rows.map(shapeRaw), total, page, pageSize });

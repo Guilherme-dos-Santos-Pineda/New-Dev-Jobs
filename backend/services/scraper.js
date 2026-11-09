@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { analyzeContent } from './ai.js';
 import { runActor, apifyUsage, temFolgaDeCredito } from './apifyPool.js';
 import { consultasDoPlano } from './roboDoPlano.js';
+import { runVagasAnunciadas } from './vagasAnunciadas.js';
 import { proximosMonitoraveis } from './recrutadorMonitoravel.js';
 
 // =========================
@@ -230,8 +231,11 @@ export const QUERY_DESCOBERTA = '#vagati OR #vagasti';
 export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
-    region = 'global', excludeCountries, maxRecruiters = 10, creditoMinimo, doPlano,
+    region = 'global', excludeCountries, maxRecruiters = 10, creditoMinimo, doPlano, vagasAnunciadas,
 } = {}) {
+    // Robô das vagas anunciadas no LinkedIn Jobs: outro ator, outro destino.
+    if (vagasAnunciadas) return runVagasAnunciadas({ runId, creditoMinimo });
+
     // Robô extra (busca por nicho): só gasta o que sobra do monitoramento.
     if (creditoMinimo && !temFolgaDeCredito(await apifyUsage().catch(() => null), creditoMinimo)) {
         return { found: 0, novos: 0, semFolga: true };

@@ -8,6 +8,7 @@ import { pdfToText } from '../services/pdfText.js';
 import { normalizeList, normalizeDomain } from '../services/normalize.js';
 import { uploadCv, removeCv } from '../lib/cvStorage.js';
 import { invalidateMatches } from '../services/jobsQuery.js';
+import { esquecerVagasPorLink } from '../services/vagasPorLink.js';
 
 const router = Router();
 
@@ -77,6 +78,7 @@ async function upsertProfile(userId, f) {
     // Skills, região, palavras bloqueadas e senioridade decidem o que passa em
     // passesFilters — o memo do getMatches precisa cair junto com a alteração.
     invalidateMatches(userId);
+    esquecerVagasPorLink(userId);
 }
 
 async function setCv(userId, cvPath, cvName) {

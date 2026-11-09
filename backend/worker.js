@@ -5,6 +5,7 @@ import { getBoss, drenando, POLL_S, SEND_QUEUE, SEND_DLQ, SCRAPER_DISCOVERY, SCR
 import { applyToJob, ApplyError } from './services/sender.js';
 import { runDiscovery, runMonitoring } from './services/scraper.js';
 import { garantirRoboDoPlano } from './services/roboDoPlano.js';
+import { garantirRoboDasVagas } from './services/vagasAnunciadas.js';
 import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
 import { tickCampaigns } from './services/campaigns.js';
@@ -114,7 +115,8 @@ const SCHEDULER_MAX_PER_TICK = Number(process.env.SCHEDULER_MAX_PER_TICK) || 3;
 // por dia, ~58 vagas por dia, todo dia. O agendador já pega os robôs mais
 // antigos primeiro (`order by "NextRunAt" asc`), então os 305 rodam em rodízio
 // em vez de competir.
-const SCHEDULER_MAX_PER_DAY = Number(process.env.SCHEDULER_MAX_PER_DAY) || 16;
+// 18 desde 08/11/2026: eram 16 com 15 em uso, e o robô das vagas anunciadas é o 16º.
+const SCHEDULER_MAX_PER_DAY = Number(process.env.SCHEDULER_MAX_PER_DAY) || 18;
 
 // Quantos robôs ainda cabem neste tick. Pura de propósito, para ter teste.
 export function vagasNesteTick({ usadosHoje, tetoDiario, tetoPorTick }) {
@@ -258,6 +260,7 @@ export async function startWorker({ standalone = false } = {}) {
 
     // Agendador dos robôs (ScraperSchedules)
     await garantirRoboDoPlano().catch((e) => console.error('robô do plano não criado:', e.message));
+    await garantirRoboDasVagas().catch((e) => console.error('robô das vagas anunciadas não criado:', e.message));
     const pararTimers = startScheduler(boss);
     console.log(`🤖 worker ativo (${standalone ? 'standalone' : 'embutido na API'}): envios${DEV_LABEL()} + scraper (discovery/monitoring) + agendador + manutenção`);
 

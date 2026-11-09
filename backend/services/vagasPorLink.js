@@ -1,6 +1,7 @@
 import sql from '../lib/sql.js';
 import { classifyJob, areaForaDeTI } from './classify.js';
-import { passesFilters } from './jobsQuery.js';
+import { candidatasDoPerfil } from './jobsQuery.js';
+import { FONTE } from './vagasAnunciadas.js';
 import { computeMatch } from './matching.js';
 import { extractSkills } from './scraper.js';
 import { semContato } from './highlights.js';
@@ -22,8 +23,12 @@ import { linkDoPost } from './linkDoPost.js';
 // o egress. Depois da primeira carga só vêm os posts novos.
 
 const DIAS_DE_VAGA = 30;
+// Vaga anunciada envelhece mais rápido e chega às centenas por dia: duas semanas
+// bastam e seguram a memória e o egress de cada carga depois de um deploy.
+const DIAS_DE_VAGA_ANUNCIADA = 14;
 const ATUALIZA_MS = 10 * 60 * 1000;
-const TETO_DE_POSTS = 3000;
+const TETO_DE_POSTS = 25000;
+const MEMO_MS = 5 * 60 * 1000;
 const TETO_DA_RESPOSTA = 100;
 const PREVIEW_CHARS = 400;
 const DIA_MS = 86400000;
@@ -51,13 +56,18 @@ export function tituloDoPost(texto) {
 /** O post no formato de vaga, ou null se não for vaga por link. */
 export function vagaDoPost(post) {
     const texto = String(post.Content || '');
-    if (TEM_EMAIL.test(texto) || !TEM_LINK.test(texto) || !ANUNCIA_VAGA.test(texto)) return null;
-    const url = linkDoPost(post.LinkedinId) || post.Url;
+    // A vaga anunciada (vagasAnunciadas.js) já é vaga e o link é o anúncio. Com
+    // email no texto ela fica de fora pelo mesmo motivo do post: o link entregaria o contato.
+    const anunciada = post.Source === FONTE;
+    if (TEM_EMAIL.test(texto)) return null;
+    if (!anunciada && (!TEM_LINK.test(texto) || !ANUNCIA_VAGA.test(texto))) return null;
+    const url = anunciada ? post.Url : (linkDoPost(post.LinkedinId) || post.Url);
     if (!url) return null;
 
     const vaga = {
-        Id: `link-${post.Id}`, JobTitle: tituloDoPost(texto), Company: '', Email: '', Description: texto,
-        Skills: extractSkills(texto), Location: null, Modality: null, CreatedAt: post.PostedAt || post.CreatedAt, url,
+        Id: `link-${post.Id}`, JobTitle: tituloDoPost(texto), Company: anunciada ? (post.Author || '') : '', Email: '', Description: texto,
+        Skills: extractSkills(texto), Location: anunciada ? (texto.match(/📍 Local: (.+)/)?.[1] ?? null) : null,
+        Modality: null, CreatedAt: post.PostedAt || post.CreatedAt, url,
     };
     const { area, level, mods, isBR } = classifyJob(vaga);
     Object.assign(vaga, { Area: area, Level: level, Mods: mods, IsBR: isBR });
@@ -72,7 +82,7 @@ export function semRepetidas(vagas) {
     return [...vagas]
         .sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt))
         .filter((v) => {
-            const chave = v.JobTitle.toLowerCase();
+            const chave = `${v.JobTitle}|${v.Company}`.toLowerCase();
             if (vistas.has(chave)) return false;
             vistas.add(chave);
             return true;
@@ -85,14 +95,14 @@ const faixaDeIdade = (data, agora) => {
 };
 
 /** O que esta pessoa vê: o filtro do feed, a semana primeiro e, nela, o melhor match. */
+// O corte barato do feed vem antes: são milhares de vagas, e passesFilters relê o texto de cada uma.
 export function vagasParaPerfil(vagas, perfil, agora = Date.now()) {
-    return vagas
-        .filter((v) => agora - new Date(v.CreatedAt).getTime() <= DIAS_DE_VAGA * DIA_MS)
-        .filter((v) => passesFilters(v, perfil, { semEmail: true }))
+    const recentes = vagas.filter((v) => agora - new Date(v.CreatedAt).getTime() <= DIAS_DE_VAGA * DIA_MS);
+    return candidatasDoPerfil(recentes, perfil, new Set(), { semEmail: true })
         .map((v) => ({ vaga: v, score: computeMatch(perfil, v).score }))
         .sort((a, b) => faixaDeIdade(a.vaga.CreatedAt, agora) - faixaDeIdade(b.vaga.CreatedAt, agora) || b.score - a.score)
         .map(({ vaga, score }) => ({
-            id: vaga.Id, title: vaga.JobTitle, createdAt: vaga.CreatedAt, matchScore: score, url: vaga.url,
+            id: vaga.Id, title: vaga.JobTitle, company: vaga.Company || null, createdAt: vaga.CreatedAt, matchScore: score, url: vaga.url,
             description: semContato(vaga.Description)?.slice(0, PREVIEW_CHARS) ?? null,
         }));
 }
@@ -104,14 +114,15 @@ let carregando = null;
 
 async function atualizar() {
     const posts = await sql`
-        select "Id", "LinkedinId", "Url", left("Content", 3000) as "Content", "PostedAt", "CreatedAt"
+        select "Id", "Source", "LinkedinId", "Url", "Author", left("Content", 3000) as "Content", "PostedAt", "CreatedAt"
         from "ScrapedPosts"
-        where "Id" > ${maiorId} and "CreatedAt" > now() - make_interval(days => ${DIAS_DE_VAGA})
-          and coalesce("Status", '') <> 'rejected'
-          and "Content" !~* ${EMAIL_SQL} and "Content" ~* ${LINK_SQL}
+        where "Id" > ${maiorId} and coalesce("Status", '') <> 'rejected' and "Content" !~* ${EMAIL_SQL}
+          and (("Source" = ${FONTE} and "CreatedAt" > now() - make_interval(days => ${DIAS_DE_VAGA_ANUNCIADA}))
+               or ("Source" is distinct from ${FONTE} and "CreatedAt" > now() - make_interval(days => ${DIAS_DE_VAGA})
+                   and "Content" ~* ${LINK_SQL}))
         order by "Id" desc limit ${TETO_DE_POSTS}`;
     if (posts.length) {
-        maiorId = Math.max(maiorId, ...posts.map((p) => Number(p.Id)));
+        maiorId = posts.reduce((m, p) => Math.max(m, Number(p.Id)), maiorId);
         vagas = semRepetidas([...vagas, ...posts.map(vagaDoPost).filter(Boolean)]);
     }
     checadoEm = Date.now();
@@ -128,8 +139,24 @@ async function vagasAtuais() {
     return vagas;
 }
 
+// O cartão em Vagas e a tela pedem a mesma lista em seguida: guarda a promessa por 5 min.
+const memo = new Map();
+
 export async function vagasPorLinkDe(userId) {
-    const [perfil] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
-    const lista = vagasParaPerfil(await vagasAtuais(), perfil || null);
-    return { vagas: lista.slice(0, TETO_DA_RESPOSTA), total: lista.length };
+    const guardado = memo.get(userId);
+    if (guardado && Date.now() - guardado.em < MEMO_MS) return guardado.resultado;
+    const resultado = (async () => {
+        const [perfil] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
+        const lista = vagasParaPerfil(await vagasAtuais(), perfil || null);
+        return { vagas: lista.slice(0, TETO_DA_RESPOSTA), total: lista.length };
+    })();
+    memo.set(userId, { em: Date.now(), resultado });
+    resultado.catch(() => memo.delete(userId));
+    if (memo.size > 2000) memo.delete(memo.keys().next().value);
+    return resultado;
+}
+
+/** Perfil salvo muda o que a pessoa vê: a lista guardada cai junto. */
+export function esquecerVagasPorLink(userId) {
+    memo.delete(userId);
 }

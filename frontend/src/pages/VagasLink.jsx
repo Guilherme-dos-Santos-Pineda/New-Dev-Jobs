@@ -38,7 +38,7 @@ export default function VagasLink() {
             <div className="page-head">
                 <div>
                     <h1>{t('Vagas por link')}</h1>
-                    <p className="muted">{t('Estas vagas não têm email. Você se candidata pelo link do post, e elas não gastam seus envios do dia.')}</p>
+                    <p className="muted">{t('Estas vagas não têm email. Você se candidata pelo link do anúncio, e elas não gastam seus envios do dia.')}</p>
                 </div>
             </div>
 
@@ -60,7 +60,7 @@ export default function VagasLink() {
                                 <button className="vh-info" onClick={() => setAberta(aberta === v.id ? null : v.id)} aria-expanded={aberta === v.id}>
                                     <span className="vh-titulo">{v.title}</span>
                                     <span className="vh-sub">
-                                        {haQuanto(v.createdAt)}{' · '}
+                                        {v.company ? `${v.company} · ` : ''}{haQuanto(v.createdAt)}{' · '}
                                         <span className={`vh-match ${scoreClass(v.matchScore)}`}>{t('{n}% compatível', { n: v.matchScore })}</span>
                                     </span>
                                 </button>

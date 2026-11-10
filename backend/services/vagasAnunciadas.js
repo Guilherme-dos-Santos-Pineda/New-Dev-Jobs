@@ -42,9 +42,10 @@ export const BUSCAS = [
         titulos: ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Software Engineer', 'Mobile Developer', 'Data Engineer'],
     },
     {
-        nome: 'outras-brasil', local: 'Brazil', descricao: false, max: 300,
+        nome: 'outras-brasil', local: 'Brazil', descricao: false, max: 350,
         titulos: ['Assistente Administrativo', 'Analista Financeiro', 'Recursos Humanos', 'Vendedor', 'Representante Comercial',
-            'Atendimento ao Cliente', 'Marketing', 'Social Media', 'Analista de Logística', 'Comprador'],
+            'Atendimento ao Cliente', 'Marketing', 'Social Media', 'Analista de Logística', 'Comprador',
+            'Advogado', 'Assistente Jurídico', 'Estágio Direito'],
     },
 ];
 

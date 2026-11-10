@@ -30,7 +30,10 @@ test('areaForaDeTI: separa pelo título', () => {
 test('areaForaDeTI: outra profissão, vaga de TI e título vago ficam de fora', () => {
     assert.equal(areaForaDeTI(vaga('Enfermeira de Atendimento')), null);
     assert.equal(areaForaDeTI(vaga('Técnico de Manutenção')), null);
-    assert.equal(areaForaDeTI(vaga('Advogado')), null);
+    assert.equal(areaForaDeTI(vaga('Advogado')), 'juridico');
+    assert.equal(areaForaDeTI(vaga('Assistente Jurídico')), 'juridico');
+    assert.equal(areaForaDeTI(vaga('Estagiário de Direito')), 'juridico');
+    assert.equal(areaForaDeTI(vaga('Advogado Trabalhista Comercial')), 'juridico');
     assert.equal(areaForaDeTI(vaga('Desenvolvedor Back-end')), null);
     assert.equal(areaForaDeTI(vaga('Vaga')), null);
 });

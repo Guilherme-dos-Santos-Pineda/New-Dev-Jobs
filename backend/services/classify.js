@@ -406,9 +406,11 @@ export function areaDaVaga(job) {
 // Fora de TI, mas sem público aqui: continua sem aparecer para ninguém. Testada
 // antes das áreas porque "Enfermeira de Atendimento" e "Técnico de Manutenção de
 // Produção" têm palavra de outra área no título.
-const OUTRA_PROFISSAO = /enferm|m[ée]dic[oa]|psic[óo]log|nutri[çc]|nutricion|fisioterap|dentist|odonto|farmac|biom[ée]d|veterin|advog|jur[íi]dic|direito|paralegal|engenheir|soldador|eletricist|el[ée]tric|mec[âa]nic|motorista|vigia|vigilante|porteir|zelador|limpeza|cozinh|gar[çc]on|professor|pedagog|instrutor|esteticista|pedreiro|costureir|manuten[çc][ãa]o/;
+const OUTRA_PROFISSAO = /enferm|m[ée]dic[oa]|psic[óo]log|nutri[çc]|nutricion|fisioterap|dentist|odonto|farmac|biom[ée]d|veterin|engenheir|soldador|eletricist|el[ée]tric|mec[âa]nic|motorista|vigia|vigilante|porteir|zelador|limpeza|cozinh|gar[çc]on|professor|pedagog|instrutor|esteticista|pedreiro|costureir|manuten[çc][ãa]o/;
 
 const AREAS_DO_TITULO = [
+    // Antes das outras: "Advogado Trabalhista Comercial" é jurídico, não vendas.
+    ['juridico', /advog|jur[íi]dic|\bdireito\b|paralegal|contencioso|societ[áa]rio|\blegal counsel\b|\blegal\b/],
     ['marketing', /marketing|\bm[íi]dias?\b|social media|conte[úu]do|copywrit|tr[áa]fego|branding|\bcomunica[çc][ãa]o\b|\bgrowth\b|publicidade|\bseo\b/],
     ['vendas', /vendas|vendedor|comercial|\bsales\b|account exec|customer success|sucesso do cliente|atendimento|\bsdr\b|\bbdr\b|representante|telemarketing|call center|atendente|de neg[óo]cios/],
     ['adm', /administrativ|administra[çc][ãa]o|benef[íi]cios|escrit[óo]rio|fp&a|contratos|facilities|secret[áa]ri|recep[çc]|faturamento|contas a (?:pagar|receber)|financeir|cont[áa]bil|contador|contabilidade|fiscal|tribut|departamento pessoal|\bdp\b|recursos humanos|\brh\b|\bhr\b|recrutador|recrutamento|talent|human resources|\bpeople\b|controladoria|payroll|folha de pagamento/],

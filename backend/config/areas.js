@@ -51,7 +51,9 @@ const VIZINHAS = {
  * não escolheu área nenhuma (o feed "de tudo") passaria a receber vaga de
  * recepcionista. A classificação vive em `areaForaDeTI` (services/classify.js).
  */
-export const AREAS_FORA_DE_TI = ['adm', 'vendas', 'marketing', 'operacoes'];
+// 'juridico' entrou em 09/11/2026, a pedido de usuários: ~32 vagas com email em 30 dias,
+// mais as anunciadas no LinkedIn. Saúde, engenharia e manutenção seguem de fora.
+export const AREAS_FORA_DE_TI = ['adm', 'vendas', 'marketing', 'operacoes', 'juridico'];
 
 export function expandirAreas(escolhidas) {
     const lista = Array.isArray(escolhidas) ? escolhidas.filter(Boolean).map(String) : [];

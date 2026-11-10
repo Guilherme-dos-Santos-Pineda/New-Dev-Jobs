@@ -86,6 +86,7 @@ export const AREA_OPTIONS = [
     { value: 'vendas', label: 'Vendas / Atendimento', icone: 'ti-message-circle', desc: 'Comercial, inside sales, customer success' },
     { value: 'marketing', label: 'Marketing / Comunicação', icone: 'ti-speakerphone', desc: 'Social media, conteúdo, tráfego, comunicação' },
     { value: 'operacoes', label: 'Operações / Logística', icone: 'ti-truck', desc: 'Logística, compras, produção, qualidade' },
+    { value: 'juridico', label: 'Jurídico', icone: 'ti-scale', desc: 'Advocacia, assistente jurídico, estágio em direito' },
 ];
 
 export const LEVEL_OPTIONS = [

@@ -41,6 +41,7 @@ const TERMO_DA_AREA = {
     vendas: 'vendas',
     marketing: 'marketing',
     operacoes: 'logística',
+    juridico: 'advogado',
 };
 
 const NIVEL_NA_BUSCA = { estagio: 'estágio', junior: 'júnior', pleno: 'pleno', senior: 'sênior' };

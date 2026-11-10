@@ -32,6 +32,12 @@ export const BUSCAS = [
         titulos: ['Front-end', 'Desenvolvedor Front-end', 'Frontend Developer', 'React Developer', 'Angular Developer'],
     },
     {
+        // Pedido de usuário (10/11/2026). A busca geral já traz a maioria (88 de 100
+        // num teste de 24h), mas esta acha as que o título só diz .NET ou C#.
+        nome: 'dotnet-brasil', local: 'Brazil', descricao: false, max: 100,
+        titulos: ['Desenvolvedor .NET', '.NET Developer', 'Desenvolvedor C#', 'C# Developer', 'ASP.NET'],
+    },
+    {
         nome: 'ti-brasil', local: 'Brazil', descricao: false, max: 700,
         titulos: ['Desenvolvedor', 'Software Engineer', 'Back-end', 'Full Stack', 'Mobile Developer', 'Engenheiro de Dados',
             'Analista de Dados', 'QA', 'DevOps', 'Analista de Suporte', 'Analista de Sistemas', 'Product Owner',

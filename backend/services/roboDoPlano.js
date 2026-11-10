@@ -20,7 +20,8 @@ import { ORDEM_NIVEIS } from '../config/niveis.js';
 // 04/11/2026 (ver "Buscar vagas por nicho" no CLAUDE.md).
 
 export const ROBO_DO_PLANO = 'Vagas de quem comprou';
-export const CONSULTAS_POR_DIA = 8;
+// 16 desde 10/11/2026, com 4 pagantes: 8 revezava as buscas e alguém ficava dias sem a sua.
+export const CONSULTAS_POR_DIA = 16;
 const AREAS_POR_PESSOA = 2;
 const DIA_MS = 86400000;
 

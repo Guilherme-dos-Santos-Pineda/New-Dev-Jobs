@@ -8,9 +8,9 @@ const agora = Date.UTC(2026, 10, 10, 12);
 const dias = (n) => new Date(agora - n * 86400000).toISOString();
 const vaga = (id, matchScore, idade) => ({ id, matchScore, createdAt: dias(idade) });
 
-test('só vaga da última semana, e sem piso de compatibilidade', () => {
+test('a semana sai primeiro, sem piso de compatibilidade', () => {
     const ids = escolherVagas([vaga(1, 90, 1), vaga(2, 15, 1), vaga(3, 90, 8), vaga(4, 50, 7)], 20, agora);
-    assert.deepEqual(ids, [1, 4, 2]);
+    assert.deepEqual(ids, [1, 4, 2, 3]);
 });
 
 test('sai primeiro o melhor match, e a mais nova no empate', () => {
@@ -24,8 +24,13 @@ test('respeita o que resta do limite do dia', () => {
     assert.deepEqual(escolherVagas(lista, -1, agora), []);
 });
 
-test('sem vaga nova, nada sai', () => {
-    assert.deepEqual(escolherVagas([vaga(1, 95, 30)], 20, agora), []);
+test('sem vaga da semana, sai a do mês e depois a mais antiga, as mais novas antes', () => {
+    assert.deepEqual(escolherVagas([vaga(1, 95, 30), vaga(2, 50, 10), vaga(3, 99, 100)], 20, agora), [2, 1, 3]);
+});
+
+test('quem paga não fica sem envio enquanto houver vaga no perfil', () => {
+    const lista = Array.from({ length: 60 }, (_, i) => vaga(i + 1, 40, 8 + i));
+    assert.equal(escolherVagas(lista, 50, agora).length, 50);
 });
 
 test('só envia a partir das 9h de Brasília', () => {

@@ -47,6 +47,12 @@ export const BUSCAS = [
             'Atendimento ao Cliente', 'Marketing', 'Social Media', 'Analista de Logística', 'Comprador',
             'Advogado', 'Assistente Jurídico', 'Estágio Direito'],
     },
+    {
+        // Pedido no grupo (09/11/2026): marketing e comunicação remotos de fora. Testado:
+        // 'Worldwide' traz vaga presencial nos EUA e na Índia; a América Latina traz remota.
+        nome: 'marketing-america-latina', local: 'Latin America', descricao: false, max: 100,
+        titulos: ['Marketing', 'Content Marketing', 'Social Media Manager', 'Copywriter', 'Communications Manager', 'Growth Marketing'],
+    },
 ];
 
 /** Uma vaga do ator no formato de "ScrapedPosts", ou null se faltar o essencial. */

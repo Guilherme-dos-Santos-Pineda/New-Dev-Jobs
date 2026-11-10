@@ -411,7 +411,7 @@ const OUTRA_PROFISSAO = /enferm|m[ée]dic[oa]|psic[óo]log|nutri[çc]|nutricion|
 const AREAS_DO_TITULO = [
     // Antes das outras: "Advogado Trabalhista Comercial" é jurídico, não vendas.
     ['juridico', /advog|jur[íi]dic|\bdireito\b|paralegal|contencioso|societ[áa]rio|\blegal counsel\b|\blegal\b/],
-    ['marketing', /marketing|\bm[íi]dias?\b|social media|conte[úu]do|copywrit|tr[áa]fego|branding|\bcomunica[çc][ãa]o\b|\bgrowth\b|publicidade|\bseo\b/],
+    ['marketing', /marketing|\bm[íi]dias?\b|social media|conte[úu]do|copywrit|tr[áa]fego|branding|\bcomunica[çc][ãa]o\b|communications|\bgrowth\b|publicidade|\bseo\b/],
     ['vendas', /vendas|vendedor|comercial|\bsales\b|account exec|customer success|sucesso do cliente|atendimento|\bsdr\b|\bbdr\b|representante|telemarketing|call center|atendente|de neg[óo]cios/],
     ['adm', /administrativ|administra[çc][ãa]o|benef[íi]cios|escrit[óo]rio|fp&a|contratos|facilities|secret[áa]ri|recep[çc]|faturamento|contas a (?:pagar|receber)|financeir|cont[áa]bil|contador|contabilidade|fiscal|tribut|departamento pessoal|\bdp\b|recursos humanos|\brh\b|\bhr\b|recrutador|recrutamento|talent|human resources|\bpeople\b|controladoria|payroll|folha de pagamento/],
     ['operacoes', /opera[çc][õo]es|operacional|operations|log[íi]stic|supply|compras|comprador|produ[çc][ãa]o|almoxarif|estoque|\bprocessos\b|expedi[çc][ãa]o|suprimentos|qualidade|planejamento|importa[çc]|exporta[çc]|\bpcp\b/],

@@ -77,7 +77,7 @@ test('a resposta leva a empresa', () => {
     assert.equal(v.company, 'Acme');
 });
 
-test('o custo diário tem teto: no máximo ~1280 vagas, só front com descrição', () => {
-    assert.equal(BUSCAS.reduce((s, b) => s + b.max, 0), 1280);
+test('o custo diário tem teto: no máximo ~1380 vagas, só front com descrição', () => {
+    assert.equal(BUSCAS.reduce((s, b) => s + b.max, 0), 1380);
     assert.deepEqual(BUSCAS.filter((b) => b.descricao).map((b) => b.nome), ['front-brasil']);
 });

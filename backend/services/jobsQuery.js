@@ -86,10 +86,13 @@ export function passesFilters(job, profile, { semEmail = false } = {}) {
     const region = profile.Region || 'br';
     if (region === 'br' && !jobIsBR(job)) return false;
     if (region === 'intl' && (jobIsBR(job) || vagaEmEspanhol(job))) return false;
+    // 'ambos' (Brasil e exterior, relato de 10/11/2026): as brasileiras ficam, e das
+    // de fora vale o mesmo corte do espanhol.
+    if (region === 'ambos' && !jobIsBR(job) && vagaEmEspanhol(job)) return false;
 
     // Só tira a vaga de outra região: ~38% não dizem o país e continuam aparecendo.
-    const regioes = region === 'intl' ? parseArr(profile.Regions) : [];
-    if (regioes.length) {
+    const regioes = region !== 'br' ? parseArr(profile.Regions) : [];
+    if (regioes.length && !jobIsBR(job)) {
         const daVaga = regioesDaVaga(job);
         if (daVaga.length && !daVaga.some((r) => regioes.includes(r))) return false;
     }
@@ -247,7 +250,8 @@ const MATCHES_MAX = Number(process.env.MATCHES_MAX) || 1500;
 export function candidatasDoPerfil(vagas, profile, resolvidas = new Set(), { semEmail = false } = {}) {
     const dias = FILTRO_DATA_ATIVO && Number(profile?.PostingDays) > 0 ? Number(profile.PostingDays) : null;
     const desde = dias ? Date.now() - dias * 86400000 : null;
-    const paraFora = (profile?.Region || 'br') === 'intl';
+    const regiao = profile?.Region || 'br';
+    const paraFora = regiao === 'intl';
     const areas = new Set(expandirAreas(parseArr(profile?.Areas)));
     const querForaDeTI = AREAS_FORA_DE_TI.some((a) => areas.has(a));
     const niveis = new Set(niveisAceitos(profile));
@@ -259,7 +263,7 @@ export function candidatasDoPerfil(vagas, profile, resolvidas = new Set(), { sem
     for (const j of vagas) {
         if (resolvidas.has(String(j.Id))) continue;
         if (desde && new Date(j.CreatedAt).getTime() < desde) continue;
-        if (profile && j.IsBR === paraFora) continue;
+        if (profile && regiao !== 'ambos' && j.IsBR === paraFora) continue;
         // Vaga que não deu para classificar PASSA: título ruim não é vaga ruim, e
         // o balde dos indefinidos tinha Tech Lead e Arquiteto de Software dentro.
         if (j.Area === 'nontech') {

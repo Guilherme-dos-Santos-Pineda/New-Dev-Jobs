@@ -407,10 +407,11 @@ export default function Profile() {
                                 <select className="select" value={form.region} onChange={(e) => set('region', e.target.value)}>
                                     <option value="br">🇧🇷 Brasil</option>
                                     <option value="intl">🌎 Internacional</option>
+                                    <option value="ambos">🇧🇷🌎 Brasil e exterior</option>
                                 </select>
                                 <div className="hint">Só receberá vagas da região escolhida. (Por enquanto o foco é Brasil.)</div>
                             </div>
-                            {form.region === 'intl' && form.regiaoLigada && (
+                            {form.region !== 'br' && form.regiaoLigada && (
                                 <div className="field">
                                     <label>{t('Regiões')} <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}>({t('opcional')})</span></label>
                                     <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>{t('Sem marcar nada, aparecem todas. Vaga que não informa o país continua aparecendo.')}</div>

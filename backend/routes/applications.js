@@ -8,6 +8,7 @@ import { planUsage } from '../services/usage.js';
 import { planOf } from '../config/plans.js';
 import { getMatches, invalidateMatches } from '../services/jobsQuery.js';
 import { emailEditado } from '../services/emailEditado.js';
+import { idiomaDaVaga } from '../services/classify.js';
 import { linkDoPost } from '../services/linkDoPost.js';
 
 const router = Router();
@@ -55,11 +56,13 @@ router.post('/preview', requireAuth, async (req, res) => {
 
     const sample = job || { JobTitle: 'Desenvolvedor(a) Backend', Company: 'Empresa Exemplo', Email: 'recrutador@empresa.com' };
 
-    const tpl = await resolveTemplate(req.user.Id, (req.body?.lang || 'pt').toString());
+    // Sem idioma no pedido (prévia de uma vaga), vale o mesmo do envio.
+    const lang = req.body?.lang ? String(req.body.lang) : (job ? idiomaDaVaga(job) : 'pt');
+    const tpl = await resolveTemplate(req.user.Id, lang);
     const subjectTemplate = req.body?.subject != null ? String(req.body.subject) : tpl.subject;
     const bodyTemplate = req.body?.body != null ? String(req.body.body) : tpl.body;
 
-    const rendered = renderEmail({ subjectTemplate, bodyTemplate, user, profile, job: sample });
+    const rendered = renderEmail({ subjectTemplate, bodyTemplate, user, profile, job: sample, lang });
     res.json({
         preview: {
             ...rendered,

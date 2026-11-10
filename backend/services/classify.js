@@ -346,6 +346,21 @@ export function regioesDaVaga(job) {
     return DOMINIO_DA_REGIAO[fim] ? [DOMINIO_DA_REGIAO[fim]] : [];
 }
 
+const INGLES = /\b(?:the|and|with|for|you|your|we|our|experience|looking|hiring|role|team|skills|years|developer|engineer|remote|must|will|have|apply)\b/gi;
+
+/**
+ * Em que idioma vai o email: inglês só para vaga de fora do Brasil escrita em
+ * inglês. Vaga de Portugal ou em português segue em português. Relato de
+ * 10/11/2026: o modelo em inglês não existia e todo envio saía em português.
+ */
+export function idiomaDaVaga(job) {
+    if (job?.IsBR === true || (job?.IsBR == null && jobIsBR(job || {}))) return 'pt';
+    const texto = legivel(`${job?.JobTitle || ''} ${job?.Description || ''}`);
+    const en = (texto.match(INGLES) || []).length;
+    const pt = (texto.match(PORTUGUES) || []).length;
+    return en > pt ? 'en' : 'pt';
+}
+
 /** Heurística de país da vaga (mesma lógica do scraper). */
 export function jobIsBR(job) {
     const dom = (job.Email || '').split('@')[1]?.toLowerCase() || '';

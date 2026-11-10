@@ -17,7 +17,7 @@ export async function resolveTemplate(userId, lang = DEFAULT_LANG) {
 router.get('/', requireAuth, async (req, res) => {
     const lang = (req.query.lang || DEFAULT_LANG).toString();
     const tpl = await resolveTemplate(req.user.Id, lang);
-    res.json({ template: tpl, variables: VARIABLES, languages: ['pt'] });
+    res.json({ template: tpl, variables: VARIABLES, languages: ['pt', 'en'] });
 });
 
 // PUT /api/templates  { lang, subject, body }

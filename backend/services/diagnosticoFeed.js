@@ -70,7 +70,7 @@ export async function diagnosticoDoFeed(userId) {
     // Os pedaços de SQL cortam IGUAL a candidatasDoPerfil, na mesma ordem. Se
     // divergirem, o diagnóstico mente e manda o admin arrumar o lugar errado.
     const fArea = areas.length ? sql`and (j."Area" is null or j."Area" = 'other' or j."Area" = any(${areas}::text[]))` : sql``;
-    const fPais = perfil ? (regiao === 'intl' ? sql`and j."IsBR" is not true` : sql`and j."IsBR" is not false`) : sql``;
+    const fPais = !perfil || regiao === 'ambos' ? sql`` : (regiao === 'intl' ? sql`and j."IsBR" is not true` : sql`and j."IsBR" is not false`);
     const fData = dias ? sql`and j."CreatedAt" >= now() - make_interval(days => ${dias})` : sql``;
     const fNivel = niveis.length ? sql`and (j."Level" is null or j."Level" = any(${niveis}::text[]))` : sql``;
     const fMod = mods.length ? sql`and (j."Mods" is null or jsonb_exists_any(j."Mods", ${mods}::text[]))` : sql``;
@@ -91,7 +91,7 @@ export async function diagnosticoDoFeed(userId) {
     // SQL: ela não as conta. O total certo é o `noFeed` lá embaixo.
     const semForaDeTI = areas.some((a) => AREAS_FORA_DE_TI.includes(a)) ? ' (sem contar as vagas de fora de TI)' : '';
     if (areas.length) await passo('área', areas.join(', ') + semForaDeTI, sql`${fArea}`);
-    await passo('país', regiao === 'intl' ? 'fora do Brasil' : 'Brasil', sql`${fArea} ${fPais}`);
+    await passo('país', regiao === 'intl' ? 'fora do Brasil' : regiao === 'ambos' ? 'Brasil e exterior' : 'Brasil', sql`${fArea} ${fPais}`);
     if (dias) await passo('data de postagem', `últimos ${dias} dias`, sql`${fArea} ${fPais} ${fData}`);
     if (niveis.length) await passo('senioridade', `${niveis.join(', ')} (modo estrito)`, sql`${fArea} ${fPais} ${fData} ${fNivel}`);
     if (mods.length) await passo('modalidade', mods.join(', '), sql`${fArea} ${fPais} ${fData} ${fNivel} ${fMod}`);

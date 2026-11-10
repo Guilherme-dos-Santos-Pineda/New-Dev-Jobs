@@ -52,6 +52,7 @@ export default function EmailSettings({ parte } = {}) {
     const navigate = useNavigate();
 
     // ---- template ----
+    const [lang, setLang] = useState('pt');
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const [variables, setVariables] = useState([]);
@@ -101,21 +102,22 @@ export default function EmailSettings({ parte } = {}) {
 
     useEffect(() => {
         (async () => {
-            const { template, variables } = await api.getTemplate('pt');
+            setLoading(true);
+            const { template, variables } = await api.getTemplate(lang);
             setSubject(template.subject);
             setBody(template.body);
             setVariables(variables);
             setLoading(false);
         })();
-    }, []);
+    }, [lang]);
 
     // Preview ao vivo (debounce)
     const runPreview = useCallback(async (subj, bd) => {
         try {
-            const { preview } = await api.previewApplication({ subject: subj, body: bd });
+            const { preview } = await api.previewApplication({ subject: subj, body: bd, lang });
             setPreview(preview);
         } catch { /* ignora */ }
-    }, []);
+    }, [lang]);
     useEffect(() => {
         if (loading) return;
         const t = setTimeout(() => runPreview(subject, body), 350);
@@ -156,7 +158,7 @@ export default function EmailSettings({ parte } = {}) {
     async function save() {
         setSaving(true);
         try {
-            await api.saveTemplate({ lang: 'pt', subject, body });
+            await api.saveTemplate({ lang, subject, body });
             toast.show('Template salvo');
         } catch (e) {
             toast.show(e.message, 'error');
@@ -165,7 +167,7 @@ export default function EmailSettings({ parte } = {}) {
         }
     }
     async function resetTpl() {
-        const { template } = await api.resetTemplate('pt');
+        const { template } = await api.resetTemplate(lang);
         setSubject(template.subject);
         setBody(template.body);
         toast.show('Template restaurado para o padrão');
@@ -281,10 +283,14 @@ export default function EmailSettings({ parte } = {}) {
                         Personalize o assunto e o corpo. Use as variáveis (clique para inserir).
                     </p>
                     <div className="spacer" />
-                    <select className="select" style={{ width: 'auto' }} value="pt" disabled>
+                    <select className="select" style={{ width: 'auto' }} value={lang} onChange={(e) => setLang(e.target.value)}>
                         <option value="pt">Português</option>
+                        <option value="en">Inglês</option>
                     </select>
                 </div>
+                {lang === 'en' && (
+                    <p className="hint" style={{ marginTop: -4 }}>O modelo em inglês vai para vagas de fora do Brasil escritas em inglês. As outras recebem o modelo em português.</p>
+                )}
 
                 <div className="grid-2 tpl-grid" style={{ alignItems: 'start' }}>
                     {/* Coluna editor */}

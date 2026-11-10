@@ -19,6 +19,21 @@ export const VARIABLES = [
 ];
 
 export const DEFAULTS = {
+    en: {
+        subject: 'Application for {job_title} at {company}',
+        body:
+`Hello {company},
+
+My name is {sender_name} and I would like to apply for the {job_title} position. I believe my skills and experience can make a positive contribution to the team.
+
+{direct_contact}
+
+You can find my contact information below:
+{contact_info}
+
+Best regards,
+{sender_name}`,
+    },
     pt: {
         subject: 'Candidatura para {job_title} na {company}',
         body:
@@ -103,7 +118,8 @@ function niceTitle(job, profile) {
  * Monta o mapa de variáveis a partir do usuário/perfil/vaga.
  * Cada variável tem versões { html, text }.
  */
-export function buildVars({ user, profile, job }) {
+export function buildVars({ user, profile, job, lang = 'pt' }) {
+    const ingles = lang === 'en';
     const p = profile || {};
     const waDigits = onlyDigits(p.Whatsapp || p.Phone || '');
     const waLink = waDigits ? link(`https://wa.me/${waDigits}`, 'WhatsApp') : { html: '', text: '' };
@@ -116,7 +132,7 @@ export function buildVars({ user, profile, job }) {
     if (p.Phone) push(escapeHtml(p.Phone), p.Phone);
     const li = link(p.Linkedin, 'LinkedIn');
     const gh = link(p.Github, 'GitHub');
-    const pf = link(p.Portfolio, 'Portfólio');
+    const pf = link(p.Portfolio, ingles ? 'Portfolio' : 'Portfólio');
     if (li.text) push(li.html, li.text);
     if (gh.text) push(gh.html, gh.text);
     if (pf.text) push(pf.html, pf.text);
@@ -131,11 +147,12 @@ export function buildVars({ user, profile, job }) {
     // Passou a ser uma variável só, que some por inteiro quando não há link
     // nenhum, e que se adapta quando só um dos dois existe.
     const canais = [waLink, li].filter((c) => c.text);
-    const juntar = (campo) => canais.map((c) => c[campo]).join(' ou no ');
+    const juntar = (campo) => canais.map((c) => c[campo]).join(ingles ? ' or ' : ' ou no ');
+    const frase = ingles ? "If you'd like to talk to me directly, I'm available on" : 'Caso queira falar comigo diretamente, estou disponível no';
     const direct = canais.length
         ? {
-            html: `Caso queira falar comigo diretamente, estou disponível no ${juntar('html')}.`,
-            text: `Caso queira falar comigo diretamente, estou disponível no ${juntar('text')}.`,
+            html: `${frase} ${juntar('html')}.`,
+            text: `${frase} ${juntar('text')}.`,
         }
         : { html: '', text: '' };
 
@@ -215,12 +232,15 @@ export function empresaEhQuemPostou(job) {
     return !!job?.AutorNome && norm(job.Company) === norm(job.AutorNome) && pareceNomeDePessoa(job.Company);
 }
 
-export function renderEmail({ subjectTemplate, bodyTemplate, user, profile, job }) {
-    const vars = buildVars({ user, profile, job });
+export function renderEmail({ subjectTemplate, bodyTemplate, user, profile, job, lang = 'pt' }) {
+    const vars = buildVars({ user, profile, job, lang });
     let subject = render(subjectTemplate, vars).text.replace(/\s+/g, ' ').trim();
     // "Candidatura para QA na Wesley Macedo": no assunto sai o nome. No corpo fica,
     // porque "Olá Wesley Macedo," cumprimenta quem postou.
-    if (empresaEhQuemPostou(job)) subject = subject.replace(` na ${String(job.Company).trim()}`, '').trim();
+    if (empresaEhQuemPostou(job)) {
+        const c = String(job.Company).trim();
+        subject = subject.replace(` na ${c}`, '').replace(` at ${c}`, '').trim();
+    }
     const { html, text } = render(bodyTemplate, vars, { paragraphs: true });
     return {
         subject,

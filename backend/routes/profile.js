@@ -160,7 +160,7 @@ router.put('/', requireAuth, async (req, res) => {
         Areas: filterAllowed(b.areas, ALLOWED_AREAS),
         StrictLevel: !!b.strictLevel,
         PostingDays: Number.isInteger(+b.postingDays) && +b.postingDays > 0 ? +b.postingDays : null,
-        Region: b.region === 'intl' ? 'intl' : 'br',
+        Region: ['intl', 'ambos'].includes(b.region) ? b.region : 'br',
         States: toArr(b.states).map((x) => x.toUpperCase()).filter((x) => ALLOWED_STATES.includes(x)),
         Cities: [...new Set(toArr(b.cities).map((x) => x.replace(/[<>]/g, '').slice(0, 60)))].slice(0, 20),
         ShowPcd: !!b.showPcd,

@@ -1,6 +1,7 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
 import { renderEmail } from './templates.js';
+import { idiomaDaVaga } from './classify.js';
 import { sendApplicationEmail } from './mailer.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { resolveTemplate } from '../routes/templates.js';
@@ -57,8 +58,9 @@ export async function applyToJob(userId, jobId, editado = null) {
     }
 
     const match = computeMatch(profile, job);
-    const tpl = editado ? { subject: editado.subject, body: editado.body } : await resolveTemplate(userId, 'pt');
-    const rendered = renderEmail({ subjectTemplate: tpl.subject, bodyTemplate: tpl.body, user, profile, job });
+    const lang = idiomaDaVaga(job);
+    const tpl = editado ? { subject: editado.subject, body: editado.body } : await resolveTemplate(userId, lang);
+    const rendered = renderEmail({ subjectTemplate: tpl.subject, bodyTemplate: tpl.body, user, profile, job, lang });
 
     const cvBuffer = await getCvBuffer(profile.CvPath);
 

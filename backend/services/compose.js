@@ -1,6 +1,7 @@
 import sql from '../lib/sql.js';
 import { computeMatch } from './matching.js';
 import { renderEmail } from './templates.js';
+import { idiomaDaVaga } from './classify.js';
 import { resolveTemplate } from '../routes/templates.js';
 import { getMatches, invalidateMatches } from './jobsQuery.js';
 import { planOf } from '../config/plans.js';
@@ -61,8 +62,9 @@ export async function composeForJob(userId, jobId, planName) {
     if (!emailDeContatoValido(job.Email)) throw new ComposeError('Vaga sem email de contato válido', 422);
 
     const match = computeMatch(profile, job);
-    const tpl = await resolveTemplate(userId, 'pt');
-    const rendered = renderEmail({ subjectTemplate: tpl.subject, bodyTemplate: tpl.body, user, profile, job });
+    const lang = idiomaDaVaga(job);
+    const tpl = await resolveTemplate(userId, lang);
+    const rendered = renderEmail({ subjectTemplate: tpl.subject, bodyTemplate: tpl.body, user, profile, job, lang });
 
     // -----------------------------------------------------------------------
     // A gravação é o gargalo de segurança, não a leitura acima.

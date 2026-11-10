@@ -4,7 +4,7 @@ import sql from '../lib/sql.js';
 import { config } from '../config.js';
 import { analyzeContent } from './ai.js';
 import { runActor, apifyUsage, temFolgaDeCredito } from './apifyPool.js';
-import { consultasDoPlano } from './roboDoPlano.js';
+import { planoDoDia } from './roboDoPlano.js';
 import { runVagasAnunciadas } from './vagasAnunciadas.js';
 import { proximosMonitoraveis } from './recrutadorMonitoravel.js';
 
@@ -242,8 +242,12 @@ export async function runMonitoring({
     }
 
     // Robô de quem comprou: as buscas saem do perfil de quem tem plano ativo hoje.
+    // Além das buscas, ele visita os recrutadores que mais postam nessas áreas.
+    let recrutadoresDoPlano = [];
     if (doPlano) {
-        queries = await consultasDoPlano();
+        const plano = await planoDoDia();
+        queries = plano.consultas;
+        recrutadoresDoPlano = plano.recrutadores;
         if (!queries.length) return { found: 0, novos: 0, semCompradores: true };
     }
 
@@ -306,9 +310,18 @@ export async function runMonitoring({
             (_, i) => authorUrls.slice(i * AUTHOR_LIMIT, (i + 1) * AUTHOR_LIMIT))
         : [null];
 
+    const chamadas = batches.map((batch) => (batch ? { ...baseInput, authorUrls: batch } : baseInput));
+    // Visita diária do robô de quem comprou: janela de 24h e o teto do monitoramento,
+    // que com um dia de posts não é atingido. Uma chamada por lote de 10.
+    for (let i = 0; i < recrutadoresDoPlano.length; i += AUTHOR_LIMIT) {
+        chamadas.push({
+            ...baseInput, searchQueries: [QUERY_MONITORAMENTO], maxPosts: 80, postedLimit: '24h',
+            authorUrls: recrutadoresDoPlano.slice(i, i + AUTHOR_LIMIT),
+        });
+    }
+
     const items = [];
-    for (const batch of batches) {
-        const input = batch ? { ...baseInput, authorUrls: batch } : baseInput;
+    for (const input of chamadas) {
         // runActor rotaciona entre contas Apify se o crédito de uma esgotar no meio.
         const { items: batchItems } = await runActor(config.apify.postActorId, input);
         items.push(...batchItems);
@@ -370,14 +383,15 @@ export async function runMonitoring({
 
     // Cadência: carimba os recrutadores que ESTE run varreu (saved/selected),
     // para a próxima rodada priorizar quem está há mais tempo sem ser checado.
-    if (authorUrls.length) {
+    const visitados = [...authorUrls, ...recrutadoresDoPlano];
+    if (visitados.length) {
         await sql`
             update "Recruiters"
             set "LastCheckedAt" = now(), "CheckCount" = "CheckCount" + 1, "UpdatedAt" = now()
-            where "LinkedinUrl" = any(${authorUrls})`;
+            where "LinkedinUrl" = any(${visitados})`;
     }
 
-    s.recruiters = authorUrls.length;
+    s.recruiters = visitados.length;
     s.source = source;
     await setRunStats(runId, s);
     return s;

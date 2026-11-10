@@ -1,6 +1,8 @@
 import sql from '../lib/sql.js';
 import { planOf } from '../config/plans.js';
 import { ORDEM_NIVEIS } from '../config/niveis.js';
+import { expandirAreas, AREAS_FORA_DE_TI } from '../config/areas.js';
+import { recrutadoresDasAreas } from './recrutadorMonitoravel.js';
 
 // =========================
 // Robô de quem comprou
@@ -16,13 +18,26 @@ import { ORDEM_NIVEIS } from '../config/niveis.js';
 // A vaga encontrada entra na base comum: quem comprou recebe primeiro pelo envio
 // automático, mas ela não é exclusiva.
 //
-// O formato `vaga <termo>` e `vaga <termo> email`, sem aspas, é o medido em
-// 04/11/2026 (ver "Buscar vagas por nicho" no CLAUDE.md).
+// Duas frentes, medidas em 10/11/2026:
+//   1. Busca no LinkedIn todo: `vaga <termo> <nível>` e a hashtag do termo. A
+//      variante `... email` voltava com ZERO post em toda execução (metade das
+//      buscas, jogada fora). A hashtag é o que rende quando existe: `#dotnet`
+//      trouxe 20 posts na semana, 8 com email; `#vagafrontend`, 1 post.
+//   2. Visita diária aos recrutadores que mais postam nas áreas de quem comprou
+//      (RECRUTADORES_POR_DIA). É onde está o volume: os 30 primeiros postaram 529
+//      vagas dessas áreas em 30 dias. O monitoramento geral passa por eles uma
+//      vez por semana com teto de 80 posts por lote, e em 7 dias 6 lotes bateram
+//      o teto (só esses 6 trouxeram 145 vagas): o que passa do teto se perde.
+//      Com janela de 24h todo dia, nada passa. O carimbo de LastCheckedAt tira
+//      esses recrutadores do monitoramento geral, então ninguém é comprado duas vezes.
 
 export const ROBO_DO_PLANO = 'Vagas de quem comprou';
 // 16 desde 10/11/2026, com 4 pagantes: 8 revezava as buscas e alguém ficava dias sem a sua.
 export const CONSULTAS_POR_DIA = 16;
 const AREAS_POR_PESSOA = 2;
+// 3 chamadas à Apify por dia (10 por lote). Custo: ~US$ 0,001 por chamada mais
+// US$ 0,002 por post; esses 30 postam perto de 40 por dia, ~US$ 0,08.
+export const RECRUTADORES_POR_DIA = 30;
 const DIA_MS = 86400000;
 
 const TERMO_DA_AREA = {
@@ -45,6 +60,16 @@ const TERMO_DA_AREA = {
     juridico: 'advogado',
 };
 
+// Onde o termo da busca não dá uma hashtag que alguém usa.
+const HASHTAG_DA_AREA = { mobile: 'mobile', design: 'uxdesign', suporte: 'suporteti', fullstack: 'fullstack' };
+
+/** `#vagadotnet OR #vagasdotnet OR #dotnet`, a partir do termo da busca. */
+export function hashtagDoTermo(termo) {
+    const t = String(termo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\.net/g, 'dotnet').replace(/c#/g, 'csharp').replace(/[^a-z0-9]/g, '');
+    return t ? `#vaga${t} OR #vagas${t} OR #${t}` : '';
+}
+
 const NIVEL_NA_BUSCA = { estagio: 'estágio', junior: 'júnior', pleno: 'pleno', senior: 'sênior' };
 
 const lista = (v) => {
@@ -65,13 +90,11 @@ function nivelDaBusca(perfil) {
 /** As buscas de uma pessoa, da mais importante para a menos. */
 export function consultasDoPerfil(perfil) {
     const nivel = nivelDaBusca(perfil);
-    const areas = lista(perfil.Areas).map((a) => TERMO_DA_AREA[a]).filter(Boolean).slice(0, AREAS_POR_PESSOA);
+    const areas = lista(perfil.Areas).filter((a) => TERMO_DA_AREA[a]).slice(0, AREAS_POR_PESSOA)
+        .map((a) => ({ termo: TERMO_DA_AREA[a], hashtag: hashtagDoTermo(HASHTAG_DA_AREA[a] || TERMO_DA_AREA[a]) }));
     const skill = termoDaSkill(lista(perfil.Skills)[0]);
-    const termos = skill ? [...areas, skill] : areas;
-    return termos.flatMap((termo) => {
-        const busca = ['vaga', termo, nivel].filter(Boolean).join(' ');
-        return [busca, `${busca} email`];
-    });
+    const termos = skill ? [...areas, { termo: skill, hashtag: hashtagDoTermo(skill) }] : areas;
+    return termos.flatMap(({ termo, hashtag }) => [['vaga', termo, nivel].filter(Boolean).join(' '), hashtag].filter(Boolean));
 }
 
 /**
@@ -91,14 +114,26 @@ export function consultasDoDia(perfis, agora = Date.now(), teto = CONSULTAS_POR_
     return Array.from({ length: teto }, (_, i) => todas[(inicio + i) % todas.length]);
 }
 
+/** As áreas de TI dos compradores, já expandidas como no feed. */
+export function areasDosPerfis(perfis) {
+    const todas = perfis.flatMap((p) => expandirAreas(lista(p.Areas)));
+    // As de fora de TI ficam gravadas como 'nontech' (ver CLAUDE.md), e o
+    // recrutador de logística que mais posta não é o que interessa aqui.
+    return [...new Set(todas)].filter((a) => !AREAS_FORA_DE_TI.includes(a));
+}
+
 /** Chamado pelo robô a cada execução. Sem comprador, volta vazio e nada é gasto. */
-export async function consultasDoPlano(agora = Date.now()) {
-    const perfis = await sql`
+export async function planoDoDia(agora = Date.now()) {
+    const perfis = (await sql`
         select u."Plan", p."Areas", p."Levels", p."Skills"
         from "Users" u join "Profiles" p on p."UserId" = u."Id"
         where u."Plan" <> 'free' and (u."PlanExpiresAt" is null or u."PlanExpiresAt" > now())
-        order by u."Id" limit 500`;
-    return consultasDoDia(perfis.filter((p) => planOf(p.Plan).autoSend), agora);
+        order by u."Id" limit 500`).filter((p) => planOf(p.Plan).autoSend);
+    if (!perfis.length) return { consultas: [], recrutadores: [] };
+    return {
+        consultas: consultasDoDia(perfis, agora),
+        recrutadores: await recrutadoresDasAreas(areasDosPerfis(perfis), RECRUTADORES_POR_DIA),
+    };
 }
 
 /** Cria o robô uma vez. Quem o desligar no admin continua com ele desligado. */

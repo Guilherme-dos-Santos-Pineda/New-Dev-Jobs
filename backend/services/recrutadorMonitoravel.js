@@ -49,6 +49,26 @@ export function condicaoMonitoravel() {
         )`;
 }
 
+/**
+ * Os recrutadores que mais postaram vaga BR com email nestas áreas (90 dias).
+ * O robô de quem comprou visita estes TODO DIA, com janela de 24h (roboDoPlano.js).
+ */
+export async function recrutadoresDasAreas(areas, limite) {
+    if (!areas?.length || !limite) return [];
+    const rows = await sql`
+        select r."LinkedinUrl" from "Recruiters" r
+        join (
+            select j."RecruiterId" as id, count(*)::int as n from "Jobs" j
+            where j."RecruiterId" is not null and j."Email" like '%@%.%' and j."IsBR" is true
+              and j."Area" = any(${areas}::text[]) and j."CreatedAt" > now() - interval '90 days'
+            group by 1
+        ) p on p.id = r."Id"
+        where ${condicaoMonitoravel()}
+        order by p.n desc, r."Id" asc
+        limit ${limite}`;
+    return rows.map((x) => x.LinkedinUrl);
+}
+
 /** Quantos recrutadores o robô pode visitar hoje. */
 export async function contarMonitoraveis() {
     const [row] = await sql`

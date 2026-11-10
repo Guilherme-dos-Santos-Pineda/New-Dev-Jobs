@@ -1,20 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { consultasDoPerfil, consultasDoDia, CONSULTAS_POR_DIA } from '../services/roboDoPlano.js';
+import { consultasDoPerfil, consultasDoDia, hashtagDoTermo, areasDosPerfis, CONSULTAS_POR_DIA } from '../services/roboDoPlano.js';
 import { ALLOWED_AREAS } from '../config/profileOptions.js';
 
 const perfil = (Areas, Levels = [], Skills = []) => ({ Areas, Levels, Skills });
 
 test('monta a busca com área, nível e a primeira skill do perfil', () => {
     assert.deepEqual(consultasDoPerfil(perfil(['frontend'], ['junior'], ['React', 'CSS'])), [
-        'vaga front-end júnior', 'vaga front-end júnior email',
-        'vaga React júnior', 'vaga React júnior email',
+        'vaga front-end júnior', '#vagafrontend OR #vagasfrontend OR #frontend',
+        'vaga React júnior', '#vagareact OR #vagasreact OR #react',
     ]);
 });
 
 test('aceita o perfil como vem do banco, em texto JSON', () => {
-    assert.deepEqual(consultasDoPerfil(perfil('["qa"]', '["pleno"]', '[]')), ['vaga QA pleno', 'vaga QA pleno email']);
+    assert.deepEqual(consultasDoPerfil(perfil('["qa"]', '["pleno"]', '[]')), ['vaga QA pleno', '#vagaqa OR #vagasqa OR #qa']);
 });
 
 test('com vários níveis usa o mais baixo, onde falta vaga', () => {
@@ -45,7 +45,7 @@ test('toda área que o perfil aceita tem termo de busca', () => {
 
 test('duas pessoas iguais não pagam a mesma busca duas vezes', () => {
     const p = perfil(['qa'], ['pleno']);
-    assert.deepEqual(consultasDoDia([p, p]), ['vaga QA pleno', 'vaga QA pleno email']);
+    assert.deepEqual(consultasDoDia([p, p]), ['vaga QA pleno', '#vagaqa OR #vagasqa OR #qa']);
 });
 
 test('intercala as pessoas: a primeira busca de cada uma vem antes', () => {
@@ -74,5 +74,23 @@ test('sem comprador não há busca', () => {
 
 test('sem busca o robô para antes de chamar a Apify', async () => {
     const codigo = await readFile(new URL('../services/scraper.js', import.meta.url), 'utf8');
-    assert.match(codigo, /if \(doPlano\) \{[\s\S]{0,160}semCompradores: true/);
+    assert.match(codigo, /if \(doPlano\) \{[\s\S]{0,300}semCompradores: true/);
+});
+
+test('a hashtag sai do termo: .NET vira dotnet, C# vira csharp, sem acento', () => {
+    assert.equal(hashtagDoTermo('.NET'), '#vagadotnet OR #vagasdotnet OR #dotnet');
+    assert.equal(hashtagDoTermo('C#'), '#vagacsharp OR #vagascsharp OR #csharp');
+    assert.equal(hashtagDoTermo('dados'), '#vagadados OR #vagasdados OR #dados');
+    assert.equal(hashtagDoTermo(''), '');
+});
+
+test('nenhuma busca pede "email": voltava sempre com zero post', () => {
+    for (const b of consultasDoPerfil(perfil(['frontend', 'qa'], ['junior'], ['React']))) assert.doesNotMatch(b, /email/);
+});
+
+test('os recrutadores visitados seguem as áreas de TI dos compradores, expandidas como no feed', () => {
+    const areas = areasDosPerfis([perfil(['frontend']), perfil(['vendas', 'qa'])]);
+    assert.ok(areas.includes('frontend') && areas.includes('dev') && areas.includes('qa'));
+    assert.ok(!areas.includes('vendas'));
+    assert.ok(!areas.includes('backend'));
 });

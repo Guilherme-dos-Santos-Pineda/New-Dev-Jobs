@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { FILTRO_DATA_ATIVO } from '../lib/flags.js';
 import { useCachedResource, mutateCache } from '../lib/useCachedResource.js';
@@ -36,6 +36,9 @@ export default function Profile() {
 
     const [form, setForm] = useState(EMPTY);
     const [cvName, setCvName] = useState(null);
+    // A entrada da análise de currículo só aparece quando a ferramenta existe (migration 0024).
+    const [analiseCv, setAnaliseCv] = useState(null);
+    useEffect(() => { api.analiseCv().then(setAnaliseCv).catch(() => {}); }, []);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [importing, setImporting] = useState(false);
@@ -283,6 +286,16 @@ export default function Profile() {
                                 </div>
                             )}
                             <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={(e) => handleCv(e.target.files?.[0])} />
+                            {cvName && analiseCv?.disponivel && (
+                                <Link to="/app/curriculo" className="cv-entrada">
+                                    <i className="ti ti-sparkles" />
+                                    <div>
+                                        <div className="cv-entrada-titulo">{t('Melhorar meu currículo com IA')} <span className="badge info">{t('Em teste')}</span></div>
+                                        <div className="muted">{analiseCv.restantes == null ? t('Análise e reescrita para os sistemas de triagem.') : t('Análise e reescrita para os sistemas de triagem. {n} de {limite} grátis durante o teste.', { n: analiseCv.restantes, limite: analiseCv.limite })}</div>
+                                    </div>
+                                    <i className="ti ti-chevron-right" />
+                                </Link>
+                            )}
                     </div>
                     <EmailSettings parte="conta" />
                     <AutoEnvio />

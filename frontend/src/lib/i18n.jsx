@@ -180,6 +180,8 @@ const EN = {
     'Não, tirar da minha lista': 'No, remove it from my list',
     'O que não serve?': 'What doesn’t fit?',
     'Carregando…': 'Loading…',
+    'Novo: melhore seu currículo com IA': 'New: improve your résumé with AI',
+    'Nota, o que falta para as suas vagas e o currículo reescrito para os sistemas de triagem. Grátis durante o teste.': 'A score, what is missing for your jobs and your résumé rewritten for applicant tracking systems. Free during the beta.',
     'Melhorar meu currículo': 'Improve my résumé',
     'Melhorar meu currículo com IA': 'Improve my résumé with AI',
     'Em teste': 'Beta',

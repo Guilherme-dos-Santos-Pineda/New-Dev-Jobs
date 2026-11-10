@@ -66,7 +66,7 @@ export function decideCompose({ temPerfil, estaNoFeed, jaCandidatou, restamHoje 
         return { ok: false, status: 404, erro: 'Vaga fora da sua lista de vagas compatíveis.' };
     }
     if (!Number.isFinite(restamHoje) || restamHoje <= 0) {
-        return { ok: false, status: 429, erro: 'Você já usou todos os envios de hoje. Volte amanhã ou faça upgrade.' };
+        return { ok: false, status: 429, erro: 'Você já usou os envios de hoje. A contagem zera às 21h, horário de Brasília.' };
     }
     return { ok: true };
 }

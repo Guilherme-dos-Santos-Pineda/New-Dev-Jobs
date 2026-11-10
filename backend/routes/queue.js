@@ -5,7 +5,7 @@ import { validate } from '../middleware/validate.js';
 import { assertCanSend } from '../services/sender.js';
 import { getMatches } from '../services/jobsQuery.js';
 import { enqueue, getStatus, stop } from '../services/sendQueue.js';
-import { planOf } from '../config/plans.js';
+import { planOf, avisoDoLimite } from '../config/plans.js';
 import { planUsage } from '../services/usage.js';
 import { MATCH_MINIMO } from '../services/autoEnvio.js';
 
@@ -56,7 +56,7 @@ router.post('/', requireAuth, validate(queueSchema), async (req, res) => {
     // Teto diário do plano: considera o que já foi enviado hoje
     const usage = await planUsage(req.user.Id, req.user.Plan);
     if (usage.remainingToday <= 0) {
-        return res.status(429).json({ error: `Você atingiu o limite diário do seu plano (${usage.dailyLimit}/dia). Tente amanhã ou faça upgrade.`, upgrade: true });
+        return res.status(429).json({ error: avisoDoLimite(usage.dailyLimit) });
     }
     jobIds = jobIds.slice(0, usage.remainingToday);
 

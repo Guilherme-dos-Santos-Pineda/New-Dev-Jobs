@@ -7,6 +7,7 @@ import { destaquesDoDia } from '../services/highlights.js';
 import { assertCanSend } from '../services/sender.js';
 import { enqueue, getStatus } from '../services/sendQueue.js';
 import { planUsage } from '../services/usage.js';
+import { avisoDoLimite } from '../config/plans.js';
 import { invalidateMatches } from '../services/jobsQuery.js';
 import sql from '../lib/sql.js';
 
@@ -124,7 +125,7 @@ router.post('/apply', requireAuth, validate(applySchema), async (req, res) => {
 
     const usage = await planUsage(req.user.Id, req.user.Plan);
     if (usage.remainingToday <= 0) {
-        return res.status(429).json({ error: `Você atingiu o limite diário do seu plano (${usage.dailyLimit}/dia). Tente amanhã ou faça upgrade.`, upgrade: true });
+        return res.status(429).json({ error: avisoDoLimite(usage.dailyLimit) });
     }
 
     const jobIds = novas.slice(0, Math.min(usage.remainingToday, MAX_CANDIDATURAS));

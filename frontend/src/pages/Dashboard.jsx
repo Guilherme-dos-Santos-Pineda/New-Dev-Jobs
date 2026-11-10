@@ -253,7 +253,7 @@ export default function Dashboard() {
                     </>) : restam <= 0 ? (
                         <div className="vh-hero-txt">
                             <div className="vh-hero-titulo"><i className="ti ti-circle-check" /> {t('Você já mandou os {n} currículos de hoje.', { n: limite })}</div>
-                            <div className="vh-hero-sub">{t('Amanhã tem mais. As vagas continuam aqui.')}</div>
+                            <div className="vh-hero-sub">{t('A contagem zera às 21h, horário de Brasília. As vagas continuam aqui.')}</div>
                         </div>
                     ) : !conectado ? (<>
                         <div className="vh-hero-txt">

@@ -112,7 +112,7 @@ const EN = {
     'Enviando seu currículo…': 'Sending your résumé…',
     '{feitos} de {total} enviados. Pode fechar a página, o envio continua.': '{feitos} of {total} sent. You can close the page, sending continues.',
     'Você já mandou os {n} currículos de hoje.': 'You already sent today’s {n} résumés.',
-    'Amanhã tem mais. As vagas continuam aqui.': 'More tomorrow. The jobs will still be here.',
+    'A contagem zera às 21h, horário de Brasília. As vagas continuam aqui.': 'The count resets at 9pm, Brasília time. The jobs will still be here.',
     'Envio automático': 'Automatic sending',
     'Conecte seu Gmail e a gente manda seu currículo para as melhores vagas, com o seu nome. Só pedimos permissão para enviar, nunca para ler.': 'Connect your Gmail and we send your résumé to the best jobs, with your name. We only ask permission to send, never to read.',
     'Falta só o seu currículo': 'Only your résumé is missing',

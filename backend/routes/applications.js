@@ -5,7 +5,7 @@ import { renderEmail } from '../services/templates.js';
 import { resolveTemplate } from './templates.js';
 import { applyToJob } from '../services/sender.js';
 import { planUsage } from '../services/usage.js';
-import { planOf } from '../config/plans.js';
+import { planOf, avisoDoLimite } from '../config/plans.js';
 import { getMatches, invalidateMatches } from '../services/jobsQuery.js';
 import { emailEditado } from '../services/emailEditado.js';
 import { idiomaDaVaga } from '../services/classify.js';
@@ -102,7 +102,7 @@ router.post('/', requireAuth, async (req, res) => {
         // ligados; com eles desligados o grátis tem (config/planosPagos.js).
         if (!planOf(req.user.Plan).allowManual) return res.status(402).json({ error: 'Envio direto vaga a vaga é recurso dos planos pagos. Use "enviar pelo meu Gmail".' });
         const uso = await planUsage(req.user.Id, req.user.Plan);
-        if (uso.remainingToday <= 0) return res.status(429).json({ error: `Você já usou os ${uso.dailyLimit} envios de hoje. Amanhã tem mais.` });
+        if (uso.remainingToday <= 0) return res.status(429).json({ error: avisoDoLimite(uso.dailyLimit) });
         const noFeed = (await getMatches(req.user.Id)).some((m) => String(m.id) === String(jobId));
         if (!noFeed) return res.status(403).json({ error: 'Esta vaga não está entre as suas.' });
         const r = await applyToJob(req.user.Id, jobId, editado);

@@ -4,7 +4,7 @@ import { renderEmail } from './templates.js';
 import { idiomaDaVaga } from './classify.js';
 import { resolveTemplate } from '../routes/templates.js';
 import { getMatches, invalidateMatches } from './jobsQuery.js';
-import { planOf } from '../config/plans.js';
+import { planOf, avisoDoLimite } from '../config/plans.js';
 import { decideCompose } from './composeLogic.js';
 import { emailDeContatoValido } from './emailContato.js';
 
@@ -104,7 +104,7 @@ export async function composeForJob(userId, jobId, planName) {
     });
 
     if (gravado.estourou) {
-        throw new ComposeError('Você já usou todos os envios de hoje. Volte amanhã ou faça upgrade.', 429);
+        throw new ComposeError(avisoDoLimite(), 429);
     }
     if (gravado.repetida) {
         throw new ComposeError('Você já se candidatou a esta vaga.', 409);

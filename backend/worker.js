@@ -32,7 +32,7 @@ async function handleSend([job]) {
     const limit = planOf(user?.Plan).dailyLimit;
     const count = await countSentToday(userId);
     if (count >= limit) {
-        await sql`update "SendQueue" set "Status" = 'skipped', "Error" = 'limite diário do plano atingido', "SentAt" = now() where "Id" = ${queueId}`;
+        await sql`update "SendQueue" set "Status" = 'skipped', "Error" = 'limite do dia atingido: a contagem zera às 21h, horário de Brasília', "SentAt" = now() where "Id" = ${queueId}`;
         console.log(`⏸  limite diário (${limit}) atingido para user ${userId} — job ${jobId} pulado`);
         return;
     }

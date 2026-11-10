@@ -44,6 +44,13 @@ export const PLANS = {
     },
 };
 
+// O dia da cota é em UTC (`current_date` no banco), então ela zera às 21h de
+// Brasília. Relato de 10/11/2026: as mensagens diziam "tente amanhã ou faça
+// upgrade", e quem já tinha pago lia como erro do Gmail ("limite de email excedido").
+export function avisoDoLimite(n) {
+    return `Você já usou ${n ? `os ${n} envios` : 'os envios'} de hoje. A contagem zera às 21h, horário de Brasília.`;
+}
+
 export function planOf(name) {
     return PLANS[name] || PLANS.free;
 }

@@ -105,7 +105,11 @@ export default function Curriculo() {
 
     useEffect(() => {
         api.analiseCv().then(setEstado).catch(() => setEstado({ disponivel: false }));
-        api.getProfile().then((p) => setTemCv(Boolean(p?.cvName || p?.hasCv))).catch(() => setTemCv(null));
+        // GET /profile devolve { profile: {...} }: ler direto em p dava "sem currículo" para todo mundo.
+        api.getProfile().then((r) => {
+            const p = r?.profile;
+            setTemCv(p ? Boolean(p.cvName || p.hasCv) : null);
+        }).catch(() => setTemCv(null));
     }, []);
 
     async function analisar() {

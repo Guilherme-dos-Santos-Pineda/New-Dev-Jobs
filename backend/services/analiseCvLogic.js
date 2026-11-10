@@ -140,8 +140,36 @@ export function lerResposta(conteudo, textoCv = '') {
     };
 }
 
-/** Quantas análises a pessoa ainda pode fazer. Admin não tem limite. */
-export function analisesRestantes(usadas, { admin = false } = {}) {
+/**
+ * Quantas análises a pessoa ainda pode fazer. Admin não tem limite.
+ * `limite` vem do controle do admin (padrão LIMITE_ANALISES) e `extras` são as
+ * análises a mais que o admin deu àquela pessoa. Bloqueado = zero.
+ */
+export function analisesRestantes(usadas, { admin = false, limite = LIMITE_ANALISES, extras = 0, bloqueado = false } = {}) {
     if (admin) return Infinity;
-    return Math.max(0, LIMITE_ANALISES - (Number(usadas) || 0));
+    if (bloqueado) return 0;
+    return Math.max(0, (Number(limite) || 0) + (Number(extras) || 0) - (Number(usadas) || 0));
+}
+
+export const LIMITE_MAXIMO = 50;
+export const EXTRAS_MAXIMO = 50;
+
+/**
+ * O controle global gravado em AppSettings('analiseCv'). Valor ausente ou torto
+ * vale o padrão (ligada, LIMITE_ANALISES): a tabela pode nem existir ainda.
+ */
+export function lerControle(valor) {
+    const v = valor && typeof valor === 'object' ? valor : {};
+    const limite = Number.isInteger(v.limite) ? Math.min(LIMITE_MAXIMO, Math.max(0, v.limite)) : LIMITE_ANALISES;
+    return { ativa: v.ativa !== false, limite };
+}
+
+/**
+ * Quem pode ver e usar a ferramenta. Desligada vale para todos MENOS o admin:
+ * o dono precisa testar uma mudança de prompt antes de religar para os outros.
+ * O bloqueio individual não pega admin pelo mesmo motivo.
+ */
+export function acessoLiberado({ ativa = true, bloqueado = false, admin = false } = {}) {
+    if (admin) return true;
+    return ativa && !bloqueado;
 }

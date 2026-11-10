@@ -16,6 +16,10 @@ import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
 import { condicaoMonitoravel, DIAS_ENTRE_VISITAS } from '../services/recrutadorMonitoravel.js';
 import { REMOVIDA_PELO_ADMIN, detectArea } from '../services/classify.js';
 import { feedbackDisponivel, MOTIVOS } from '../services/jobFeedback.js';
+import {
+    painelAdmin, pessoasAdmin, analisesRecentes, analiseCompleta, salvarControle, ajustarPessoa, AnaliseError,
+} from '../services/analiseCv.js';
+import { LIMITE_MAXIMO, EXTRAS_MAXIMO } from '../services/analiseCvLogic.js';
 
 const router = Router();
 
@@ -812,6 +816,59 @@ router.get('/report', requireAdmin, async (_req, res) => {
             jobsPerDollar: costPerJob ? Math.round(1 / costPerJob) : null,
         },
     });
+});
+
+// =========================
+// Currículo IA (análise e reescrita): acompanhar, limitar e barrar
+// =========================
+// A lógica vive em services/analiseCv.js. Desligar vale para todos menos o admin.
+function erroDaAnalise(res, e) {
+    if (e instanceof AnaliseError) return res.status(e.status).json({ error: e.message });
+    console.error(`admin analise-cv: ${e.message}`);
+    return res.status(500).json({ error: 'Não deu para carregar agora.' });
+}
+
+// GET /api/admin/analise-cv — controle, números, falhas recentes, pessoas e últimas análises
+router.get('/analise-cv', requireAdmin, async (_req, res) => {
+    try {
+        const painel = await painelAdmin();
+        const pessoas = await pessoasAdmin();
+        const analises = await analisesRecentes(100);
+        res.json({ ...painel, pessoas, analises });
+    } catch (e) { erroDaAnalise(res, e); }
+});
+
+// GET /api/admin/analise-cv/:id — a análise inteira (é dado da pessoa: fica no log quem abriu)
+router.get('/analise-cv/:id', requireAdmin, async (req, res) => {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'Análise não encontrada.' });
+    try {
+        const a = await analiseCompleta(req.params.id);
+        if (!a) return res.status(404).json({ error: 'Análise não encontrada.' });
+        console.log(`🧾 análise de CV aberta: #${a.id} de ${a.userId} (por ${req.user.Email})`);
+        res.json(a);
+    } catch (e) { erroDaAnalise(res, e); }
+});
+
+const controleAnaliseSchema = z.object({
+    ativa: z.boolean().optional(),
+    limite: z.number().int().min(0).max(LIMITE_MAXIMO).optional(),
+});
+router.put('/analise-cv/controle', requireAdmin, validate(controleAnaliseSchema), async (req, res) => {
+    try { res.json(await salvarControle(req.body, req.user.Email)); } catch (e) { erroDaAnalise(res, e); }
+});
+
+const ajusteAnaliseSchema = z.object({
+    userId: z.string().uuid().optional(),
+    email: z.string().email().optional(),
+    bloqueado: z.boolean().optional(),
+    extras: z.number().int().min(0).max(EXTRAS_MAXIMO).optional(),
+    motivo: z.string().max(300).nullable().optional(),
+}).refine((b) => b.userId || b.email, { message: 'Informe a pessoa.' });
+router.put('/analise-cv/pessoa', requireAdmin, validate(ajusteAnaliseSchema), async (req, res) => {
+    try {
+        const { userId, email, ...ajuste } = req.body;
+        res.json(await ajustarPessoa({ userId, email }, ajuste, req.user.Email));
+    } catch (e) { erroDaAnalise(res, e); }
 });
 
 export default router;

@@ -15,6 +15,7 @@ import AdminReport from '../components/AdminReport.jsx';
 import AdminCampaigns from '../components/AdminCampaigns.jsx';
 import AdminUsers from '../components/AdminUsers.jsx';
 import AdminBugs from '../components/AdminBugs.jsx';
+import AdminAnaliseCv from '../components/AdminAnaliseCv.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 
@@ -85,6 +86,7 @@ export default function Admin() {
                     ['geral', 'Visão geral', 'ti-layout-dashboard'],
                     ['usuarios', 'Usuários', 'ti-users'],
                     ['relatos', 'Problemas relatados', 'ti-bug'],
+                    ['curriculo', 'Currículo IA', 'ti-file-cv'],
                     ['vagas', 'Vagas', 'ti-briefcase'],
                     ['recrutadores', 'Recrutadores', 'ti-address-book'],
                     ['bots', 'Robôs', 'ti-robot'],
@@ -104,6 +106,7 @@ export default function Admin() {
             {tab === 'bots' && <BotsPanel />}
             {tab === 'usuarios' && <AdminUsers />}
             {tab === 'relatos' && <AdminBugs />}
+            {tab === 'curriculo' && <AdminAnaliseCv />}
             {tab === 'vagas' && <AdminJobs />}
             {tab === 'recrutadores' && <AdminRecruiters />}
             {tab === 'raw' && <AdminRawContent />}

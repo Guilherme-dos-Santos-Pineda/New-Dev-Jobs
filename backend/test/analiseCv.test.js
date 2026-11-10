@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
     lerResposta, mensagemDoUsuario, palavrasDoFeed, analisesRestantes, SISTEMA, LIMITE_ANALISES,
+    lerControle, acessoLiberado,
 } from '../services/analiseCvLogic.js';
 
 const CV = 'Maria Souza. Desenvolvedora na Acme de 2022 a 2024. React, TypeScript e Node.js. Análise e Desenvolvimento de Sistemas.';
@@ -73,4 +74,27 @@ test('3 análises por pessoa no teste; admin sem limite', () => {
     assert.equal(analisesRestantes(3), 0);
     assert.equal(analisesRestantes(5), 0);
     assert.equal(analisesRestantes(9, { admin: true }), Infinity);
+});
+
+test('controle do admin: limite global, extras por pessoa e bloqueio', () => {
+    assert.equal(analisesRestantes(3, { limite: 3, extras: 2 }), 2);
+    assert.equal(analisesRestantes(0, { limite: 5 }), 5);
+    assert.equal(analisesRestantes(0, { limite: 0 }), 0);
+    assert.equal(analisesRestantes(0, { bloqueado: true, extras: 10 }), 0);
+    assert.equal(analisesRestantes(0, { bloqueado: true, admin: true }), Infinity);
+});
+
+test('controle sem valor gravado vale o padrão: ligada e limite 3', () => {
+    assert.deepEqual(lerControle(undefined), { ativa: true, limite: 3 });
+    assert.deepEqual(lerControle({ ativa: false }), { ativa: false, limite: 3 });
+    assert.deepEqual(lerControle({ limite: 999 }), { ativa: true, limite: 50 });
+    assert.deepEqual(lerControle({ limite: '7' }), { ativa: true, limite: 3 });
+});
+
+test('desligada ou bloqueado tira o acesso, menos do admin', () => {
+    assert.equal(acessoLiberado({ ativa: true }), true);
+    assert.equal(acessoLiberado({ ativa: false }), false);
+    assert.equal(acessoLiberado({ bloqueado: true }), false);
+    assert.equal(acessoLiberado({ ativa: false, admin: true }), true);
+    assert.equal(acessoLiberado({ bloqueado: true, admin: true }), true);
 });

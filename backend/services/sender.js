@@ -5,7 +5,8 @@ import { sendApplicationEmail } from './mailer.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { resolveTemplate } from '../routes/templates.js';
 import { invalidateMatches, bloqueadaPeloUsuario } from './jobsQuery.js';
-import { jaContatado } from './mesmoRecrutador.js';
+import { jaContatado, enderecos } from './mesmoRecrutador.js';
+import { enderecosSemDominio } from './emailDominio.js';
 import { emailDeContatoValido, ehErroDeDestinatario } from './emailContato.js';
 
 class ApplyError extends Error {
@@ -33,7 +34,7 @@ export async function assertCanSend(userId) {
 // `editado` ({ subject, body }) vale só para este envio: ver services/emailEditado.js.
 export async function applyToJob(userId, jobId, editado = null) {
     const { user, profile } = await assertCanSend(userId);
-    const [job] = await sql`select * from "Jobs" where "Id" = ${jobId}`;
+    const [job] = await sql`select j.*, r."Name" as "AutorNome" from "Jobs" j left join "Recruiters" r on r."Id" = j."RecruiterId" where j."Id" = ${jobId}`;
     if (!job) throw new ApplyError('Vaga não encontrada', 404);
     // ApplyError = falha DEFINITIVA: o worker marca a linha como `failed` e não
     // retenta. É o ponto crítico. "(11) 99153-5908" é truthy, então o `!job.Email`
@@ -49,6 +50,11 @@ export async function applyToJob(userId, jobId, editado = null) {
     // Um currículo por recrutador a cada 30 dias (services/mesmoRecrutador.js).
     // `skipped`, não erro: no worker a linha vira "pulada", não "falhou".
     if (await jaContatado(userId, job.Email)) return { skipped: true, motivo: 'recrutador' };
+    // Domínio que não existe vira bounce na caixa da pessoa (services/emailDominio.js).
+    const destinos = enderecos(job.Email);
+    if ((await enderecosSemDominio(destinos)).length === destinos.length) {
+        throw new ApplyError('O email desta vaga não existe (o domínio não recebe email).', 422);
+    }
 
     const match = computeMatch(profile, job);
     const tpl = editado ? { subject: editado.subject, body: editado.body } : await resolveTemplate(userId, 'pt');

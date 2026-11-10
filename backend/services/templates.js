@@ -1,3 +1,4 @@
+import { pareceNomeDePessoa } from './highlights.js';
 // =========================
 // Engine de templates de email
 // =========================
@@ -75,6 +76,8 @@ function value(v) {
 const AREA_ROLE = {
     dev: 'Desenvolvedor(a)', qa: 'QA', po: 'Product Owner', data: 'Dados & Analytics',
     design: 'Design/UX', devops: 'DevOps', mobile: 'Desenvolvedor(a) Mobile',
+    frontend: 'Desenvolvedor(a) Front-end', backend: 'Desenvolvedor(a) Back-end', fullstack: 'Desenvolvedor(a) Full Stack',
+    suporte: 'Analista de Suporte', erp: 'Consultor(a) ERP',
 };
 const parseAreas = (p) => {
     const v = p?.Areas;
@@ -83,11 +86,13 @@ const parseAreas = (p) => {
 };
 
 // Título da vaga para o email: usa o título real; se for genérico ("Vaga"/vazio),
-// deriva da ÁREA do usuário → headline → padrão. Evita "Candidatura para Vaga".
+// deriva da ÁREA DA VAGA → área do usuário → headline → padrão. Evita "Candidatura
+// para Vaga". A área da vaga vem antes: com a do usuário, quem marcou dev e QA
+// mandava "Desenvolvedor(a)" para vaga de QA (relato no grupo, 09/11/2026).
 function niceTitle(job, profile) {
     const raw = String(job.JobTitle || '').trim();
     if (raw && !/^vaga$/i.test(raw)) return raw;          // título real (mantém "... vaga de teste" do teste)
-    const role = AREA_ROLE[parseAreas(profile)[0]];
+    const role = AREA_ROLE[job.Area] || AREA_ROLE[parseAreas(profile)[0]];
     if (role) return role;
     const hl = String(profile?.Headline || '').trim();
     if (hl) return hl.slice(0, 60);
@@ -198,9 +203,24 @@ export function render(template, vars, { paragraphs = false } = {}) {
  * Renderiza assunto + corpo completos.
  * Retorna { subject, html, text }.
  */
+/**
+ * A "empresa" é o nome da pessoa que postou? Acontece quando o post não diz a
+ * empresa e a extração cai no autor: medido em 09/11/2026, 346 de 2527 vagas
+ * recentes. Precisa das DUAS coisas: nome igual ao de quem postou (sozinho pega
+ * página de empresa, que posta com o próprio nome) e jeito de nome de pessoa
+ * (sozinho marcaria "Wilson Sons" e "Brava Energia").
+ */
+export function empresaEhQuemPostou(job) {
+    const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    return !!job?.AutorNome && norm(job.Company) === norm(job.AutorNome) && pareceNomeDePessoa(job.Company);
+}
+
 export function renderEmail({ subjectTemplate, bodyTemplate, user, profile, job }) {
     const vars = buildVars({ user, profile, job });
-    const subject = render(subjectTemplate, vars).text.replace(/\s+/g, ' ').trim();
+    let subject = render(subjectTemplate, vars).text.replace(/\s+/g, ' ').trim();
+    // "Candidatura para QA na Wesley Macedo": no assunto sai o nome. No corpo fica,
+    // porque "Olá Wesley Macedo," cumprimenta quem postou.
+    if (empresaEhQuemPostou(job)) subject = subject.replace(` na ${String(job.Company).trim()}`, '').trim();
     const { html, text } = render(bodyTemplate, vars, { paragraphs: true });
     return {
         subject,

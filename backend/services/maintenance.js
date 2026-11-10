@@ -1,5 +1,7 @@
 import sql from '../lib/sql.js';
 import { classifyJob, CLASSIFY_VERSION } from './classify.js';
+import { enderecosSemDominio } from './emailDominio.js';
+import { enderecos } from './mesmoRecrutador.js';
 
 // =========================
 // Manutenção periódica (roda no worker, a cada MAINTENANCE_EVERY_MS)
@@ -96,6 +98,31 @@ export async function expireStuckQueue(horas = HORAS_ATE_DESISTIR) {
 }
 
 /** Uma passada completa. Nunca lança: manutenção não pode derrubar o worker. */
+/**
+ * Uma vez por dia: vaga dos últimos 30 dias cujo email todo é de domínio que não
+ * existe perde o email e sai do feed. Num UPDATE só, porque cada mudança em
+ * "Jobs" recarrega o feed em memória (~12 MB de egress). O envio já barra antes
+ * (applyToJob); isto tira a vaga da lista para ninguém tentar.
+ */
+let dominiosConferidosEm = '';
+export async function limparDominiosMortos(hoje = new Date().toISOString().slice(0, 10)) {
+    if (dominiosConferidosEm === hoje) return 0;
+    dominiosConferidosEm = hoje;
+    const vagas = await sql`
+        select "Id", "Email" from "Jobs"
+        where "Email" like '%@%.%' and "CreatedAt" > now() - interval '30 days'
+        limit 5000`;
+    const mortas = [];
+    for (const v of vagas) {
+        const lista = enderecos(v.Email);
+        if (lista.length && (await enderecosSemDominio(lista)).length === lista.length) mortas.push(Number(v.Id));
+    }
+    if (!mortas.length) return 0;
+    await sql`update "Jobs" set "Email" = null where "Id" = any(${mortas}::bigint[])`;
+    console.log(`📭 ${mortas.length} vaga(s) sem email: o domínio não existe`);
+    return mortas.length;
+}
+
 export async function runMaintenance() {
     const out = { classificadas: 0, runs: 0, posts: 0, presos: 0 };
     try {
@@ -109,6 +136,9 @@ export async function runMaintenance() {
         out.presos = await expireStuckQueue();
         if (out.presos) console.warn(`⚠️  ${out.presos} envio(s) preso(s) em queued foram marcados como falha`);
     } catch (e) { console.error('expireStuckQueue falhou:', e.message); }
+    try {
+        await limparDominiosMortos();
+    } catch (e) { console.error('limparDominiosMortos falhou:', e.message); }
     if (out.classificadas || out.runs || out.posts) {
         console.log(`🧹 manutenção: ${out.classificadas} vaga(s) classificada(s), ${out.runs} run(s) e ${out.posts} post(s) antigos removidos`);
     }

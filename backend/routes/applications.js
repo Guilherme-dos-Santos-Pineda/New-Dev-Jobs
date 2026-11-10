@@ -49,7 +49,7 @@ router.post('/preview', requireAuth, async (req, res) => {
         const noFeed = (await getMatches(req.user.Id)).some((m) => String(m.id) === String(jobId));
         if (!noFeed) return res.status(403).json({ error: 'Esta vaga não está entre as suas.' });
     }
-    const [job] = jobId ? await sql`select * from "Jobs" where "Id" = ${jobId}` : [null];
+    const [job] = jobId ? await sql`select j.*, r."Name" as "AutorNome" from "Jobs" j left join "Recruiters" r on r."Id" = j."RecruiterId" where j."Id" = ${jobId}` : [null];
     const user = req.user;
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${req.user.Id}`;
 

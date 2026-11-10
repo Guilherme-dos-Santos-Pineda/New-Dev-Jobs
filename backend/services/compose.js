@@ -53,7 +53,7 @@ export async function composeForJob(userId, jobId, planName) {
     });
     if (!veredito.ok) throw new ComposeError(veredito.erro, veredito.status);
 
-    const [job] = await sql`select * from "Jobs" where "Id" = ${jobId}`;
+    const [job] = await sql`select j.*, r."Name" as "AutorNome" from "Jobs" j left join "Recruiters" r on r."Id" = j."RecruiterId" where j."Id" = ${jobId}`;
     if (!job) throw new ComposeError('Vaga não encontrada', 404);
     // Mesma trava do envio automático: "(11) 99153-5908" é truthy e passava.
     // Aqui doeria diferente, porque o endereço vai DIRETO para a tela e a

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isQuotaError, endOfMonthMs, apifyPoolState, resetApifyPool, temFolgaDeCredito } from '../services/apifyPool.js';
+import { isAuthError, isQuotaError, endOfMonthMs, apifyPoolState, resetApifyPool, temFolgaDeCredito } from '../services/apifyPool.js';
 
 // ---------- Robô extra só gasta o que sobra do monitoramento ----------
 test('temFolgaDeCredito: soma o que resta em cada conta', () => {
@@ -49,4 +49,11 @@ test('apifyPoolState: sem tokens → total 0 e sem vazar segredo', () => {
 test('resetApifyPool: devolve o estado (idempotente)', () => {
     const s = resetApifyPool();
     assert.equal(s.healthy, s.total);
+});
+
+test('isAuthError: chave trocada ou revogada (401) passa para a próxima conta', () => {
+    assert.equal(isAuthError({ statusCode: 401 }), true);
+    assert.equal(isAuthError({ message: 'User was not found or authentication token is not valid' }), true);
+    assert.equal(isAuthError({ statusCode: 402 }), false);
+    assert.equal(isAuthError({ statusCode: 500, message: 'Internal Server Error' }), false);
 });

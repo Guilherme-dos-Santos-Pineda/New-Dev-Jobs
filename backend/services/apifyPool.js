@@ -32,6 +32,18 @@ export function isQuotaError(e) {
     return /usage|exceeded|\blimit|credit|quota|insufficient|monthly|payment required/.test(msg);
 }
 
+/**
+ * Chave recusada pela Apify (401): a conta trocou ou revogou o token. Em 11/11/2026
+ * a conta 2 passou a responder 401 depois de um aviso de troca de chaves. Sem isto
+ * o erro subia como transitório: a execução falhava em vez de passar para a
+ * próxima conta, e o pg-boss repetia na mesma chave morta.
+ */
+export function isAuthError(e) {
+    const status = e?.statusCode || e?.status;
+    if (status === 401) return true;
+    return /token is not valid|authentication token|user was not found|unauthorized/i.test(String(e?.message || ''));
+}
+
 function healthyAccounts(now = Date.now()) {
     return accounts.filter((a) => a.token && a.exhaustedUntil <= now);
 }
@@ -73,6 +85,14 @@ export async function runActor(actorId, input) {
             acct.lastError = null;
             return { items: ds.items, account: acct.label };
         } catch (e) {
+            if (isAuthError(e)) {
+                // Até o próximo deploy ou o reset no admin: trocar a chave exige mexer no .env e reiniciar.
+                acct.exhaustedUntil = endOfMonthMs();
+                acct.lastError = 'chave inválida (401): gere uma nova na Apify e troque no .env';
+                errs.push(acct.label);
+                console.warn(`⤷ Apify ${acct.label} com chave inválida, passando para a próxima conta`);
+                continue;
+            }
             if (isQuotaError(e)) {
                 acct.exhaustedUntil = endOfMonthMs();
                 acct.lastError = `crédito esgotado: ${String(e.message || '').slice(0, 120)}`;

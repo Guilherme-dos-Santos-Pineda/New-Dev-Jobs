@@ -35,7 +35,7 @@ export async function sendApplicationEmail({ userId, from, to, subject, html, te
     if (config.emailMode === 'mock') {
         await new Promise((r) => setTimeout(r, 120));
         console.log('📧 [MOCK] Email de candidatura');
-        console.log('   de:', from || '(conta Google do usuário)');
+        console.log('   de:', (from && typeof from === 'object' ? `${from.name} <${from.address}>` : from) || '(conta Google do usuário)');
         console.log('   para:', to);
         console.log('   assunto:', subject);
         console.log('   anexo:', attachmentContent ? (filename || 'curriculo.pdf') : '(nenhum)');

@@ -1,3 +1,4 @@
+import { remetente } from '../services/nomeUsuario.js';
 import { Router } from 'express';
 import sql from '../lib/sql.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -31,7 +32,7 @@ router.post('/test', requireAuth, async (req, res) => {
         const cvBuffer = profile?.CvPath ? await getCvBuffer(profile.CvPath) : null;
         const result = await sendApplicationEmail({
             userId: user.Id,
-            from: user.GoogleEmail || user.Email,
+            from: remetente(user),
             to,
             subject: rendered.subject,
             html: rendered.html,

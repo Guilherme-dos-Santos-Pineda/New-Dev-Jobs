@@ -36,6 +36,9 @@ export default function Profile() {
 
     const [form, setForm] = useState(EMPTY);
     const [cvName, setCvName] = useState(null);
+    // O nome mora em Users, não no perfil: salva junto, mas por outra rota.
+    const [nome, setNome] = useState('');
+    useEffect(() => { if (user?.name) setNome(user.name); }, [user?.name]);
     // A entrada da análise de currículo só aparece quando a ferramenta existe (migration 0024).
     const [analiseCv, setAnaliseCv] = useState(null);
     useEffect(() => { api.analiseCv().then(setAnaliseCv).catch(() => {}); }, []);
@@ -93,6 +96,8 @@ export default function Profile() {
     async function save() {
         setSaving(true);
         try {
+            const nomeLimpo = nome.trim().replace(/\s+/g, ' ');
+            if (nomeLimpo && nomeLimpo !== user?.name) await api.atualizarNome(nomeLimpo);
             const { profile } = await api.updateProfile(form);
             applyProfile(profile);
             mutateCache('profile', { profile });
@@ -199,6 +204,14 @@ export default function Profile() {
                         ficam à vista, nesta ordem; todo ajuste fino mora em "Mais opções",
                         fechado. Antes eram cinco seções com menu lateral e 39 campos, e o
                         feedback era "confuso e cheio de informação". */}
+
+                        <div className="card">
+                            <div className="field" style={{ marginBottom: 0 }}>
+                                <label>{t('Seu nome')}</label>
+                                <input className="input" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} placeholder={t('Como você quer ser chamado pelos recrutadores')} />
+                                <div className="hint">{t('Aparece no app e nos seus emails, no "Me chamo…", na assinatura e no nome do remetente. Use o nome completo.')}</div>
+                            </div>
+                        </div>
 
                         <div className="card">
                             <div className="sec-card-head"><h2>{t('O que você procura')}</h2></div>

@@ -102,6 +102,7 @@ export const api = {
     googleAuthUrl: () => request('GET', '/auth/google/url'),
     disconnectGoogle: () => request('POST', '/auth/disconnect-google'),
     updateSettings: (data) => request('PUT', '/auth/settings', data),
+    atualizarNome: (nome) => request('PUT', '/auth/nome', { nome }),
 
     // email de teste
     sendTestEmail: (to) => request('POST', '/email/test', { to }),

@@ -1,3 +1,4 @@
+import { limparNome, NOME_MIN, NOME_MAX } from '../services/nomeUsuario.js';
 import { Router } from 'express';
 import sql from '../lib/sql.js';
 import { requireAuth, purgeToken } from '../middleware/auth.js';
@@ -51,6 +52,15 @@ router.get('/me', requireAuth, async (req, res) => {
 router.put('/settings', requireAuth, async (req, res) => {
     const mode = req.body?.sendMode === 'auto' ? 'auto' : 'review';
     await sql`update "Users" set "SendMode" = ${mode} where "Id" = ${req.user.Id}`;
+    res.json({ user: await publicUser(await getUser(req.user.Id)) });
+});
+
+// PUT /api/auth/nome  { nome }
+// O nome aparece no app, no {sender_name} do email e no "De:" (services/nomeUsuario.js).
+router.put('/nome', requireAuth, async (req, res) => {
+    const nome = limparNome(req.body?.nome);
+    if (!nome) return res.status(400).json({ error: `Escreva seu nome, de ${NOME_MIN} a ${NOME_MAX} letras.` });
+    await sql`update "Users" set "Name" = ${nome} where "Id" = ${req.user.Id}`;
     res.json({ user: await publicUser(await getUser(req.user.Id)) });
 });
 

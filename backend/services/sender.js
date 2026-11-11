@@ -3,6 +3,7 @@ import { computeMatch } from './matching.js';
 import { renderEmail } from './templates.js';
 import { idiomaDaVaga } from './classify.js';
 import { sendApplicationEmail } from './mailer.js';
+import { remetente } from './nomeUsuario.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { resolveTemplate } from '../routes/templates.js';
 import { invalidateMatches, bloqueadaPeloUsuario } from './jobsQuery.js';
@@ -66,7 +67,7 @@ export async function applyToJob(userId, jobId, editado = null) {
 
     try {
         await sendApplicationEmail({
-            userId, from: user.GoogleEmail || user.Email, to: job.Email,
+            userId, from: remetente(user), to: job.Email,
             subject: rendered.subject, html: rendered.html, text: rendered.text,
             attachmentContent: cvBuffer, filename: profile.CvName,
         });

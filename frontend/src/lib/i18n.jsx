@@ -180,6 +180,8 @@ const EN = {
     'Não, tirar da minha lista': 'No, remove it from my list',
     'O que não serve?': 'What doesn’t fit?',
     'Carregando…': 'Loading…',
+    'Salvar nome': 'Save name',
+    'Nome salvo. Os próximos emails já saem com ele.': 'Name saved. Your next emails will use it.',
     'Como você quer ser chamado pelos recrutadores': 'How you want recruiters to address you',
     'Aparece no app e nos seus emails, no "Me chamo…", na assinatura e no nome do remetente. Use o nome completo.': 'Shows in the app and in your emails: the "My name is…", the signature and the sender name. Use your full name.',
     'Novo: melhore seu currículo com IA': 'New: improve your résumé with AI',

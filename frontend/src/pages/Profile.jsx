@@ -39,6 +39,17 @@ export default function Profile() {
     // O nome mora em Users, não no perfil: salva junto, mas por outra rota.
     const [nome, setNome] = useState('');
     useEffect(() => { if (user?.name) setNome(user.name); }, [user?.name]);
+    const [salvandoNome, setSalvandoNome] = useState(false);
+    async function salvarNome() {
+        if (salvandoNome) return;
+        setSalvandoNome(true);
+        try {
+            await api.atualizarNome(nome.trim().replace(/\s+/g, ' '));
+            await refreshUser();
+            toast.show(t('Nome salvo. Os próximos emails já saem com ele.'));
+        } catch (e) { toast.show(e.message, 'error'); }
+        finally { setSalvandoNome(false); }
+    }
     // A entrada da análise de currículo só aparece quando a ferramenta existe (migration 0024).
     const [analiseCv, setAnaliseCv] = useState(null);
     useEffect(() => { api.analiseCv().then(setAnaliseCv).catch(() => {}); }, []);
@@ -208,7 +219,14 @@ export default function Profile() {
                         <div className="card">
                             <div className="field" style={{ marginBottom: 0 }}>
                                 <label>{t('Seu nome')}</label>
-                                <input className="input" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} placeholder={t('Como você quer ser chamado pelos recrutadores')} />
+                                {/* Botão próprio: o "Salvar" do perfil fica no fim da página, e o primeiro
+                                    relato (11/11/2026) foi de quem digitou o nome e nunca chegou a ele. */}
+                                <div className="row" style={{ gap: 8 }}>
+                                    <input className="input" style={{ flex: 1 }} value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} placeholder={t('Como você quer ser chamado pelos recrutadores')} />
+                                    {nome.trim().replace(/\s+/g, ' ') !== (user?.name || '') && (
+                                        <button type="button" className="btn primary sm" disabled={salvandoNome} onClick={salvarNome}>{salvandoNome ? t('Salvando…') : t('Salvar nome')}</button>
+                                    )}
+                                </div>
                                 <div className="hint">{t('Aparece no app e nos seus emails, no "Me chamo…", na assinatura e no nome do remetente. Use o nome completo.')}</div>
                             </div>
                         </div>

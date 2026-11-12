@@ -28,3 +28,10 @@ test('sem o que mudar, nenhuma sugestão; e só entra o que rende 5 vagas ou mai
     const m = melhoresSugestoes([{ id: 'a', ganho: 3 }, { id: 'b', ganho: 40 }, { id: 'c', ganho: 12 }, { id: 'd', ganho: 8 }, { id: 'e', ganho: 6 }]);
     assert.deepEqual(m.map((x) => x.id), ['b', 'c', 'd']);
 });
+
+test('palavra obrigatória vira sugestão (relato do dono: perfil só .NET e remoto)', () => {
+    const v = variantesDoPerfil({ RequiredKeywords: ['.NET'], Modalities: ['remoto'] });
+    const exigidas = v.find((x) => x.id === 'exigidas');
+    assert.equal(exigidas.texto, 'Deixar de exigir ".NET"');
+    assert.deepEqual(exigidas.patch.RequiredKeywords, []);
+});

@@ -9,7 +9,7 @@ import { normalizeList, normalizeDomain } from '../services/normalize.js';
 import { uploadCv, removeCv } from '../lib/cvStorage.js';
 import { invalidateMatches } from '../services/jobsQuery.js';
 import { esquecerVagasPorLink } from '../services/vagasPorLink.js';
-import { sugestoesDePerfil, aplicarSugestao } from '../services/ampliarPerfil.js';
+import { sugestoesDePerfil, aplicarSugestao, esquecerSugestoes } from '../services/ampliarPerfil.js';
 
 const router = Router();
 
@@ -80,6 +80,7 @@ async function upsertProfile(userId, f) {
     // passesFilters — o memo do getMatches precisa cair junto com a alteração.
     invalidateMatches(userId);
     esquecerVagasPorLink(userId);
+    esquecerSugestoes(userId);
 }
 
 async function setCv(userId, cvPath, cvName) {

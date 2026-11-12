@@ -54,6 +54,10 @@ export function variantesDoPerfil(perfil) {
         const novas = [...new Set(areas.flatMap((a) => VIZINHAS[a] || []))].filter((a) => !areas.includes(a)).slice(0, 2);
         if (novas.length) out.push({ id: 'areas', texto: `Marcar também ${e(novas.map((a) => NOME_AREA[a] || a))}`, patch: { Areas: [...areas, ...novas] } });
     }
+    const exigidas = lista(perfil?.RequiredKeywords).filter(Boolean);
+    if (exigidas.length) {
+        out.push({ id: 'exigidas', texto: `Deixar de exigir ${e(exigidas.map((w) => `"${w}"`))}`, patch: { RequiredKeywords: [] } });
+    }
     const mods = lista(perfil?.Modalities);
     if (mods.length && !mods.includes('hibrido')) {
         out.push({ id: 'hibrido', texto: 'Aceitar vaga híbrida também', patch: { Modalities: [...mods, 'hibrido'] } });

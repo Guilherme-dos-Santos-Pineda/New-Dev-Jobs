@@ -31,6 +31,11 @@ function contar(ctx, perfil) {
     return umaPorRecrutador(lista, ctx.contatados).length;
 }
 
+/** Perfil salvo muda o feed: a sugestão guardada cai junto (senão a tela mostra a de antes). */
+export function esquecerSugestoes(userId) {
+    memo.delete(userId);
+}
+
 /** { total, pouca, sugestoes: [{ id, texto, ganho }] } */
 export async function sugestoesDePerfil(user) {
     const guardado = memo.get(user.Id);
@@ -63,6 +68,7 @@ export async function aplicarSugestao(user, id) {
     if (p.Modalities) await sql`update "Profiles" set "Modalities" = ${sql.json(p.Modalities)}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
     if (p.PostingDays != null) await sql`update "Profiles" set "PostingDays" = ${p.PostingDays}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
     if (p.Region) await sql`update "Profiles" set "Region" = ${p.Region}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
+    if (p.RequiredKeywords) await sql`update "Profiles" set "RequiredKeywords" = ${sql.json(p.RequiredKeywords)}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
     invalidateMatches(user.Id);
     esquecerVagasPorLink(user.Id);
     memo.delete(user.Id);

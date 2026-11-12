@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast.jsx';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
 import AutoEnvio from '../components/AutoEnvio.jsx';
+import PlanoIA from '../components/PlanoIA.jsx';
 
 const money = (cents, currency = 'brl') =>
     ((cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: (currency || 'brl').toUpperCase() });
@@ -137,6 +138,10 @@ export default function Subscription() {
     const currentPurchasable = currentPlan?.purchasable;
     const currentPrice = currentPlan?.price || 0; // só permite upgrade (preço maior); sem downgrade
     const hasFilter = fStatus !== 'all' || fMethod !== 'all' || fPeriod !== 'all' || !!query.trim();
+
+    // O plano de IA (R$ 5) é à parte do Automático: aparece aqui para quem procura onde comprar.
+    const [ia, setIa] = useState(null);
+    useEffect(() => { api.analiseCv().then((e) => setIa(e?.ia || null)).catch(() => {}); }, []);
 
     return (
         <div className="page" style={{ maxWidth: 1080 }}>
@@ -324,6 +329,7 @@ export default function Subscription() {
                 {t('Ajude a manter a ferramenta funcionando. O grátis continua grátis, e o plano pago faz seu currículo sair sozinho todo dia.')}
             </p>
             {!stripeEnabled && <div className="notice danger"><i className="ti ti-alert-circle" />{t('Pagamentos não configurados no servidor.')}</div>}
+            {ia && <PlanoIA ia={ia} cartao />}
             <div className="cards-grid" style={{ marginBottom: 18 }}>
                 {loadingPlans
                     ? [0, 1, 2].map((i) => <div key={i} className="skeleton sk-card" />)

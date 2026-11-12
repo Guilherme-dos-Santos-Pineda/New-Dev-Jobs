@@ -8,12 +8,12 @@ import { useT } from '../lib/i18n.jsx';
 // fazer agora e, quando cabe, oferece liberar.
 const quando = (ms) => new Date(ms).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-export default function PlanoIA({ ia }) {
+export default function PlanoIA({ ia, cartao = false }) {
     const { t } = useT();
     const [indo, setIndo] = useState(false);
     const [erro, setErro] = useState('');
     const trava = useRef(false);
-    if (!ia || ia.modo === 'admin') return null;
+    if (!ia || (ia.modo === 'admin' && !cartao)) return null;
 
     async function comprar() {
         if (trava.current) return;
@@ -30,9 +30,10 @@ export default function PlanoIA({ ia }) {
         }
     }
 
+    const ativa = ia.modo === 'plano';
     const botao = (
-        <button className="btn primary sm" disabled={indo} onClick={comprar}>
-            <i className="ti ti-sparkles" /> {indo ? t('Abrindo o pagamento…') : t('Liberar a IA por R$ 5')}
+        <button className={`btn sm ${ativa && ia.restantes > 0 ? '' : 'primary'}`} disabled={indo} onClick={comprar}>
+            <i className="ti ti-sparkles" /> {indo ? t('Abrindo o pagamento…') : ativa ? t('Mais 30 dias por R$ 5') : t('Liberar a IA por R$ 5')}
         </button>
     );
 
@@ -40,9 +41,14 @@ export default function PlanoIA({ ia }) {
     let titulo;
     let texto;
     let comprarAqui = false;
-    if (ia.modo === 'novo') {
+    if (ia.modo === 'admin') {
+        icone = 'ti-sparkles';
+        titulo = t('IA no currículo');
+        texto = t('Você é administrador: sem limite.');
+    } else if (ia.modo === 'novo') {
         titulo = t('Teste grátis de 48 horas');
-        texto = t('Comece quando quiser: a partir do primeiro uso, você tem 48 horas para 1 análise e 1 currículo adaptado a um tipo de vaga.');
+        texto = t('Comece quando quiser: a partir do primeiro uso, você tem 48 horas para 1 análise e 1 currículo adaptado a um tipo de vaga. Ou libere direto: R$ 5 por 30 dias, com 10 usos.');
+        comprarAqui = true;
     } else if (ia.modo === 'teste') {
         titulo = t('Teste grátis até {quando}', { quando: quando(ia.ate) });
         texto = t('Restam {a} análise(s) e {v} currículo(s) adaptado(s). Depois, a IA fica por R$ 5: 30 dias e 10 usos.', { a: ia.analisesRestantes, v: ia.versoesRestantes });
@@ -53,7 +59,7 @@ export default function PlanoIA({ ia }) {
         texto = ia.restantes > 0
             ? t('Restam {n} de 10 usos (análises e currículos adaptados somam). Suas versões aprovadas vão nos envios.', { n: ia.restantes })
             : t('Você usou os 10 usos deste período. As versões aprovadas continuam indo nos envios.');
-        comprarAqui = ia.restantes === 0;
+        comprarAqui = true;
     } else {
         icone = 'ti-lock';
         titulo = t('Seu teste grátis acabou');
@@ -64,11 +70,12 @@ export default function PlanoIA({ ia }) {
     return (
         <div className={`card plano-ia plano-ia-${ia.modo}`}>
             <div className="plano-ia-txt">
+                {cartao && <div className="plano-ia-preco">{t('IA no currículo · R$ 5 por 30 dias · 10 usos')}</div>}
                 <div className="plano-ia-titulo"><i className={`ti ${icone}`} /> {titulo}</div>
                 <div className="muted">{texto}</div>
                 {erro && <div className="cv-erro">{erro}</div>}
             </div>
-            {comprarAqui && botao}
+            {comprarAqui && ia.modo !== 'admin' && botao}
         </div>
     );
 }

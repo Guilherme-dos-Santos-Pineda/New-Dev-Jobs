@@ -33,7 +33,7 @@ export const PLANS = {
         label: 'Automático', dailyLimit: 50, allowManual: true, autoSend: true, priority: 5,
         price: 10, period: 'pagamento único · 30 dias', popular: true,
         desc: 'Você para de entrar todo dia para mandar currículo: a gente manda por você.',
-        features: ['seu currículo sai sozinho todo dia às 9h, sem você entrar', 'até 50 envios por dia, em vez de 20', 'a IA no currículo junto, enquanto o plano valer', 'vagas do seu perfil, as da semana primeiro', 'sai do seu Gmail, com o seu nome', 'liga e desliga quando quiser'],
+        features: ['seu currículo sai sozinho todo dia às 9h, sem você entrar', 'até 50 envios por dia, em vez de 20', 'um robô que busca vagas novas todo dia pelo seu perfil', 'a IA no currículo junto, enquanto o plano valer', 'vagas do seu perfil, as da semana primeiro', 'sai do seu Gmail, com o seu nome', 'liga e desliga quando quiser'],
     },
     // A IA no currículo NÃO é um Plan: é um plano à parte (R$ 5, iaLogic.js) que
     // soma com este. Quem compra o Automático ganha a IA junto (grantOneTime).

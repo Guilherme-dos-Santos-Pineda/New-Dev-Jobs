@@ -33,14 +33,34 @@ const faixa = (m, agora) => {
     return dias <= DIAS_DA_SEMANA ? 0 : dias <= DIAS_DO_MES ? 1 : 2;
 };
 
-/** Os ids que saem hoje: a semana pelo melhor match, depois o mês e o resto, as mais novas antes. */
-export function escolherVagas(matches, restam, agora = Date.now()) {
-    return [...matches]
+/**
+ * Os ids que saem hoje: a semana pelo melhor match, depois o mês e o resto, as
+ * mais novas antes.
+ *
+ * `diasRestantes` (dias até o plano vencer) liga o RITMO: a vaga da semana sai
+ * toda no dia, mas o estoque antigo é dividido pelos dias que faltam. Medido em
+ * 11/11/2026: entram ~1 a 2 vagas novas por dia no perfil de um pagante, e o
+ * envio de até 50 por dia acabava o estoque em 4 a 9 dias; o resto do mês sem
+ * envio nenhum. Decisão do dono: o envio tem de durar o plano inteiro.
+ */
+export function escolherVagas(matches, restam, agora = Date.now(), { diasRestantes } = {}) {
+    const ordenadas = [...matches]
         .sort((a, b) => faixa(a, agora) - faixa(b, agora)
             || (faixa(a, agora) === 0 ? b.matchScore - a.matchScore : 0)
-            || new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, Math.max(0, restam))
-        .map((m) => m.id);
+            || new Date(b.createdAt) - new Date(a.createdAt));
+    let hoje = Math.max(0, restam);
+    if (diasRestantes) {
+        const daSemana = ordenadas.filter((m) => faixa(m, agora) === 0).length;
+        const antigas = ordenadas.length - daSemana;
+        hoje = Math.min(hoje, daSemana + Math.ceil(antigas / Math.max(1, diasRestantes)));
+    }
+    return ordenadas.slice(0, hoje).map((m) => m.id);
+}
+
+/** Dias até o plano vencer (no mínimo 1). Plano sem validade conta como 30. */
+export function diasAteVencer(expira, agora = Date.now()) {
+    if (!expira) return 30;
+    return Math.max(1, Math.ceil((new Date(expira).getTime() - agora) / DIA_MS));
 }
 
 export const horaDeEnviar = (agora = Date.now()) => new Date(agora).getUTCHours() >= HORA_UTC;
@@ -60,7 +80,8 @@ async function enviarDoDia(usuario) {
 
     await assertCanSend(usuario.Id);
     const { remainingToday } = await planUsage(usuario.Id, usuario.Plan);
-    const ids = escolherVagas(await getMatches(usuario.Id), remainingToday);
+    const ids = escolherVagas(await getMatches(usuario.Id), remainingToday, Date.now(),
+        { diasRestantes: diasAteVencer(usuario.PlanExpiresAt) });
     if (ids.length) await enqueue(usuario.Id, ids);
     return ids.length;
 }
@@ -75,7 +96,7 @@ export async function tickAutoEnvio(agora = Date.now()) {
     rodando = true;
     try {
         const usuarios = await sql`
-            select "Id", "Plan" from "Users"
+            select "Id", "Plan", "PlanExpiresAt" from "Users"
             where "AutoEnvio" = true and ("AutoEnvioUltimo" is null or "AutoEnvioUltimo" < current_date)`;
         for (const u of usuarios) {
             if (!planOf(u.Plan).autoSend) continue;

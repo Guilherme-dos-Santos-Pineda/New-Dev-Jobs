@@ -23,6 +23,9 @@ const prefetchByPath = {
         import('../pages/Applications.jsx');
         prefetch('applications:1', () => api.getApplications({ page: 1, pageSize: 24 }));
     },
+    '/app/curriculo': () => {
+        import('../pages/Curriculo.jsx');
+    },
     '/app/perfil': () => {
         import('../pages/Profile.jsx');
         prefetch('profile', () => api.getProfile());
@@ -135,7 +138,19 @@ export default function Layout() {
         return next;
     });
 
-    const tabs = baseTabs;
+    // "Currículo IA" entra no menu só para quem tem a ferramenta (análise ligada
+    // ou plano com IA): item que leva a "ainda não disponível" ensina a não clicar.
+    const [temIA, setTemIA] = useState(false);
+    useEffect(() => {
+        let vivo = true;
+        Promise.allSettled([api.analiseCv(), api.versoesCv()]).then(([a, v]) => {
+            if (vivo) setTemIA(!!(a.value?.disponivel || v.value?.disponivel));
+        });
+        return () => { vivo = false; };
+    }, []);
+    const tabs = temIA
+        ? [...baseTabs.slice(0, 2), { to: '/app/curriculo', label: 'Currículo IA', icon: 'ti-sparkles' }, baseTabs[2]]
+        : baseTabs;
     const doLogout = () => { logout(); navigate('/login'); };
     const [bugAberto, setBugAberto] = useState(false);
 

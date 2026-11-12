@@ -3,17 +3,24 @@ import { config } from '../config.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { pdfToText } from './pdfText.js';
 import { getMatches } from './jobsQuery.js';
-import { idiomaDaVaga } from './classify.js';
+import { idiomaDaVaga, areaDaVaga, areaForaDeTI } from './classify.js';
+import { planOf } from '../config/plans.js';
+import { criarCacheLimitado } from '../lib/cacheLimitado.js';
+import { curriculoEmPdf, nomeDoAnexo } from './cvPdf.js';
 import { MIN_TEXTO_CV } from './analiseCvLogic.js';
-import { gruposDoFeed, SISTEMA_VERSAO, mensagemVersao, lerVersao, AREA_LEGIVEL } from './cvVersoesLogic.js';
+import { gruposDoFeed, SISTEMA_VERSAO, mensagemVersao, lerVersao, AREA_LEGIVEL, escolherVersao } from './cvVersoesLogic.js';
 
 // =========================
-// Versões do currículo por área (PROTÓTIPO, 11/11/2026: não publicado)
+// Versões do currículo por tipo de vaga (11/11/2026)
 // =========================
-// Só admin enquanto o plano que vai oferecer isso não existe. As versões ainda
-// NÃO entram nos envios: a pessoa vê, compara com as vagas e aprova. Ligar no
-// envio é o passo seguinte (escolherVersao em cvVersoesLogic.js já decide qual).
-export const SO_ADMIN = true;
+// Quem tem o plano com IA (`cvVersoes` em config/plans.js) cria uma versão por
+// tipo de vaga do feed, confere ao lado das vagas reais e aprova. Dali em
+// diante, todo envio para uma vaga desse tipo (área + idioma) leva a versão
+// aprovada, em PDF montado aqui (cvPdf.js), no lugar do PDF anexado no perfil.
+// Sem versão aprovada para o tipo, vai o PDF do perfil, como sempre.
+// O admin vê a tela sem o plano (para testar), mas só o PLANO liga no envio.
+export const podeUsarVersoes = (user, admin = false) => admin || !!planOf(user?.Plan).cvVersoes;
+export const versoesNosEnvios = (user) => !!planOf(user?.Plan).cvVersoes;
 const MODELO = process.env.CV_AI_MODEL || 'gpt-5.4-mini';
 const TEMPO_MAXIMO_MS = 100_000;
 
@@ -40,13 +47,14 @@ const forma = (v) => ({
 });
 
 /** A tela inteira: os tipos de vaga do feed da pessoa e as versões que ela já tem. */
-export async function painelDeVersoes(userId, { admin = false } = {}) {
-    if (SO_ADMIN && !admin) return { disponivel: false };
+export async function painelDeVersoes(userId, { acesso = false, nosEnvios = false } = {}) {
+    if (!acesso) return { disponivel: false };
     if (!(await tabelaExiste())) return { disponivel: false, faltaMigration: true };
     const grupos = gruposDoFeed(await getMatches(userId).catch(() => []), idiomaDoMatch);
     const versoes = (await sql`select * from "CvVersoes" where "UserId" = ${userId} order by "CreatedAt"`).map(forma);
     return {
         disponivel: true,
+        nosEnvios,
         grupos: grupos.map((g) => ({
             ...g, areaNome: AREA_LEGIVEL[g.area] || g.area,
             versao: versoes.find((v) => v.area === g.area && v.lang === g.lang) || null,
@@ -88,8 +96,8 @@ async function chamarOpenAI(mensagem) {
 const gerando = new Set();
 
 /** Cria (ou refaz) a versão de um tipo de vaga. Sai como rascunho: a pessoa aprova. */
-export async function gerarVersao(userId, { area, lang }, { admin = false } = {}) {
-    if (SO_ADMIN && !admin) throw new VersaoError('Ainda não disponível.', 403);
+export async function gerarVersao(userId, { area, lang }, { acesso = false } = {}) {
+    if (!acesso) throw new VersaoError('Disponível no plano com IA.', 403);
     if (!(await tabelaExiste())) throw new VersaoError('Falta aplicar a migration 0026.', 409);
     const idioma = lang === 'en' ? 'en' : 'pt';
     if (gerando.has(userId)) throw new VersaoError('Já tem uma versão sendo feita. Aguarde.', 409);
@@ -124,8 +132,8 @@ export async function gerarVersao(userId, { area, lang }, { admin = false } = {}
     }
 }
 
-export async function aprovarVersao(userId, id, { admin = false } = {}) {
-    if (SO_ADMIN && !admin) throw new VersaoError('Ainda não disponível.', 403);
+export async function aprovarVersao(userId, id, { acesso = false } = {}) {
+    if (!acesso) throw new VersaoError('Disponível no plano com IA.', 403);
     const [v] = await sql`
         update "CvVersoes" set "Status" = 'aprovada', "AprovadaEm" = now()
         where "Id" = ${id} and "UserId" = ${userId} returning *`;
@@ -133,9 +141,47 @@ export async function aprovarVersao(userId, id, { admin = false } = {}) {
     return forma(v);
 }
 
-export async function apagarVersao(userId, id, { admin = false } = {}) {
-    if (SO_ADMIN && !admin) throw new VersaoError('Ainda não disponível.', 403);
+export async function apagarVersao(userId, id, { acesso = false } = {}) {
+    if (!acesso) throw new VersaoError('Disponível no plano com IA.', 403);
     const [v] = await sql`delete from "CvVersoes" where "Id" = ${id} and "UserId" = ${userId} returning "Id"`;
     if (!v) throw new VersaoError('Versão não encontrada.', 404);
     return { apagada: true };
+}
+
+// PDFs já montados: a mesma versão vai para dezenas de vagas no mesmo dia.
+// A chave leva a data da aprovação, então versão refeita é PDF novo.
+const pdfs = criarCacheLimitado(8 * 1024 * 1024);
+
+/** Área da vaga como o feed a mostra (fora de TI, pela área do título). */
+const areaDoEnvio = (job) => {
+    const area = areaDaVaga(job);
+    return area === 'nontech' ? areaForaDeTI(job) : area;
+};
+
+/**
+ * O anexo deste envio, se a pessoa tem o plano com IA e uma versão APROVADA
+ * para o tipo da vaga. Qualquer falha devolve null e o envio segue com o PDF do
+ * perfil: currículo genérico é melhor que envio parado.
+ * @returns {Promise<{ buffer: Buffer, filename: string, versaoId: number, area: string } | null>}
+ */
+export async function versaoParaEnvio(user, job) {
+    try {
+        if (!versoesNosEnvios(user) || !(await tabelaExiste())) return null;
+        const area = areaDoEnvio(job);
+        if (!area || area === 'other') return null;
+        const lang = idiomaDaVaga(job);
+        const linhas = await sql`select * from "CvVersoes" where "UserId" = ${user.Id} and "Status" = 'aprovada' and "Area" = ${area}`;
+        const v = escolherVersao({ area, lang }, linhas.map(forma));
+        if (!v) return null;
+        const chave = `${v.id}:${new Date(v.aprovadaEm || 0).getTime()}`;
+        let buffer = pdfs.ler(chave);
+        if (!buffer) {
+            buffer = await curriculoEmPdf(v.curriculo, { lang: v.lang });
+            pdfs.guardar(chave, buffer);
+        }
+        return { buffer, filename: nomeDoAnexo(v.curriculo?.nome || user.Name), versaoId: v.id, area };
+    } catch (e) {
+        console.warn(`cv-versoes: envio segue com o PDF do perfil (${e.message})`);
+        return null;
+    }
 }

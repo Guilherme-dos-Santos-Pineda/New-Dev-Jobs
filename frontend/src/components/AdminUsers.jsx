@@ -4,7 +4,7 @@ import { useToast } from './Toast.jsx';
 import { fmtDate, scoreClass, linkWhatsapp } from '../utils.js';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
-const PLAN_BADGE = { free: 'neutral', starter: 'info', pro: 'ok' };
+const PLAN_BADGE = { free: 'neutral', starter: 'info', ia: 'ok', pro: 'ok' };
 const APP_BADGE = { sent: 'ok', failed: 'danger', skipped: 'neutral' };
 const PAGE = 25;
 const fmtFull = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
@@ -173,6 +173,7 @@ Isto NÃO dá acesso de admin.`)) return;
                                         <select className="select" value={plano} onChange={(e) => setPlano(e.target.value)} disabled={concedendo} aria-label="Plano">
                                             <option value="free">Free</option>
                                             <option value="starter">Starter</option>
+                                            <option value="ia">Automático + IA</option>
                                             <option value="pro">Pro</option>
                                         </select>
                                         {plano !== 'free' && (

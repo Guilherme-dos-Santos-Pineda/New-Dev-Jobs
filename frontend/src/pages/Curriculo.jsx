@@ -1,11 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { api } from '../api.js';
 import { useT } from '../lib/i18n.jsx';
 
-// Melhorar meu currículo: análise e reescrita pela IA (backend/services/analiseCv.js).
-// Em teste: 3 análises por pessoa. A tela diz desde o primeiro dia que depois do
-// teste a ferramenta faz parte do plano pago, para ninguém sentir que perdeu algo.
+// Currículo com IA: uma seção própria no menu (11/11/2026, o dono achou confuso
+// a análise e as versões misturadas). Duas abas, cada uma dizendo em uma frase o
+// que faz: "Analisar meu currículo" (backend/services/analiseCv.js, grátis, 2 por
+// pessoa) e "Um currículo por tipo de vaga" (VersoesCurriculo.jsx, plano com IA).
+
+/** Topo comum às duas abas. A aba de versões só aparece para quem tem acesso. */
+export function CabecalhoIA({ versoes }) {
+    const { t } = useT();
+    return (
+        <>
+            <div className="page-head">
+                <div>
+                    <h1><i className="ti ti-sparkles" /> {t('Currículo com IA')}</h1>
+                    <p className="muted">{t('A IA trabalha no seu currículo. Nada muda nos seus envios sem você aprovar.')}</p>
+                </div>
+            </div>
+            {versoes && (
+                <div className="ia-abas" role="tablist">
+                    <NavLink to="/app/curriculo" end role="tab" className={({ isActive }) => `ia-aba ${isActive ? 'on' : ''}`}>
+                        <i className="ti ti-report-search" />
+                        <span><b>{t('Analisar meu currículo')}</b><small>{t('Nota, pontos fortes e o que melhorar')}</small></span>
+                    </NavLink>
+                    <NavLink to="/app/curriculo/versoes" role="tab" className={({ isActive }) => `ia-aba ${isActive ? 'on' : ''}`}>
+                        <i className="ti ti-files" />
+                        <span><b>{t('Um currículo por tipo de vaga')}</b><small>{t('A IA adapta, você aprova, os envios usam')}</small></span>
+                    </NavLink>
+                </div>
+            )}
+        </>
+    );
+}
+
+const temLembrete = (cv) => /\[[^\]]{1,80}\]/.test(JSON.stringify(cv || {}));
 
 // "[quantos usuários?]" é o lembrete que a IA deixa onde só a pessoa sabe o dado.
 function ComLembretes({ texto }) {
@@ -109,7 +139,7 @@ export default function Curriculo() {
     const [verReescrita, setVerReescrita] = useState(false);
     const trava = useRef(false);
 
-    // Protótipo das versões por área: o atalho só aparece para quem a API libera.
+    // A aba das versões só aparece para quem a API libera (plano com IA ou admin).
     const [versoes, setVersoes] = useState(false);
     useEffect(() => { api.versoesCv().then((v) => setVersoes(!!v?.disponivel)).catch(() => {}); }, []);
 
@@ -172,7 +202,7 @@ export default function Curriculo() {
     if (!estado.disponivel) {
         return (
             <div className="page">
-                <div className="page-head"><div><h1>{t('Melhorar meu currículo')}</h1></div></div>
+                <CabecalhoIA versoes={versoes} />
                 <div className="card"><p className="muted">{t('Esta ferramenta ainda não está disponível. Volte em breve.')}</p></div>
             </div>
         );
@@ -185,23 +215,8 @@ export default function Curriculo() {
 
     return (
         <div className="page cv-pagina">
-            <div className="page-head">
-                <div>
-                    <h1>{t('Melhorar meu currículo')}</h1>
-                    <p className="muted">{t('A IA lê o currículo que você anexou, mostra o que está bom e o que falta para as vagas que você recebe, e reescreve tudo para os sistemas de triagem.')}</p>
-                </div>
-            </div>
-
-            {versoes && (
-                <Link to="/app/curriculo/versoes" className="cv-entrada" style={{ marginTop: 0, marginBottom: 14 }}>
-                    <i className="ti ti-files" />
-                    <div>
-                        <div className="cv-entrada-titulo">{t('Versões do currículo por tipo de vaga')} <span className="badge info">{t('Em teste')}</span></div>
-                        <div className="muted">{t('Um currículo adaptado para cada tipo de vaga do seu feed, que você confere e aprova.')}</div>
-                    </div>
-                    <i className="ti ti-chevron-right" />
-                </Link>
-            )}
+            <CabecalhoIA versoes={versoes} />
+            <p className="muted ia-explica">{t('A IA lê o currículo que você anexou em Meu perfil e mostra o que está bom e o que falta para as vagas que você recebe. Seu currículo não muda.')}</p>
 
             <div className="card cv-acao">
                 <div className="cv-acao-txt">
@@ -292,7 +307,7 @@ export default function Curriculo() {
                         </div>
                         {verReescrita ? (
                             <>
-                                <div className="why"><i className="ti ti-info-circle" />{t('Revise antes de usar. O que aparece marcado entre colchetes é um dado que só você sabe: preencha ou apague. Depois de baixar o PDF, anexe em Meu perfil para ele ir nos seus envios.')}</div>
+                                {temLembrete(r.curriculo) && <div className="why"><i className="ti ti-info-circle" />{t('Os trechos entre colchetes são dados que só você sabe: preencha ou apague antes de usar.')}</div>}
                                 <FolhaDoCurriculo cv={r.curriculo} />
                             </>
                         ) : (

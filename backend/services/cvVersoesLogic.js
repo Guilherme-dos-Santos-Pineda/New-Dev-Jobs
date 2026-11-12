@@ -58,7 +58,7 @@ O QUE FAZER:
 
 PROIBIDO INVENTAR (este currículo vai para recrutadores reais):
 - NUNCA invente empresa, cargo, data, curso, certificação, tecnologia, número ou resultado que não esteja no texto.
-- Onde um número ajudaria e a pessoa não deu, escreva um lembrete entre colchetes, por exemplo "[quantos usuários?]".
+- Esta versão vai ANEXADA direto aos recrutadores, sem a pessoa editar: NÃO deixe lacunas nem lembretes entre colchetes. Onde um número ajudaria e a pessoa não deu, escreva a frase sem número.
 - Contato: copie exatamente o que está no currículo.
 - Traduzir NÃO é inventar: se o idioma pedido for inglês, traduza fielmente.
 

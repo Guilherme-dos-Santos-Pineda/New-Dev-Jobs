@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { escolherVagas, horaDeEnviar, proximoEnvio } from '../services/autoEnvio.js';
+import { escolherVagas, horaDeEnviar, proximoEnvio, diasAteVencer } from '../services/autoEnvio.js';
 import { PLANS, planOf } from '../config/plans.js';
 
 const agora = Date.UTC(2026, 10, 10, 12);
@@ -72,4 +72,32 @@ test('o plano à venda é o de R$ 10, com 50 envios por dia', () => {
 test('o checkout só vende o que está à venda', async () => {
     const rota = await readFile(new URL('../routes/billing.js', import.meta.url), 'utf8');
     assert.match(rota, /checkoutSchema = z\.object\(\{ plan: z\.enum\(\['starter'\]\) \}\)/);
+});
+
+test('ritmo: a semana sai toda, o estoque antigo é dividido pelos dias do plano (11/11/2026)', () => {
+    const semana = [vaga(1, 90, 1), vaga(2, 80, 2), vaga(3, 70, 3)];
+    const antigas = Array.from({ length: 56 }, (_, i) => vaga(100 + i, 60, 10 + i));
+    const ids = escolherVagas([...semana, ...antigas], 50, agora, { diasRestantes: 28 });
+    // 3 da semana + 56 antigas / 28 dias = 5 hoje, em vez de 50 e estoque zerado no dia
+    assert.equal(ids.length, 5);
+    assert.deepEqual(ids.slice(0, 3), [1, 2, 3]);
+});
+
+test('ritmo: no último dia do plano sai o que sobrou, até o limite', () => {
+    const antigas = Array.from({ length: 60 }, (_, i) => vaga(i + 1, 60, 10 + i));
+    assert.equal(escolherVagas(antigas, 50, agora, { diasRestantes: 1 }).length, 50);
+    assert.equal(escolherVagas(antigas, 50, agora, { diasRestantes: 0 }).length, 50);
+});
+
+test('diasAteVencer: arredonda para cima, no mínimo 1, sem validade conta 30', () => {
+    assert.equal(diasAteVencer(new Date(agora + 2.5 * 86400000), agora), 3);
+    assert.equal(diasAteVencer(new Date(agora - 86400000), agora), 1);
+    assert.equal(diasAteVencer(null, agora), 30);
+});
+
+test('plano com IA: automático + versões do currículo, fora de venda (só concessão)', () => {
+    assert.equal(PLANS.ia.autoSend, true);
+    assert.equal(PLANS.ia.cvVersoes, true);
+    assert.equal(PLANS.ia.aVenda, false);
+    assert.ok(!PLANS.starter.cvVersoes && !PLANS.free.cvVersoes);
 });

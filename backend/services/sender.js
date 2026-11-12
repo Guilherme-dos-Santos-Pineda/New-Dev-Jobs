@@ -5,6 +5,7 @@ import { idiomaDaVaga } from './classify.js';
 import { sendApplicationEmail } from './mailer.js';
 import { remetente } from './nomeUsuario.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
+import { versaoParaEnvio } from './cvVersoes.js';
 import { resolveTemplate } from '../routes/templates.js';
 import { invalidateMatches, bloqueadaPeloUsuario } from './jobsQuery.js';
 import { jaContatado, enderecos } from './mesmoRecrutador.js';
@@ -63,13 +64,17 @@ export async function applyToJob(userId, jobId, editado = null) {
     const tpl = editado ? { subject: editado.subject, body: editado.body } : await resolveTemplate(userId, lang);
     const rendered = renderEmail({ subjectTemplate: tpl.subject, bodyTemplate: tpl.body, user, profile, job, lang });
 
-    const cvBuffer = await getCvBuffer(profile.CvPath);
+    // Plano com IA e versão aprovada para este tipo de vaga: vai a versão (cvVersoes.js).
+    const versao = await versaoParaEnvio(user, job);
+    const cvBuffer = versao ? versao.buffer : await getCvBuffer(profile.CvPath);
+    const nomeDoArquivo = versao ? versao.filename : profile.CvName;
+    if (versao) console.log(`📎 envio com a versão ${versao.versaoId} (${versao.area}) do currículo, user ${userId}`);
 
     try {
         await sendApplicationEmail({
             userId, from: remetente(user), to: job.Email,
             subject: rendered.subject, html: rendered.html, text: rendered.text,
-            attachmentContent: cvBuffer, filename: profile.CvName,
+            attachmentContent: cvBuffer, filename: nomeDoArquivo,
         });
     } catch (e) {
         // Reconexão necessária = erro definitivo (retry não resolve); o worker marca falha.

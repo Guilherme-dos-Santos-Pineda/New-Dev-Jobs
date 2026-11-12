@@ -8,6 +8,7 @@ import { planOf } from '../config/plans.js';
 import { criarCacheLimitado } from '../lib/cacheLimitado.js';
 import { curriculoEmPdf, nomeDoAnexo } from './cvPdf.js';
 import { MIN_TEXTO_CV } from './analiseCvLogic.js';
+import { controleGlobal, ajusteDe } from './analiseCv.js';
 import { gruposDoFeed, SISTEMA_VERSAO, mensagemVersao, lerVersao, AREA_LEGIVEL, escolherVersao } from './cvVersoesLogic.js';
 
 // =========================
@@ -19,8 +20,24 @@ import { gruposDoFeed, SISTEMA_VERSAO, mensagemVersao, lerVersao, AREA_LEGIVEL, 
 // aprovada, em PDF montado aqui (cvPdf.js), no lugar do PDF anexado no perfil.
 // Sem versão aprovada para o tipo, vai o PDF do perfil, como sempre.
 // O admin vê a tela sem o plano (para testar), mas só o PLANO liga no envio.
-export const podeUsarVersoes = (user, admin = false) => admin || !!planOf(user?.Plan).cvVersoes;
 export const versoesNosEnvios = (user) => !!planOf(user?.Plan).cvVersoes;
+
+/**
+ * Admin › Currículo IA manda aqui: a chave das versões desligada, ou a pessoa
+ * bloqueada, tira a aba E o envio com IA (volta o PDF do perfil). O admin
+ * continua vendo a aba para testar.
+ */
+export async function iaLiberada(user) {
+    const controle = await controleGlobal().catch(() => ({ versoesAtivas: true }));
+    if (!controle.versoesAtivas) return false;
+    const ajuste = await ajusteDe(user.Id).catch(() => ({ bloqueado: false }));
+    return !ajuste.bloqueado;
+}
+
+export async function podeUsarVersoes(user, admin = false) {
+    if (admin) return true;
+    return versoesNosEnvios(user) && (await iaLiberada(user));
+}
 const MODELO = process.env.CV_AI_MODEL || 'gpt-5.4-mini';
 const TEMPO_MAXIMO_MS = 100_000;
 
@@ -173,6 +190,7 @@ export async function versaoParaEnvio(user, job) {
     try {
         // Desligado pela pessoa (migration 0028): vai o PDF do perfil.
         if (!versoesNosEnvios(user) || user.CvIaNosEnvios === false || !(await tabelaExiste())) return null;
+        if (!(await iaLiberada(user))) return null;
         const area = areaDoEnvio(job);
         if (!area || area === 'other') return null;
         const lang = idiomaDaVaga(job);

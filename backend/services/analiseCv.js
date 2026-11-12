@@ -78,7 +78,7 @@ export async function controleGlobal() {
     return controleCache;
 }
 
-async function ajusteDe(userId) {
+export async function ajusteDe(userId) {
     if (!(await tabelas()).ajustes) return { bloqueado: false, extras: 0 };
     const [r] = await sql`select "Bloqueado", "Extras" from "CvAnaliseAjustes" where "UserId" = ${userId}`;
     return { bloqueado: !!r?.Bloqueado, extras: r?.Extras || 0 };
@@ -249,9 +249,21 @@ export async function painelAdmin() {
             comTokens: r.com_tokens, duracaoMediaMs: r.duracao_media, chegaramNoLimite: esgotadas.n,
         };
     }
+    // Versões e envio com IA: quanto existe e quanto já saiu (migrations 0026 e 0027).
+    let versoes = null;
+    const [temV] = await sql`select to_regclass('public."CvVersoes"') is not null as ok`;
+    if (temV.ok) {
+        const [v] = await sql`
+            select count(*)::int as total, count(*) filter (where "Status" = 'aprovada')::int as aprovadas,
+                   count(distinct "UserId")::int as pessoas from "CvVersoes"`;
+        const [e] = await sql`
+            select count(*)::int as total, count(*) filter (where "SentAt" > now() - interval '7 days')::int as semana
+            from "Applications" where "CvVersaoId" is not null`.catch(() => [{ total: 0, semana: 0 }]);
+        versoes = { ...v, enviosComIa: e.total, enviosComIa7d: e.semana };
+    }
     return {
         disponivel, modelo: MODELO, openaiConfigurada: !!config.ai.providers.openai.configured,
-        migration: t, controle, numeros, limiteMaximo: LIMITE_MAXIMO, extrasMaximo: EXTRAS_MAXIMO,
+        migration: t, controle, numeros, versoes, limiteMaximo: LIMITE_MAXIMO, extrasMaximo: EXTRAS_MAXIMO,
         emAndamento: emAndamento.size, falhasDesdeBoot, bootEm, falhas,
     };
 }
@@ -310,17 +322,17 @@ export async function pessoasAdmin() {
     }));
 }
 
-export async function salvarControle({ ativa, limite }, por) {
+export async function salvarControle({ ativa, limite, versoesAtivas }, por) {
     if (!(await tabelas()).settings) throw new AnaliseError('Falta aplicar a migration 0025 para gravar o controle.', 409);
     const atual = await controleGlobal();
-    const novo = lerControle({ ativa: ativa ?? atual.ativa, limite: limite ?? atual.limite });
+    const novo = lerControle({ ativa: ativa ?? atual.ativa, limite: limite ?? atual.limite, versoesAtivas: versoesAtivas ?? atual.versoesAtivas });
     await sql`
         insert into "AppSettings" ("Key", "Value", "UpdatedBy", "UpdatedAt")
         values ('analiseCv', ${sql.json(novo)}, ${por}, now())
         on conflict ("Key") do update set "Value" = excluded."Value", "UpdatedBy" = excluded."UpdatedBy", "UpdatedAt" = now()`;
     controleCache = novo;
     controleLidoEm = Date.now();
-    console.log(`🧾 análise de CV: ${novo.ativa ? 'ligada' : 'DESLIGADA'}, limite ${novo.limite} (por ${por})`);
+    console.log(`🧾 análise de CV: ${novo.ativa ? 'ligada' : 'DESLIGADA'}, limite ${novo.limite}; versões ${novo.versoesAtivas ? 'ligadas' : 'DESLIGADAS'} (por ${por})`);
     return novo;
 }
 

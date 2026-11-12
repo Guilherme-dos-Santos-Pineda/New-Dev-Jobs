@@ -864,6 +864,7 @@ router.get('/analise-cv/:id', requireAdmin, async (req, res) => {
 const controleAnaliseSchema = z.object({
     ativa: z.boolean().optional(),
     limite: z.number().int().min(0).max(LIMITE_MAXIMO).optional(),
+    versoesAtivas: z.boolean().optional(),
 });
 router.put('/analise-cv/controle', requireAdmin, validate(controleAnaliseSchema), async (req, res) => {
     try { res.json(await salvarControle(req.body, req.user.Email)); } catch (e) { erroDaAnalise(res, e); }

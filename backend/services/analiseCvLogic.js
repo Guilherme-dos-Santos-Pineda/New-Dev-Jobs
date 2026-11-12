@@ -161,7 +161,9 @@ export const EXTRAS_MAXIMO = 50;
 export function lerControle(valor) {
     const v = valor && typeof valor === 'object' ? valor : {};
     const limite = Number.isInteger(v.limite) ? Math.min(LIMITE_MAXIMO, Math.max(0, v.limite)) : LIMITE_ANALISES;
-    return { ativa: v.ativa !== false, limite };
+    // versoesAtivas: a aba "Um currículo por tipo de vaga" e o envio com IA (cvVersoes.js).
+    // Chave separada da análise: o dono quer desligar uma sem a outra (11/11/2026).
+    return { ativa: v.ativa !== false, limite, versoesAtivas: v.versoesAtivas !== false };
 }
 
 /**

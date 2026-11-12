@@ -5,7 +5,7 @@ import { painelDeVersoes, gerarVersao, aprovarVersao, apagarVersao, VersaoError,
 
 const router = Router();
 const ehAdmin = (u) => config.isAdminEmail(u.Email) || u.Role === 'admin';
-const acesso = (req) => ({ acesso: podeUsarVersoes(req.user, ehAdmin(req.user)), nosEnvios: versoesNosEnvios(req.user) });
+const acesso = async (req) => ({ acesso: await podeUsarVersoes(req.user, ehAdmin(req.user)), nosEnvios: versoesNosEnvios(req.user) });
 const responder = (fn) => async (req, res) => {
     try {
         res.json(await fn(req));
@@ -21,11 +21,11 @@ const idDe = (req) => {
     return id;
 };
 
-router.get('/', requireAuth, responder((req) => painelDeVersoes(req.user.Id, acesso(req))));
+router.get('/', requireAuth, responder(async (req) => painelDeVersoes(req.user.Id, await acesso(req))));
 // Liga/desliga a versão da IA nos envios (antes do /:id, que só aceita número).
 router.put('/nos-envios', requireAuth, responder((req) => ligarIaNosEnvios(req.user, req.body?.ligado === true)));
-router.post('/', requireAuth, responder((req) => gerarVersao(req.user.Id, { area: String(req.body?.area || ''), lang: req.body?.lang }, acesso(req))));
-router.post('/:id/aprovar', requireAuth, responder((req) => aprovarVersao(req.user.Id, idDe(req), acesso(req))));
-router.delete('/:id', requireAuth, responder((req) => apagarVersao(req.user.Id, idDe(req), acesso(req))));
+router.post('/', requireAuth, responder(async (req) => gerarVersao(req.user.Id, { area: String(req.body?.area || ''), lang: req.body?.lang }, await acesso(req))));
+router.post('/:id/aprovar', requireAuth, responder(async (req) => aprovarVersao(req.user.Id, idDe(req), await acesso(req))));
+router.delete('/:id', requireAuth, responder(async (req) => apagarVersao(req.user.Id, idDe(req), await acesso(req))));
 
 export default router;

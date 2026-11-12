@@ -44,16 +44,21 @@ export default function AdminAnaliseCv() {
         if (!ativa && !window.confirm('Desligar a análise de currículo para todo mundo? Ela some do perfil de todos (menos o seu, de admin).')) return;
         acao(() => api.adminAnaliseCvControle({ ativa }), ativa ? 'Análise ligada para todos.' : 'Análise desligada.');
     };
+    const mudarVersoes = (versoesAtivas) => {
+        if (!versoesAtivas && !window.confirm('Desligar "Um currículo por tipo de vaga" para todo mundo? A aba some (menos para você) e os envios voltam a levar o currículo do perfil.')) return;
+        acao(() => api.adminAnaliseCvControle({ versoesAtivas }), versoesAtivas ? 'Versões e envio com IA ligados.' : 'Versões e envio com IA desligados.');
+    };
     const salvarLimite = () => acao(() => api.adminAnaliseCvControle({ limite: Number(limite) }), 'Limite salvo.');
     const ajustar = (ajuste, ok) => acao(() => api.adminAnaliseCvPessoa(ajuste), ok);
 
-    function porEmail(bloquear) {
+    // modo: 'bloquear' | 'desbloquear' | 'extras'
+    function porEmail(modo) {
         const alvo = email.trim();
         if (!alvo) return;
-        const ajuste = bloquear
-            ? { email: alvo, bloqueado: true, motivo: motivo.trim() || null }
-            : { email: alvo, extras: Number(extras) || 0, motivo: motivo.trim() || undefined };
-        ajustar(ajuste, bloquear ? 'Pessoa bloqueada.' : 'Análises extras salvas.');
+        const ajuste = modo === 'bloquear' ? { email: alvo, bloqueado: true, motivo: motivo.trim() || null }
+            : modo === 'desbloquear' ? { email: alvo, bloqueado: false }
+                : { email: alvo, extras: Number(extras) || 0, motivo: motivo.trim() || undefined };
+        ajustar(ajuste, modo === 'bloquear' ? 'Pessoa bloqueada.' : modo === 'desbloquear' ? 'Pessoa desbloqueada.' : 'Análises extras salvas.');
         setEmail(''); setMotivo('');
     }
 
@@ -70,7 +75,7 @@ export default function AdminAnaliseCv() {
 
     return (
         <div>
-            <p className="muted" style={{ marginTop: 0 }}>Melhorar meu currículo: está ligada, quem usa e quanto gasta? Modelo <b>{d.modelo}</b>.</p>
+            <p className="muted" style={{ marginTop: 0 }}>A seção <b>Currículo IA</b> tem duas abas, cada uma com a sua chave. Modelo <b>{d.modelo}</b>.</p>
 
             {!d.openaiConfigurada && (
                 <div className="card" style={{ padding: 14, marginBottom: 14, borderColor: 'var(--color-danger)' }}>
@@ -88,14 +93,15 @@ export default function AdminAnaliseCv() {
                 </div>
             )}
 
-            {/* ---- Chave geral e limite ---- */}
+            {/* ---- Aba 1: análise ---- */}
             <div className="card" style={{ padding: 18, marginBottom: 16 }}>
+                <div className="section-title" style={{ marginBottom: 10 }}><i className="ti ti-report-search" /> Aba "Analisar meu currículo" (grátis)</div>
                 <div className="row" style={{ alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <span className={`badge ${d.controle.ativa ? 'ok' : 'warn'}`}>{d.controle.ativa ? 'Ligada para todos' : 'Desligada'}</span>
                     <span className="muted" style={{ fontSize: 13, flex: 1, minWidth: 200 }}>
                         {d.controle.ativa
-                            ? 'Aparece em Meu perfil para quem tem currículo anexado.'
-                            : 'Sumiu do perfil de todos. Você, como admin, continua usando para testar.'}
+                            ? 'Todo mundo com currículo anexado vê a aba e faz a análise, até o limite abaixo.'
+                            : 'A aba sumiu para todos. Você, como admin, continua usando para testar.'}
                     </span>
                     {d.controle.ativa
                         ? <button className="btn danger sm" disabled={ocupado || semMigration} onClick={() => mudarChave(false)}><i className="ti ti-power" /> Desligar para todos</button>
@@ -109,6 +115,27 @@ export default function AdminAnaliseCv() {
                         onClick={salvarLimite}>Salvar limite</button>
                     <span className="muted" style={{ fontSize: 12.5 }}>Vale para todos, somado às extras de cada um. Zero = ninguém analisa mais (quem já analisou continua vendo a última).</span>
                 </div>
+            </div>
+
+            {/* ---- Aba 2: versões + envio com IA ---- */}
+            <div className="card" style={{ padding: 18, marginBottom: 16 }}>
+                <div className="section-title" style={{ marginBottom: 10 }}><i className="ti ti-files" /> Aba "Um currículo por tipo de vaga" e envio com IA</div>
+                <div className="row" style={{ alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span className={`badge ${d.controle.versoesAtivas ? 'ok' : 'warn'}`}>{d.controle.versoesAtivas ? 'Ligada' : 'Desligada'}</span>
+                    <span className="muted" style={{ fontSize: 13, flex: 1, minWidth: 200 }}>
+                        {d.controle.versoesAtivas
+                            ? 'Quem tem o plano com IA vê a aba, cria versões e os envios dele levam a versão aprovada.'
+                            : 'A aba sumiu para todos (menos você) e todos os envios levam o currículo do perfil. As versões continuam salvas.'}
+                    </span>
+                    {d.controle.versoesAtivas
+                        ? <button className="btn danger sm" disabled={ocupado || semMigration} onClick={() => mudarVersoes(false)}><i className="ti ti-power" /> Desligar para todos</button>
+                        : <button className="btn primary sm" disabled={ocupado || semMigration} onClick={() => mudarVersoes(true)}><i className="ti ti-power" /> Ligar</button>}
+                </div>
+                {d.versoes && (
+                    <div className="muted" style={{ fontSize: 13, marginTop: 12 }}>
+                        {nf(d.versoes.total)} versões criadas ({nf(d.versoes.aprovadas)} aprovadas) por {nf(d.versoes.pessoas)} pessoa(s) · {nf(d.versoes.enviosComIa)} envio(s) com a versão da IA, {nf(d.versoes.enviosComIa7d)} nos últimos 7 dias
+                    </div>
+                )}
             </div>
 
             {/* ---- Números ---- */}
@@ -149,19 +176,20 @@ export default function AdminAnaliseCv() {
 
             {/* ---- Bloquear ou dar análises por email ---- */}
             <div className="card" style={{ padding: 18, marginBottom: 16 }}>
-                <div className="section-title"><i className="ti ti-user-cog" /> Bloquear ou dar análises a alguém</div>
-                <p className="muted" style={{ fontSize: 12.5, marginTop: -6 }}>Funciona para quem ainda não usou. Bloqueada, a ferramenta some do perfil daquela pessoa.</p>
+                <div className="section-title"><i className="ti ti-user-cog" /> Bloquear, desbloquear ou dar análises a alguém</div>
+                <p className="muted" style={{ fontSize: 12.5, marginTop: -6 }}>Pelo email, mesmo de quem nunca usou. Bloqueada, a pessoa não vê as duas abas e os envios dela voltam a levar o currículo do perfil. Quem está bloqueado aparece no topo da lista abaixo.</p>
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                     <input className="input" style={{ flex: 2, minWidth: 220 }} placeholder="email da conta" value={email} onChange={(e) => setEmail(e.target.value)} />
                     <input className="input" style={{ width: 90 }} type="number" min={0} max={d.extrasMaximo} title="Análises extras" value={extras} onChange={(e) => setExtras(e.target.value)} />
                     <input className="input" style={{ flex: 2, minWidth: 180 }} placeholder="motivo (opcional, só você vê)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-                    <button className="btn ghost sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail(false)}><i className="ti ti-plus" /> Definir extras</button>
-                    <button className="btn danger sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail(true)}><i className="ti ti-ban" /> Bloquear</button>
+                    <button className="btn ghost sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail('extras')}><i className="ti ti-plus" /> Definir extras</button>
+                    <button className="btn ghost sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail('desbloquear')}><i className="ti ti-lock-open" /> Desbloquear</button>
+                    <button className="btn danger sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail('bloquear')}><i className="ti ti-ban" /> Bloquear</button>
                 </div>
             </div>
 
             {/* ---- Pessoas ---- */}
-            <div className="section-title" style={{ marginTop: 8 }}><i className="ti ti-users" /> Quem usou ({nf(d.pessoas.length)})</div>
+            <div className="section-title" style={{ marginTop: 8 }}><i className="ti ti-users" /> Quem usou ou tem ajuste ({nf(d.pessoas.length)})</div>
             {d.pessoas.length === 0 ? (
                 <div className="card empty" style={{ padding: 24, marginBottom: 16 }}><i className="ti ti-file-cv" /><div>Ninguém usou ainda.</div></div>
             ) : (

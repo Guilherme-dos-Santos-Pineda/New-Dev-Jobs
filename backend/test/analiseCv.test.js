@@ -85,10 +85,12 @@ test('controle do admin: limite global, extras por pessoa e bloqueio', () => {
 });
 
 test('controle sem valor gravado vale o padrão: ligada e LIMITE_ANALISES', () => {
-    assert.deepEqual(lerControle(undefined), { ativa: true, limite: LIMITE_ANALISES });
-    assert.deepEqual(lerControle({ ativa: false }), { ativa: false, limite: LIMITE_ANALISES });
-    assert.deepEqual(lerControle({ limite: 999 }), { ativa: true, limite: 50 });
-    assert.deepEqual(lerControle({ limite: '7' }), { ativa: true, limite: LIMITE_ANALISES });
+    assert.deepEqual(lerControle(undefined), { ativa: true, limite: LIMITE_ANALISES, versoesAtivas: true });
+    assert.deepEqual(lerControle({ ativa: false }), { ativa: false, limite: LIMITE_ANALISES, versoesAtivas: true });
+    assert.deepEqual(lerControle({ limite: 999 }), { ativa: true, limite: 50, versoesAtivas: true });
+    assert.deepEqual(lerControle({ limite: '7' }), { ativa: true, limite: LIMITE_ANALISES, versoesAtivas: true });
+    // As duas abas têm chave própria: desligar as versões não desliga a análise.
+    assert.deepEqual(lerControle({ versoesAtivas: false }), { ativa: true, limite: LIMITE_ANALISES, versoesAtivas: false });
 });
 
 test('desligada ou bloqueado tira o acesso, menos do admin', () => {

@@ -9,7 +9,7 @@ import { garantirRoboDasVagas } from './services/vagasAnunciadas.js';
 import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
 import { tickCampaigns } from './services/campaigns.js';
-import { apifyExhaustedUntil } from './services/apifyPool.js';
+import { apifyExhaustedUntil, apifyPoolState } from './services/apifyPool.js';
 import { runMaintenance } from './services/maintenance.js';
 import { tickAutoEnvio } from './services/autoEnvio.js';
 import { tickRobosPessoais } from './services/roboPessoal.js';
@@ -147,7 +147,12 @@ async function runDueSchedules(boss) {
         const agora = Date.now();
         if (agora - ultimoAvisoSemCredito >= INTERVALO_AVISO_MS) {
             ultimoAvisoSemCredito = agora;
-            console.log(`⏸️  agendador pausado: Apify sem crédito até ${new Date(semCreditoAte).toISOString()}`);
+            // Chave recusada também marca a conta como parada: dizer "sem crédito" escondeu
+            // por 14 horas que a Apify tinha trocado as chaves (12/11/2026).
+            const chaves = apifyPoolState().accounts.filter((a) => /chave inválida/.test(a.lastError || '')).map((a) => a.label);
+            console.log(chaves.length
+                ? `⏸️  agendador pausado: chave da Apify recusada (${chaves.join(', ')}). Gere chaves novas na Apify e troque no .env.`
+                : `⏸️  agendador pausado: Apify sem crédito até ${new Date(semCreditoAte).toISOString()}`);
         }
         return 0;
     }

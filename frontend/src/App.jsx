@@ -19,6 +19,7 @@ const ResetPassword = lazyWithReload(() => import('./pages/ResetPassword.jsx'));
 const Dashboard = lazyWithReload(() => import('./pages/Dashboard.jsx'));
 const VagasLink = lazyWithReload(() => import('./pages/VagasLink.jsx'));
 const Curriculo = lazyWithReload(() => import('./pages/Curriculo.jsx'));
+const VersoesCurriculo = lazyWithReload(() => import('./pages/VersoesCurriculo.jsx'));
 const Applications = lazyWithReload(() => import('./pages/Applications.jsx'));
 const Profile = lazyWithReload(() => import('./pages/Profile.jsx'));
 const Feedback = lazyWithReload(() => import('./pages/Feedback.jsx'));
@@ -55,6 +56,7 @@ export default function App() {
                     <Route path="candidaturas" element={<Applications />} />
                     <Route path="links" element={<VagasLink />} />
                     <Route path="curriculo" element={<Curriculo />} />
+                    <Route path="curriculo/versoes" element={<VersoesCurriculo />} />
                     <Route path="feedback" element={<Feedback />} />
                     <Route path="perfil" element={<Profile />} />
                     {/* Com os planos pagos desligados a página nem existe: link antigo cai nas vagas. */}

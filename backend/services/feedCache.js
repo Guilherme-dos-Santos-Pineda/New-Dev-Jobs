@@ -1,5 +1,6 @@
 import sql from '../lib/sql.js';
 import { LIKE_EMAIL } from './emailContato.js';
+import { lerSnapshot, gravadorDeSnapshot } from '../lib/snapshotDisco.js';
 
 // =========================
 // Vagas do feed em memória
@@ -57,6 +58,30 @@ export function maisRecentePrimeiro(a, b) {
     return x === y ? 0 : (y > x ? 1 : -1);
 }
 
+// Cópia em disco (lib/snapshotDisco.js): depois de um deploy, o processo novo lê
+// o disco e a impressão de sempre decide se serve. Se nada mudou, o reinício
+// custa ~50 bytes em vez de ~12 MB.
+const salvarNoDisco = gravadorDeSnapshot('feed', () => ({ corpus, maxId, marca }));
+let tentouDisco = false;
+
+/** Usa a cópia do disco se as colunas de "Jobs" forem as mesmas. A impressão confere o resto. */
+async function carregarDoDisco() {
+    const s = await lerSnapshot('feed');
+    const d = s?.dados;
+    if (!d?.maxId || !d.marca || !Array.isArray(d.corpus)) return false;
+    // Migration nova em "Jobs" deixaria a cópia sem a coluna, e a impressão não
+    // pega isso. `limit 0` devolve só o nome das colunas.
+    if (d.corpus.length) {
+        const vazio = await sql`select * from "Jobs" limit 0`;
+        const doBanco = vazio.columns.map((c) => c.name).sort().join(',');
+        if (doBanco !== Object.keys(d.corpus[0]).sort().join(',')) return false;
+    }
+    corpus = d.corpus;
+    maxId = d.maxId;
+    marca = d.marca;
+    return true;
+}
+
 async function recarregar() {
     // A impressão vem ANTES das linhas: se uma vaga mudar no meio, a próxima
     // conferência acusa diferença. Na ordem inversa a mudança passaria batida.
@@ -66,9 +91,14 @@ async function recarregar() {
         order by "CreatedAt" desc, "Id" desc limit ${CORPUS_MAX}`] : [];
     maxId = f.maxId;
     marca = f.marca;
+    salvarNoDisco();
 }
 
 async function sincronizar() {
+    if (!maxId && !tentouDisco) {
+        tentouDisco = true;
+        if (await carregarDoDisco().catch(() => false)) console.log(`feedCache: ${corpus.length} vagas lidas do disco`);
+    }
     if (!maxId) return recarregar();
     const f = await impressao(maxId);
     if (f.marca !== marca) return recarregar();
@@ -81,6 +111,7 @@ async function sincronizar() {
     corpus = [...novas, ...corpus].sort(maisRecentePrimeiro).slice(0, CORPUS_MAX);
     maxId = f.maxId;
     marca = nova.marca;
+    salvarNoDisco();
     return undefined;
 }
 

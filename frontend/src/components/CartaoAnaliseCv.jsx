@@ -33,7 +33,7 @@ export default function CartaoAnaliseCv() {
         <div className="card vh-retorno" style={{ marginBottom: 14 }}>
             <div className="vh-retorno-txt">
                 <div className="vh-retorno-titulo"><i className="ti ti-sparkles" /> {t('Novo: melhore seu currículo com IA')} <span className="badge info">{t('Em teste')}</span></div>
-                <div className="muted">{t('Nota, o que falta para as suas vagas e o currículo reescrito para os sistemas de triagem. Grátis durante o teste.')}</div>
+                <div className="muted">{t('Nota, o que falta para as suas vagas e o que melhorar no seu currículo. Grátis.')}</div>
             </div>
             <div className="vh-retorno-acoes">
                 <Link className="btn primary sm" to="/app/curriculo">{t('Analisar meu currículo')}</Link>

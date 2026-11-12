@@ -322,7 +322,7 @@ export default function Profile() {
                                     <i className="ti ti-sparkles" />
                                     <div>
                                         <div className="cv-entrada-titulo">{t('Melhorar meu currículo com IA')} <span className="badge info">{t('Em teste')}</span></div>
-                                        <div className="muted">{analiseCv.restantes == null ? t('Análise e reescrita para os sistemas de triagem.') : t('Análise e reescrita para os sistemas de triagem. {n} de {limite} grátis durante o teste.', { n: analiseCv.restantes, limite: analiseCv.limite })}</div>
+                                        <div className="muted">{analiseCv.restantes == null ? t('Análise e reescrita para os sistemas de triagem.') : t('Análise e reescrita para os sistemas de triagem. {n} de {limite} grátis.', { n: analiseCv.restantes, limite: analiseCv.limite })}</div>
                                     </div>
                                     <i className="ti ti-chevron-right" />
                                 </Link>

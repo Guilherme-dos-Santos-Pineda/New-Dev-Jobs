@@ -17,8 +17,17 @@ const vaga = (JobTitle, extra = {}) => ({
 
 test('areaForaDeTI: separa pelo título', () => {
     assert.equal(areaForaDeTI(vaga('Assistente Administrativo')), 'adm');
-    assert.equal(areaForaDeTI(vaga('Analista Fiscal')), 'adm');
-    assert.equal(areaForaDeTI(vaga('Analista de RH')), 'adm');
+    assert.equal(areaForaDeTI(vaga('Recepcionista')), 'adm');
+    assert.equal(areaForaDeTI(vaga('Analista Fiscal')), 'financeiro');
+    assert.equal(areaForaDeTI(vaga('Assistente Administrativo Financeiro')), 'financeiro');
+    assert.equal(areaForaDeTI(vaga('Analista de Crédito Júnior')), 'financeiro');
+    assert.equal(areaForaDeTI(vaga('Analista de RH')), 'rh');
+    assert.equal(areaForaDeTI(vaga('Auxiliar Administrativo de RH')), 'rh');
+    assert.equal(areaForaDeTI(vaga('Analista de Departamento Pessoal')), 'rh');
+    assert.equal(areaForaDeTI(vaga('Engenheiro Civil')), 'engenharia');
+    assert.equal(areaForaDeTI(vaga('Técnico de Manutenção')), 'engenharia');
+    assert.equal(areaForaDeTI(vaga('Engenheiro de Produção')), 'engenharia');
+    assert.equal(areaForaDeTI(vaga('Técnico de Segurança do Trabalho')), 'engenharia');
     assert.equal(areaForaDeTI(vaga('Vendedor(a)')), 'vendas');
     assert.equal(areaForaDeTI(vaga('Analista de Customer Success')), 'vendas');
     assert.equal(areaForaDeTI(vaga('Social Media')), 'marketing');
@@ -29,7 +38,8 @@ test('areaForaDeTI: separa pelo título', () => {
 
 test('areaForaDeTI: outra profissão, vaga de TI e título vago ficam de fora', () => {
     assert.equal(areaForaDeTI(vaga('Enfermeira de Atendimento')), null);
-    assert.equal(areaForaDeTI(vaga('Técnico de Manutenção')), null);
+    assert.equal(areaForaDeTI(vaga('Técnico de Enfermagem')), null);
+    assert.equal(areaForaDeTI(vaga('Motorista')), null);
     assert.equal(areaForaDeTI(vaga('Communications Manager')), 'marketing');
     assert.equal(areaForaDeTI(vaga('Advogado')), 'juridico');
     assert.equal(areaForaDeTI(vaga('Assistente Jurídico')), 'juridico');
@@ -99,4 +109,23 @@ test('as áreas de fora de TI podem ser salvas e não puxam nenhuma outra', () =
         assert.ok(ALLOWED_AREAS.includes(a), `${a} seria descartada no PUT /profile`);
         assert.deepEqual(expandirAreas([a]), [a]);
     }
+});
+
+test('quem quer financeiro não recebe recepcionista nem RH (relato de 11/11/2026)', () => {
+    const p = { Region: 'br', Areas: ['financeiro'] };
+    const vagas = [vaga('Analista Financeiro'), vaga('Recepcionista'), vaga('Analista de RH'), vaga('Assistente Administrativo')];
+    assert.deepEqual(candidatasDoPerfil(vagas, p).map((j) => j.JobTitle), ['Analista Financeiro']);
+});
+
+test('TI que caía como "não é TI" volta para a área certa', () => {
+    const area = (JobTitle) => detectArea({ JobTitle, Description: '' });
+    assert.equal(area('Estagiário em Desenvolvimento de Sistemas'), 'dev');
+    assert.equal(area('Analista de Storage Pleno'), 'devops');
+    assert.equal(area('Especialista Cloudera Sênior'), 'data');
+    assert.equal(area('Especialista de Engenharia de Dados Sênior'), 'data');
+    assert.equal(area('Consultor(a) Funcional Dynamics CRM 365'), 'erp');
+    assert.equal(area('Arquiteto de Testes Sênior'), 'qa');
+    assert.equal(area('Data Center Technician'), 'devops');
+    // CRM sozinho é marketing (automação, régua de relacionamento), não TI.
+    assert.equal(areaForaDeTI(vaga('Analista de CRM Pleno')), 'marketing');
 });

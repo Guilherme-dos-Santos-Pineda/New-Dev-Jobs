@@ -14,6 +14,8 @@ import { decideConcessaoDePlano, DIAS_MAX_CONCESSAO } from '../services/billingL
 import { PLANS } from '../config/plans.js';
 import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
 import { condicaoMonitoravel, DIAS_ENTRE_VISITAS } from '../services/recrutadorMonitoravel.js';
+import { painelRoboDoPlano } from '../services/roboDoPlano.js';
+import { getMatches } from '../services/jobsQuery.js';
 import { REMOVIDA_PELO_ADMIN, detectArea } from '../services/classify.js';
 import { feedbackDisponivel, MOTIVOS } from '../services/jobFeedback.js';
 import {
@@ -411,6 +413,16 @@ router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) 
 // os robôs com o resultado da última execução, os números da semana, a
 // cobertura dos recrutadores e o crédito da Apify. Consultas SEQUENCIAIS (regra
 // do pool); o crédito vem do cache de 60 s de apifyUsage.
+// GET /api/admin/robo-plano: o que o robô de quem comprou faz por cada pagante.
+router.get('/robo-plano', requireAdmin, async (_req, res) => {
+    try {
+        res.json(await painelRoboDoPlano(getMatches));
+    } catch (e) {
+        console.error('admin robo-plano:', e.message);
+        res.status(500).json({ error: 'Não deu para montar o painel do robô agora.' });
+    }
+});
+
 router.get('/robots', requireAdmin, async (_req, res) => {
     const schedules = await sql`select * from "ScraperSchedules" order by "Id" asc`;
     const recentes = await sql`select * from "ScraperRuns" order by "CreatedAt" desc limit 40`;

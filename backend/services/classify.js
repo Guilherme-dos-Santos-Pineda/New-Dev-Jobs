@@ -71,13 +71,13 @@ const NONTECH = new RegExp([
 function areaTech(t) {
     // QA / Testes / Qualidade — inclui as variações em inglês e "engenheiro/analista
     // de qualidade", que senão escorregariam para "dev" por causa do "engineer".
-    if (/\bqa\b|quality assurance|quality engineer|\bsdet\b|\btae\b|test(?:s)? engineer|test automation|automation test|\btester\b|testador|analista\s+de\s+testes?|analista\s+de\s+qualidade\s+de\s+software|engenheir[oa]s?\s+de\s+(?:testes?|qualidade)|automa[çc][ãa]o de testes?|testes? automatizad|qualidade de software|gerente de testes|engineer in test|\btesting\b|automatizador de testes|quality analyst/.test(t)) return 'qa';
+    if (/\bqa\b|quality assurance|quality engineer|\bsdet\b|\btae\b|test(?:s)? engineer|test automation|automation test|\btester\b|testador|analista\s+de\s+testes?|arquitet[oa]s?\s+de\s+testes?|analista\s+de\s+qualidade\s+de\s+software|engenheir[oa]s?\s+de\s+(?:testes?|qualidade)|automa[çc][ãa]o de testes?|testes? automatizad|qualidade de software|gerente de testes|engineer in test|\btesting\b|automatizador de testes|quality analyst/.test(t)) return 'qa';
     // Produto inclui PROJETOS de TI (PM, PMO, analista funcional/de negócios).
     if (/product owner|product manager|\bpo\b|\bpm\b|gerente de produto|gest[ãa]o de produto|scrum master|agilista|agile (?:coach|master)|project manager|program manager|gerente de projetos?|gerente de programas?|\bpmo\b|analista de projetos|coordenador[a]? de projetos|business analyst|analista de neg[óo]cios|analista funcional|product analyst|analista de requisitos|analista de produto|product discovery|it project/.test(t)) return 'po';
-    if (/data engineer|engenheir[oa]s?\s+(?:de\s+)?dados|eng\.? (?:de )?dados|mlops|cientista de dados|data scientist|data analyst|analista de dados|business intelligence|\bbi\b|analytics|machine learning|\bml\b|\bdba\b|database administrator|administrador[a]? de banco|banco de dados|data architect|data science|databricks|snowflake|power bi|microsoft fabric|governan[çc]a de dados|(?:especialista|consultor[a]?|arquitet[oa]|l[íi]der t[ée]cnic[oa]) (?:\w+ )?(?:em|de) dados|ci[êe]ncia de dados|(?:analista|administrador[a]?|squad leader|l[íi]der|est[áa]gio|estagi[áa]ri[oa]) (?:[a-zà-ú.]+ ){0,2}(?:em|de) dados/.test(t)) return 'data';
+    if (/data engineer|engenheir[oa]s?\s+(?:de\s+)?dados|eng\.? (?:de )?dados|mlops|cientista de dados|data scientist|data analyst|analista de dados|business intelligence|\bbi\b|analytics|machine learning|\bml\b|\bdba\b|database administrator|administrador[a]? de banco|banco de dados|data architect|data science|databricks|snowflake|datastage|cloudera|engenharia de dados|migra[çc][ãa]o de dados|power bi|microsoft fabric|governan[çc]a de dados|(?:especialista|consultor[a]?|arquitet[oa]|l[íi]der t[ée]cnic[oa]) (?:\w+ )?(?:em|de) dados|ci[êe]ncia de dados|(?:analista|administrador[a]?|squad leader|l[íi]der|est[áa]gio|estagi[áa]ri[oa]) (?:[a-zà-ú.]+ ){0,2}(?:em|de) dados/.test(t)) return 'data';
     if (/\bux\b|\bui\b|designer|product design|ux\/ui|figma/.test(t)) return 'design';
     // Infra inclui redes e segurança da informação: eram 'other'.
-    if (/devops|\bsre\b|site reliability|infraestrutura|cloud engineer|platform engineer|kubernetes|terraform|redes(?! sociais)|\bnetwork|administrador de sistemas|sysadmin|seguran[çc]a (?:da informa|cibern|de redes|ofensiva|defensiva|\/redes)|ciberseg|cyber|security|pentest|devsecops|blue team|red team|infoblox|vulnerab|finops|gest[ãa]o de acessos|\biam\b|servidores|windows server|server administrator|infraestructura|engenheir[oa] de plataforma|openshift|open shift|red hat|\bnube\b|systems? administrator|arquitet[oa] de seguran[çc]a/.test(t)) return 'devops';
+    if (/devops|\bsre\b|site reliability|infraestrutura|cloud engineer|platform engineer|kubernetes|terraform|redes(?! sociais)|\bnetwork|administrador de sistemas|sysadmin|seguran[çc]a (?:da informa|cibern|de redes|ofensiva|defensiva|\/redes)|ciberseg|cyber|security|pentest|devsecops|blue team|red team|infoblox|vulnerab|finops|gest[ãa]o de acessos|\biam\b|servidores|windows server|server administrator|infraestructura|engenheir[oa] de plataforma|openshift|open shift|red hat|\bnube\b|systems? administrator|arquitet[oa] de seguran[çc]a|storage|data ?center|active directory|\biseries\b|\bas\/?400\b|\bdlp\b|micro focus/.test(t)) return 'devops';
     if (/\bios\b|android|flutter|react native|desenvolvedor[a]? mobile|mobile developer|analista mobile/.test(t)) return 'mobile';
     // Dev (genérico) — só depois das áreas específicas. "\bengineer\b" como último
     // recurso cobre "Senior/Staff Engineer" que antes caíam em 'other' e vazavam.
@@ -108,8 +108,8 @@ function areaTech(t) {
     // 'other' ou, pelas skills, em 'backend', e ia parar no feed de dev. Fica
     // DEPOIS de front/back ("Front-end React e Salesforce" é vaga de front) e
     // ANTES do dev genérico ("Salesforce Developer" não é para quem quer Java).
-    if (/\bsap\b|\babap\b|fiori|\btotvs\b|protheus|salesforce|servicenow|oracle (?:ebs|e-business|cpq|fusion|hcm|erp|apps|r12|integration)|dynamics 365|\berp\b|siebel|workday|netsuite|\bcpq\b|\bpega\b|\btasy\b|successfactors|\binfor\b|lawson|zendesk|\bmdg\b|master data|qualtrics/.test(t)) return 'erp';
-    if (/desenvolvedor|developer|programador|engenheir[oa]s?\s+de\s+software|software engineer|\bengineer\b|kotlin|swift|tech lead|arquitet[oa] de software|software architect|analista de sistemas|arquitet[oa] (?:\w+ )*?(?:de )?solu[çc]|solutions? architect|arquitet[oa] de integra|integration|desenvolvimento de software|software (?:development )?intern|desarrollador|ingenier[oa] (?:de software|inform[áa]tic)|\bit (?:professional|roles|positions)|multiple (?:it|technology)|appian|outsystems|mulesoft|low[- ]?code|\brpa\b|cobol|mainframe|technical lead|l[íi]der t[ée]cnic[oa]|\btech (?:intern|lead|analyst)|\bsde\b|\bdevs?\b|app development|\bsql\b|tecnologia da informa[çc][ãa]o|analista de desenvolvimento|\bia\b|intelig[êe]ncia artificial|\bai\b|\bllms?\b|(?:qe|technical|sql) architect|systems? analyst|application consultant|engenharia de software|coordenador[a]? de desenvolvimento|engineering manager|arquitect[oa] de soluciones|tech manager|arquitetura de solu[çc]|analista de tecnologia/.test(t)) return 'dev';
+    if (/\bsap\b|\babap\b|fiori|\btotvs\b|protheus|salesforce|servicenow|oracle (?:ebs|e-business|cpq|fusion|hcm|erp|apps|r12|integration)|dynamics 365|\berp\b|siebel|workday|netsuite|\bcpq\b|\bpega\b|\btasy\b|successfactors|\binfor\b|lawson|zendesk|\bmdg\b|master data|qualtrics|consultor[a]? funcional(?! de (?:importa|exporta|com[ée]rcio))|\bdynamics\b|neptune|\bdxp\b/.test(t)) return 'erp';
+    if (/desenvolvedor|developer|programador|engenheir[oa]s?\s+de\s+software|software engineer|\bengineer\b|kotlin|swift|tech lead|arquitet[oa] de software|software architect|analista de sistemas|arquitet[oa] (?:\w+ )*?(?:de )?solu[çc]|solutions? architect|arquitet[oa] de integra|integration|desenvolvimento de software|software (?:development )?intern|desarrollador|ingenier[oa] (?:de software|inform[áa]tic)|\bit (?:professional|roles|positions)|multiple (?:it|technology)|appian|outsystems|mulesoft|low[- ]?code|\brpa\b|cobol|mainframe|technical lead|l[íi]der t[ée]cnic[oa]|\btech (?:intern|lead|analyst)|\bsde\b|\bdevs?\b|app development|\bsql\b|tecnologia da informa[çc][ãa]o|analista de desenvolvimento|\bia\b|intelig[êe]ncia artificial|\bai\b|\bllms?\b|(?:qe|technical|sql) architect|systems? analyst|application consultant|engenharia de software|coordenador[a]? de desenvolvimento|engineering manager|arquitect[oa] de soluciones|tech manager|arquitetura de solu[çc]|analista de tecnologia|desenvolvimento de sistemas|an[áa]lise de sistemas|sistemas de informa[çc][ãa]o/.test(t)) return 'dev';
     // Suporte / Service Desk — carreira de TI legítima que caía inteira em 'other'.
     // "de TI" aceita qualquer prefixo de cargo: assistente e auxiliar de TI são
     // tão comuns quanto analista, e escreviam-se só como 'other'.
@@ -271,7 +271,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 9;
+export const CLASSIFY_VERSION = 10;
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 
@@ -419,17 +419,29 @@ export function areaDaVaga(job) {
 }
 
 // Fora de TI, mas sem público aqui: continua sem aparecer para ninguém. Testada
-// antes das áreas porque "Enfermeira de Atendimento" e "Técnico de Manutenção de
-// Produção" têm palavra de outra área no título.
-const OUTRA_PROFISSAO = /enferm|m[ée]dic[oa]|psic[óo]log|nutri[çc]|nutricion|fisioterap|dentist|odonto|farmac|biom[ée]d|veterin|engenheir|soldador|eletricist|el[ée]tric|mec[âa]nic|motorista|vigia|vigilante|porteir|zelador|limpeza|cozinh|gar[çc]on|professor|pedagog|instrutor|esteticista|pedreiro|costureir|manuten[çc][ãa]o/;
+// antes das áreas porque "Enfermeira de Atendimento" tem palavra de outra área no
+// título. Engenharia, manutenção e os ofícios da indústria saíram daqui em
+// 11/11/2026: viraram a área 'engenharia' (~300 vagas em 60 dias).
+const OUTRA_PROFISSAO = /enferm|m[ée]dic[oa]|psic[óo]log|nutri[çc]|nutricion|fisioterap|dentist|odonto|farmac|biom[ée]d|veterin|motorista|vigia|vigilante|porteir|zelador|limpeza|cozinh|gar[çc]on|professor|pedagog|instrutor|esteticista|pedreiro|costureir/;
+
+// Engenharia que não é de software, indústria e manutenção. Só chega aqui o que
+// detectArea já disse que não é TI, então "arquitet" e "engenh" não pegam vaga de software.
+const ENGENHARIA = /engenh|ingenier|arquitet|urbanis|manuten[çc][ãa]o|maintenance|mec[âa]nic|mecatr|eletric|el[ée]tric|eletromec|eletrot[ée]c|eletr[ôo]nic|soldador|caldeir|montador|serralheir|torneiro|offshore|subsea|marinheiro|oficial de (?:m[áa]quinas|n[áa]utica|conv[ée]s)|perfura[çc]|drilling|petr[óo]le|[óo]leo e g[áa]s|obras|constru[çc][ãa]o|\bcivil\b|industrial|automa[çc][ãa]o|instrumenta[çc]|projetista|desenhista|cadista|seguran[çc]a do trabalho|\bsesmt\b|\bq?hse\b|predial|inspetor|inspe[çc][ãa]o|laborat[óo]ri|qu[íi]mic|ambiental|meio ambiente|geoprocess|topograf|geolog|minera[çc]|\brov\b|biog[áa]s|t[ée]cnic[oa] (?:de |em )?(?:campo|refrigera|edifica|processos)|field service/;
 
 const AREAS_DO_TITULO = [
     // Antes das outras: "Advogado Trabalhista Comercial" é jurídico, não vendas.
     ['juridico', /advog|jur[íi]dic|\bdireito\b|paralegal|contencioso|societ[áa]rio|\blegal counsel\b|\blegal\b/],
-    ['marketing', /marketing|\bm[íi]dias?\b|social media|conte[úu]do|copywrit|tr[áa]fego|branding|\bcomunica[çc][ãa]o\b|communications|\bgrowth\b|publicidade|\bseo\b/],
+    ['marketing', /marketing|\bcrm\b|e-?commerce|de cria[çc][ãa]o|\bm[íi]dias?\b|social media|conte[úu]do|copywrit|tr[áa]fego|branding|\bcomunica[çc][ãa]o\b|communications|\bgrowth\b|publicidade|\bseo\b/],
     ['vendas', /vendas|vendedor|comercial|\bsales\b|account exec|customer success|sucesso do cliente|atendimento|\bsdr\b|\bbdr\b|representante|telemarketing|call center|atendente|de neg[óo]cios/],
-    ['adm', /administrativ|administra[çc][ãa]o|benef[íi]cios|escrit[óo]rio|fp&a|contratos|facilities|secret[áa]ri|recep[çc]|faturamento|contas a (?:pagar|receber)|financeir|cont[áa]bil|contador|contabilidade|fiscal|tribut|departamento pessoal|\bdp\b|recursos humanos|\brh\b|\bhr\b|recrutador|recrutamento|talent|human resources|\bpeople\b|controladoria|payroll|folha de pagamento/],
-    ['operacoes', /opera[çc][õo]es|operacional|operations|log[íi]stic|supply|compras|comprador|produ[çc][ãa]o|almoxarif|estoque|\bprocessos\b|expedi[çc][ãa]o|suprimentos|qualidade|planejamento|importa[çc]|exporta[çc]|\bpcp\b/],
+    // RH, financeiro e administrativo eram uma área só até 11/11/2026: quem queria
+    // financeiro recebia recepcionista e RH (relato de usuário). Nessa ordem: "Auxiliar
+    // Administrativo de RH" é RH e "Assistente Administrativo Financeiro" é financeiro.
+    ['rh', /recursos humanos|\brh\b|\bhr\b|recrutador|recrutamento|talent|human resources|\bpeople\b|departamento pessoal|\bdp\b|payroll|folha de pagamento|benef[íi]cios|\bdho\b|desenvolvimento (?:organizacional|humano)|treinamento|remunera[çc]|headhunter|business partner/],
+    ['financeiro', /financeir|fp&a|faturamento|contas a (?:pagar|receber)|cont[áa]bil|contador|contabilidade|contable|fiscal|tribut|controladoria|controller|tesour|cr[ée]dito|cobran[çc]a|auditor|custos|controles internos|\bsox\b|investiment|banc[áa]ri/],
+    ['adm', /administrativ|administra[çc][ãa]o|escrit[óo]rio|contratos|facilities|secret[áa]ri|recep[çc]|licita[çc]|back ?office/],
+    // Antes de operações: "Engenheiro de Produção" e "Planejamento de Manutenção" são daqui.
+    ['engenharia', ENGENHARIA],
+    ['operacoes', /opera[çc][õo]es|operacional|operations|log[íi]stic|supply|compras|comprador|produ[çc][ãa]o|almoxarif|estoque|\bprocessos\b|expedi[çc][ãa]o|suprimentos|qualidade|planejamento|importa[çc]|exporta[çc]|\bpcp\b|empilhadeira|conferente|estoquista|repositor/],
 ];
 
 /**

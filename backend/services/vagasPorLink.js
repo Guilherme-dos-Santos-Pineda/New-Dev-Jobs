@@ -6,6 +6,7 @@ import { computeMatch } from './matching.js';
 import { extractSkills } from './scraper.js';
 import { semContato } from './highlights.js';
 import { linkDoPost } from './linkDoPost.js';
+import { lerSnapshot, gravadorDeSnapshot } from '../lib/snapshotDisco.js';
 
 // =========================
 // Vagas por link
@@ -67,7 +68,7 @@ export function vagaDoPost(post) {
     const vaga = {
         Id: `link-${post.Id}`, JobTitle: tituloDoPost(texto), Company: anunciada ? (post.Author || '') : '', Email: '', Description: texto,
         Skills: extractSkills(texto), Location: anunciada ? (texto.match(/📍 Local: (.+)/)?.[1] ?? null) : null,
-        Modality: null, CreatedAt: post.PostedAt || post.CreatedAt, url,
+        Modality: null, CreatedAt: post.PostedAt || post.CreatedAt, url, Anunciada: anunciada,
     };
     const { area, level, mods, isBR } = classifyJob(vaga);
     Object.assign(vaga, { Area: area, Level: level, Mods: mods, IsBR: isBR });
@@ -112,7 +113,32 @@ let maiorId = 0;
 let checadoEm = 0;
 let carregando = null;
 
+// Cópia em disco (lib/snapshotDisco.js): o deploy deixava de baixar ~4 MB de posts.
+// Aqui não há impressão que confira a cópia, e um post recusado no admin depois
+// de gravado continuaria nela: por isso ela vale só por um dia, e na leitura sai
+// o que já passou da janela de cada fonte.
+const COPIA_VALE_MS = DIA_MS;
+const salvarNoDisco = gravadorDeSnapshot('vagas-por-link', () => ({ vagas, maiorId }));
+let tentouDisco = false;
+
+/** O que ainda está dentro da janela da sua fonte. Puro, para testar. */
+export function aindaNaJanela(lista, agora = Date.now()) {
+    return lista.filter((v) => agora - new Date(v.CreatedAt).getTime() <= (v.Anunciada ? DIAS_DE_VAGA_ANUNCIADA : DIAS_DE_VAGA) * DIA_MS);
+}
+
+async function carregarDoDisco() {
+    const s = await lerSnapshot('vagas-por-link');
+    if (!s || Date.now() - s.gravadoEm > COPIA_VALE_MS || !Array.isArray(s.dados?.vagas) || !s.dados.maiorId) return;
+    vagas = aindaNaJanela(s.dados.vagas);
+    maiorId = s.dados.maiorId;
+    console.log(`vagas por link: ${vagas.length} lidas do disco`);
+}
+
 async function atualizar() {
+    if (!maiorId && !tentouDisco) {
+        tentouDisco = true;
+        await carregarDoDisco();
+    }
     const posts = await sql`
         select "Id", "Source", "LinkedinId", "Url", "Author", left("Content", 3000) as "Content", "PostedAt", "CreatedAt"
         from "ScrapedPosts"
@@ -124,6 +150,7 @@ async function atualizar() {
     if (posts.length) {
         maiorId = posts.reduce((m, p) => Math.max(m, Number(p.Id)), maiorId);
         vagas = semRepetidas([...vagas, ...posts.map(vagaDoPost).filter(Boolean)]);
+        salvarNoDisco();
     }
     checadoEm = Date.now();
 }

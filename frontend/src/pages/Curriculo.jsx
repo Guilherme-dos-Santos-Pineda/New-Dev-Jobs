@@ -34,7 +34,7 @@ function textoDoCurriculo(cv) {
     return linhas.filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n').trim();
 }
 
-function FolhaDoCurriculo({ cv }) {
+export function FolhaDoCurriculo({ cv }) {
     const { t } = useT();
     return (
         <div className="cv-folha">
@@ -101,7 +101,17 @@ export default function Curriculo() {
     const [analisando, setAnalisando] = useState(false);
     const [erro, setErro] = useState('');
     const [copiado, setCopiado] = useState(false);
+    // Histórico (pedido de usuário): abrir uma análise antiga sem gastar uso.
+    const [aberta, setAberta] = useState(null);
+    const [abrindo, setAbrindo] = useState(false);
+    // A reescrita fica recolhida: a análise agradou quase todo mundo, a reescrita
+    // nem tanto, e ela é um extra, não o resultado principal.
+    const [verReescrita, setVerReescrita] = useState(false);
     const trava = useRef(false);
+
+    // Protótipo das versões por área: o atalho só aparece para quem a API libera.
+    const [versoes, setVersoes] = useState(false);
+    useEffect(() => { api.versoesCv().then((v) => setVersoes(!!v?.disponivel)).catch(() => {}); }, []);
 
     useEffect(() => {
         api.analiseCv().then(setEstado).catch(() => setEstado({ disponivel: false }));
@@ -119,9 +129,11 @@ export default function Curriculo() {
         setErro('');
         try {
             const r = await api.analisarCv();
+            setAberta(null);
             setEstado((e) => ({
                 ...e, ultima: r, usadas: (e?.usadas || 0) + 1,
                 restantes: e?.restantes == null ? null : Math.max(0, e.restantes - 1),
+                historico: [{ id: r.id, criadaEm: r.criadaEm, score: r.score }, ...(e?.historico || [])],
             }));
         } catch (e) {
             setErro(e.message);
@@ -129,6 +141,15 @@ export default function Curriculo() {
             setAnalisando(false);
             trava.current = false;
         }
+    }
+
+    async function abrir(id) {
+        if (abrindo) return;
+        if (id === estado?.ultima?.id) { setAberta(null); return; }
+        setAbrindo(true);
+        try { setAberta(await api.analiseCvAntiga(id)); }
+        catch (e) { setErro(e.message); }
+        finally { setAbrindo(false); }
     }
 
     function baixarPdf() {
@@ -157,7 +178,8 @@ export default function Curriculo() {
         );
     }
 
-    const r = estado.ultima;
+    const r = aberta || estado.ultima;
+    const historico = estado.historico || [];
     const semLimite = estado.restantes == null;
     const acabou = !semLimite && estado.restantes <= 0;
 
@@ -170,12 +192,23 @@ export default function Curriculo() {
                 </div>
             </div>
 
+            {versoes && (
+                <Link to="/app/curriculo/versoes" className="cv-entrada" style={{ marginTop: 0, marginBottom: 14 }}>
+                    <i className="ti ti-files" />
+                    <div>
+                        <div className="cv-entrada-titulo">{t('Versões do currículo por tipo de vaga')} <span className="badge info">{t('Em teste')}</span></div>
+                        <div className="muted">{t('Um currículo adaptado para cada tipo de vaga do seu feed, que você confere e aprova.')}</div>
+                    </div>
+                    <i className="ti ti-chevron-right" />
+                </Link>
+            )}
+
             <div className="card cv-acao">
                 <div className="cv-acao-txt">
                     <span className="badge info">{t('Em teste')}</span>{' '}
                     {semLimite
                         ? t('Sem limite para administradores.')
-                        : t('Você tem {n} de {limite} análises grátis. Depois do teste, a ferramenta faz parte do plano Automático.', { n: estado.restantes, limite: estado.limite })}
+                        : t('Você tem {n} de {limite} análises grátis.', { n: estado.restantes, limite: estado.limite })}
                 </div>
                 {temCv === false ? (
                     <Link className="btn primary" to="/app/perfil">{t('Anexar meu currículo primeiro')}</Link>
@@ -185,11 +218,28 @@ export default function Curriculo() {
                     </button>
                 )}
                 {erro && <div className="cv-erro">{erro}</div>}
-                {acabou && <div className="muted cv-erro">{t('Você já usou as análises do teste. A última continua aqui embaixo.')}</div>}
+                {acabou && <div className="muted cv-erro">{t('Você já usou as suas análises grátis. Elas continuam salvas aqui embaixo.')}</div>}
             </div>
+
+            {historico.length > 1 && (
+                <div className="card cv-historico">
+                    <h2><i className="ti ti-history" /> {t('Suas análises')}</h2>
+                    <div className="cv-palavras">
+                        {historico.map((h, i) => (
+                            <button key={h.id} type="button" disabled={abrindo}
+                                className={`chip toggle ${r?.id === h.id ? 'on' : ''}`} onClick={() => abrir(h.id)}>
+                                {new Date(h.criadaEm).toLocaleDateString()}{h.score != null ? ` · ${h.score}` : ''}{i === 0 ? ` · ${t('mais recente')}` : ''}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {r && (
                 <>
+                    {aberta && aberta.id !== estado.ultima?.id && (
+                        <div className="why"><i className="ti ti-history" />{t('Você está vendo uma análise antiga, de {data}.', { data: new Date(aberta.criadaEm).toLocaleDateString() })}</div>
+                    )}
                     <div className="card cv-nota">
                         {r.score != null && <div className="cv-score"><b>{r.score}</b><span>{t('de 100')}</span></div>}
                         <div>
@@ -233,14 +283,21 @@ export default function Curriculo() {
 
                     <div className="card">
                         <div className="cv-reescrito-topo">
-                            <h2><i className="ti ti-file-text" /> {t('Seu currículo reescrito')}</h2>
+                            <h2><i className="ti ti-file-text" /> {t('Sugestão de currículo reescrito')} <span className="badge info">{t('opcional')}</span></h2>
                             <div className="row">
-                                <button className="btn sm" onClick={() => copiar(r.curriculo)}>{copiado ? t('Copiado') : t('Copiar texto')}</button>
-                                <button className="btn primary sm" onClick={baixarPdf}><i className="ti ti-download" /> {t('Baixar PDF')}</button>
+                                {verReescrita && <button className="btn sm" onClick={() => copiar(r.curriculo)}>{copiado ? t('Copiado') : t('Copiar texto')}</button>}
+                                {verReescrita && <button className="btn primary sm" onClick={baixarPdf}><i className="ti ti-download" /> {t('Baixar PDF')}</button>}
+                                {!verReescrita && <button className="btn sm" onClick={() => setVerReescrita(true)}>{t('Ver a sugestão')}</button>}
                             </div>
                         </div>
-                        <div className="why"><i className="ti ti-info-circle" />{t('Revise antes de usar. O que aparece marcado entre colchetes é um dado que só você sabe: preencha ou apague. Depois de baixar o PDF, anexe em Meu perfil para ele ir nos seus envios.')}</div>
-                        <FolhaDoCurriculo cv={r.curriculo} />
+                        {verReescrita ? (
+                            <>
+                                <div className="why"><i className="ti ti-info-circle" />{t('Revise antes de usar. O que aparece marcado entre colchetes é um dado que só você sabe: preencha ou apague. Depois de baixar o PDF, anexe em Meu perfil para ele ir nos seus envios.')}</div>
+                                <FolhaDoCurriculo cv={r.curriculo} />
+                            </>
+                        ) : (
+                            <p className="muted" style={{ fontSize: 13 }}>{t('Uma versão do seu currículo já com as dicas aplicadas. Use só o que fizer sentido para você: o seu currículo continua sendo o que você anexou.')}</p>
+                        )}
                     </div>
                 </>
             )}

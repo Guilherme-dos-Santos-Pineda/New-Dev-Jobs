@@ -52,3 +52,6 @@ recrutadores-rebaixados.json
 
 # Pre-visualizacao local de telas (dados reais gravados, nao versionar).
 frontend/_preview/
+
+# Cópia em disco do feed e das vagas por link (lib/snapshotDisco.js)
+.cache/

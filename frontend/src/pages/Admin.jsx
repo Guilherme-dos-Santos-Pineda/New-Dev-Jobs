@@ -16,6 +16,7 @@ import AdminCampaigns from '../components/AdminCampaigns.jsx';
 import AdminUsers from '../components/AdminUsers.jsx';
 import AdminBugs from '../components/AdminBugs.jsx';
 import AdminAnaliseCv from '../components/AdminAnaliseCv.jsx';
+import AdminRoboPlano from '../components/AdminRoboPlano.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 
@@ -90,6 +91,7 @@ export default function Admin() {
                     ['vagas', 'Vagas', 'ti-briefcase'],
                     ['recrutadores', 'Recrutadores', 'ti-address-book'],
                     ['bots', 'Robôs', 'ti-robot'],
+                    ['roboPlano', 'Robô dos pagantes', 'ti-robot-face'],
                     ['raw', 'Conteúdo bruto', 'ti-file-text'],
                     ['stats', 'Estatísticas', 'ti-chart-bar'],
                     ['report', 'Relatório', 'ti-report-analytics'],
@@ -104,6 +106,7 @@ export default function Admin() {
             </div>
 
             {tab === 'bots' && <BotsPanel />}
+            {tab === 'roboPlano' && <AdminRoboPlano />}
             {tab === 'usuarios' && <AdminUsers />}
             {tab === 'relatos' && <AdminBugs />}
             {tab === 'curriculo' && <AdminAnaliseCv />}

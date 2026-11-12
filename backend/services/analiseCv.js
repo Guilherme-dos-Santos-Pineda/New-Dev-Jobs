@@ -103,11 +103,26 @@ export async function estadoDaAnalise(userId, { admin = false } = {}) {
     const [ultima] = await sql`
         select "Id", "CreatedAt", "Result" from "CvAnalyses"
         where "UserId" = ${userId} order by "CreatedAt" desc limit 1`;
+    // Histórico leve (data e nota): pedido de usuário, para não perder a análise
+    // anterior ao fazer outra. A análise inteira vem por GET /:id, uma de cada vez.
+    const historico = await sql`
+        select "Id", "CreatedAt", ("Result"->>'score')::int as score from "CvAnalyses"
+        where "UserId" = ${userId} order by "CreatedAt" desc limit 20`;
     return {
         disponivel: true, limite: s.limite, usadas: s.usadas,
         restantes: Number.isFinite(s.restantes) ? s.restantes : null, // null = sem limite (admin)
         ultima: ultima ? { id: ultima.Id, criadaEm: ultima.CreatedAt, ...ultima.Result } : null,
+        historico: historico.map((h) => ({ id: h.Id, criadaEm: h.CreatedAt, score: h.score })),
     };
+}
+
+/** Uma análise antiga da própria pessoa. A de outra pessoa não existe para ela (404). */
+export async function analiseDaPessoa(userId, id) {
+    if (!(await analiseDisponivel())) return null;
+    const [r] = await sql`
+        select "Id", "CreatedAt", "Result" from "CvAnalyses"
+        where "Id" = ${id} and "UserId" = ${userId}`;
+    return r ? { id: r.Id, criadaEm: r.CreatedAt, ...r.Result } : null;
 }
 
 async function chamarOpenAI(mensagem) {
@@ -155,7 +170,7 @@ export async function analisarCurriculo(userId, { admin = false } = {}) {
         const s = await situacao(userId, admin);
         if (!s.liberado) throw new AnaliseError('A análise de currículo não está disponível agora.', 403);
         if (s.restantes <= 0) {
-            throw new AnaliseError(`Você já usou as ${s.limite} análises do teste.`, 429);
+            throw new AnaliseError(`Você já usou as ${s.limite} análises grátis.`, 429);
         }
         const [perfil] = await sql`select "CvPath", "Areas", "Levels" from "Profiles" where "UserId" = ${userId}`;
         if (!perfil?.CvPath) throw new AnaliseError('Anexe seu currículo em PDF no perfil antes de analisar.', 400);

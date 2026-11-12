@@ -98,6 +98,17 @@ export default function Applications() {
 // isso" antes de a pessoa precisar deduzir pelo conteúdo.
 function DetalheCandidatura({ a, onClose, t }) {
     const st = STATUS[a.status] || STATUS.sent;
+    const [copiado, setCopiado] = useState(false);
+    async function copiarLink() {
+        try {
+            await navigator.clipboard.writeText(a.postUrl);
+            setCopiado(true);
+            setTimeout(() => setCopiado(false), 2500);
+        } catch {
+            // Sem permissão de área de transferência: abre o post, de onde dá para copiar.
+            window.open(a.postUrl, '_blank', 'noopener');
+        }
+    }
     const campos = [
         { rotulo: t('Enviado em'), valor: fmtDate(a.sentAt || a.createdAt) },
         { rotulo: t('Status'), valor: t(st.label), tom: st.tom },
@@ -129,18 +140,23 @@ function DetalheCandidatura({ a, onClose, t }) {
                     </div>
                 </div>
 
+                {/* Em cima, antes da descrição: no fim do detalhe ninguém achava (relato de
+                    11/11/2026, a recrutadora pediu o link do post e a pessoa não viu o botão). */}
+                {a.postUrl && (
+                    <div className="det-secao det-post">
+                        <a className="btn sm primary" href={a.postUrl} target="_blank" rel="noopener noreferrer">
+                            <i className="ti ti-brand-linkedin" /> {t('Ver o post no LinkedIn')}
+                        </a>
+                        <button type="button" className="btn sm" onClick={copiarLink}>
+                            <i className={`ti ${copiado ? 'ti-check' : 'ti-copy'}`} /> {copiado ? t('Link copiado') : t('Copiar link do post')}
+                        </button>
+                    </div>
+                )}
+
                 {a.description && (
                     <div className="det-secao">
                         <span className="det-rotulo">{t('Descrição da vaga')}</span>
                         <div className="det-descricao">{a.description}</div>
-                    </div>
-                )}
-
-                {a.postUrl && (
-                    <div className="det-secao">
-                        <a className="btn sm" href={a.postUrl} target="_blank" rel="noopener noreferrer">
-                            <i className="ti ti-external-link" /> {t('Ver o post no LinkedIn')}
-                        </a>
                     </div>
                 )}
 

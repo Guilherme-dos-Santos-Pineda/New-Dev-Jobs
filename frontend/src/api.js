@@ -148,6 +148,12 @@ export const api = {
     vagasPorLink: () => request('GET', '/jobs/links'),
     analiseCv: () => request('GET', '/curriculo/analise'),
     analisarCv: () => request('POST', '/curriculo/analise'),
+    analiseCvAntiga: (id) => request('GET', `/curriculo/analise/${encodeURIComponent(id)}`),
+    adminRoboPlano: () => request('GET', '/admin/robo-plano'),
+    versoesCv: () => request('GET', '/curriculo/versoes'),
+    gerarVersaoCv: (area, lang) => request('POST', '/curriculo/versoes', { area, lang }),
+    aprovarVersaoCv: (id) => request('POST', `/curriculo/versoes/${encodeURIComponent(id)}/aprovar`),
+    apagarVersaoCv: (id) => request('DELETE', `/curriculo/versoes/${encodeURIComponent(id)}`),
     // Vagas remotas do dia + post pronto para divulgar (igual para todos).
     // O post pronto so vem com ?post=1 E se o usuario for admin (checado no servidor).
     getHighlights: ({ post } = {}) => request('GET', `/highlights${post ? '?post=1' : ''}`),

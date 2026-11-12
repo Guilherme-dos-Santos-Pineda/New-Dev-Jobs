@@ -53,7 +53,10 @@ const VIZINHAS = {
  */
 // 'juridico' entrou em 09/11/2026, a pedido de usuários: ~32 vagas com email em 30 dias,
 // mais as anunciadas no LinkedIn. Saúde, engenharia e manutenção seguem de fora.
-export const AREAS_FORA_DE_TI = ['adm', 'vendas', 'marketing', 'operacoes', 'juridico'];
+// 'financeiro', 'rh' e 'engenharia' entraram em 11/11/2026: 'adm' era administrativo,
+// financeiro e RH juntos (quem queria financeiro recebia recepcionista), e engenharia e
+// manutenção eram ~300 vagas em 60 dias indo para o lixo.
+export const AREAS_FORA_DE_TI = ['adm', 'financeiro', 'rh', 'vendas', 'marketing', 'operacoes', 'juridico', 'engenharia'];
 
 export function expandirAreas(escolhidas) {
     const lista = Array.isArray(escolhidas) ? escolhidas.filter(Boolean).map(String) : [];

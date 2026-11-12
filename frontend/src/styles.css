@@ -2245,3 +2245,23 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
     body.imprimindo-cv .cv-folha { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
     body.imprimindo-cv .cv-lembrete { background: none; color: inherit; }
 }
+
+.cv-historico .chip.toggle { cursor: pointer; }
+
+/* ===== Versões do currículo por tipo de vaga (pages/VersoesCurriculo.jsx) ===== */
+.cv-versao { border-top: 1px solid var(--color-border); padding: 12px 0; }
+.cv-versao:first-child { border-top: none; padding-top: 0; }
+.cv-versao-linha { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.cv-versao-nome { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.cv-versao-nome .muted { font-size: 12.5px; }
+.cv-comparar { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 16px; margin-top: 12px; }
+.cv-comparar h3 { font-size: 13px; margin: 0 0 8px; }
+.cv-comparar-vagas h3 + .cv-vaga-exemplo { margin-top: 0; }
+.cv-vaga-exemplo { padding: 8px 10px; border-radius: 8px; background: var(--color-bg-secondary); margin-bottom: 8px; font-size: 13px; }
+.cv-vaga-exemplo .cv-palavras { margin-top: 6px; }
+.cv-comparar-vagas ul { padding-left: 18px; font-size: 13px; display: grid; gap: 4px; }
+.cv-comparar-folha .cv-folha { margin-top: 0; }
+@media (max-width: 800px) { .cv-comparar { grid-template-columns: 1fr; } }
+
+/* Enviadas: link do post em cima, com "copiar" ao lado (pages/Applications.jsx) */
+.det-post { display: flex; flex-wrap: wrap; gap: 8px; }

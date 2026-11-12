@@ -10,10 +10,10 @@
 //      um lembrete entre colchetes ("[quantos usuários?]") para ela preencher.
 //   2. As palavras-chave vêm das vagas do feed da pessoa, não do palpite da IA.
 
-// Teste com os usuários (decisão do dono, 10/11/2026): 3 por perfil, depois só no
-// plano pago. A tela avisa isso desde o primeiro dia, para não parecer que algo
-// foi tirado quando o teste acabar.
-export const LIMITE_ANALISES = 3;
+// A análise fica GRÁTIS (decisão do dono, 11/11/2026): 2 por pessoa. O plano pago
+// vai vender as versões por área, não a análise. Era 3 "durante o teste, depois
+// só no pago". O valor que vale é o do Admin › Currículo IA; este é o padrão.
+export const LIMITE_ANALISES = 2;
 export const MAX_TEXTO_CV = 15000;
 export const MIN_TEXTO_CV = 200;
 
@@ -21,7 +21,7 @@ const AREA_LEGIVEL = {
     frontend: 'front-end', backend: 'back-end', fullstack: 'full stack', dev: 'desenvolvimento de software',
     mobile: 'mobile', data: 'dados', devops: 'DevOps, infraestrutura e segurança', qa: 'QA e testes',
     design: 'design UX/UI', po: 'produto e projetos', suporte: 'suporte de TI', erp: 'ERP/SAP',
-    adm: 'administrativo', vendas: 'vendas', marketing: 'marketing', operacoes: 'operações e logística', juridico: 'jurídico',
+    adm: 'administrativo', financeiro: 'financeiro e contábil', rh: 'RH e recrutamento', engenharia: 'engenharia, indústria e manutenção', vendas: 'vendas', marketing: 'marketing', operacoes: 'operações e logística', juridico: 'jurídico',
 };
 const NIVEL_LEGIVEL = { estagio: 'estágio', junior: 'júnior', pleno: 'pleno', senior: 'sênior', lead: 'liderança' };
 

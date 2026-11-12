@@ -54,6 +54,9 @@ const TERMO_DA_AREA = {
     erp: 'SAP',
     suporte: 'suporte TI',
     adm: 'administrativo',
+    financeiro: 'financeiro',
+    rh: 'RH',
+    engenharia: 'engenheiro',
     vendas: 'vendas',
     marketing: 'marketing',
     operacoes: 'logística',
@@ -133,6 +136,57 @@ export async function planoDoDia(agora = Date.now()) {
     return {
         consultas: consultasDoDia(perfis, agora),
         recrutadores: await recrutadoresDasAreas(areasDosPerfis(perfis), RECRUTADORES_POR_DIA),
+    };
+}
+
+/**
+ * Admin › Robô dos pagantes: o que o robô faz HOJE por cada comprador (as buscas
+ * dele, se entraram no rodízio do dia), quantos recrutadores visita, as últimas
+ * execuções e quantas vagas cada pagante tem. Consultas sequenciais (regra do pool).
+ * `vagasDe(userId)` vem de fora (getMatches) para este arquivo não puxar o feed.
+ */
+export async function painelRoboDoPlano(vagasDe, agora = Date.now()) {
+    const [robo] = await sql`
+        select "Id", "Active", "Params", "LastRunAt", "NextRunAt" from "ScraperSchedules"
+        where "Name" = ${ROBO_DO_PLANO}`;
+    const linhas = await sql`
+        select u."Id", u."Name", u."Email", u."Plan", u."PlanExpiresAt", u."AutoEnvio",
+               u."StripeCustomerId" is not null as pagou, p."Areas", p."Levels", p."Skills"
+        from "Users" u join "Profiles" p on p."UserId" = u."Id"
+        where u."Plan" <> 'free' and (u."PlanExpiresAt" is null or u."PlanExpiresAt" > now())
+        order by u."PlanExpiresAt" asc nulls last limit 500`;
+    const perfis = linhas.filter((p) => planOf(p.Plan).autoSend);
+    const deHoje = new Set(consultasDoDia(perfis, agora));
+    const recrutadores = perfis.length ? await recrutadoresDasAreas(areasDosPerfis(perfis), RECRUTADORES_POR_DIA) : [];
+    const execucoes = robo ? await sql`
+        select "Id", "Status", "CreatedAt", "FinishedAt", "Stats" from "ScraperRuns"
+        where "Params"->>'scheduleId' = ${String(robo.Id)} or ("Params"->>'doPlano') = 'true'
+        order by "CreatedAt" desc limit 10` : [];
+
+    const pessoas = [];
+    for (const p of perfis) {
+        const buscas = consultasDoPerfil(p).map((b) => ({ busca: b, hoje: deHoje.has(b) }));
+        let vagas = null;
+        try {
+            const m = await vagasDe(p.Id);
+            const dias = (x) => (agora - new Date(x.createdAt).getTime()) / DIA_MS;
+            vagas = { total: m.length, semana: m.filter((x) => dias(x) <= 7).length, mes: m.filter((x) => dias(x) <= 30).length };
+        } catch { /* sem feed: a linha mostra "não deu para contar" */ }
+        pessoas.push({
+            userId: p.Id, nome: p.Name, email: p.Email, plano: planOf(p.Plan).label || p.Plan, expira: p.PlanExpiresAt,
+            pagou: p.pagou, autoEnvio: !!p.AutoEnvio, areas: lista(p.Areas), niveis: lista(p.Levels), buscas, vagas,
+        });
+    }
+    return {
+        robo: robo ? { id: robo.Id, ativo: robo.Active, ultima: robo.LastRunAt, proxima: robo.NextRunAt } : null,
+        tetoBuscas: CONSULTAS_POR_DIA, buscasHoje: deHoje.size,
+        recrutadoresPorDia: RECRUTADORES_POR_DIA, recrutadoresHoje: recrutadores.length,
+        execucoes: execucoes.map((x) => ({
+            id: x.Id, status: x.Status, em: x.CreatedAt, fim: x.FinishedAt,
+            posts: x.Stats?.found ?? null, vagasNovas: x.Stats?.novos ?? null, semEmail: x.Stats?.semEmail ?? null,
+            recrutadores: x.Stats?.recruiters ?? null, semFolga: !!x.Stats?.semFolga,
+        })),
+        pessoas,
     };
 }
 

@@ -82,11 +82,14 @@ export const AREA_OPTIONS = [
     { value: 'suporte', label: 'Suporte / Service Desk', icone: 'ti-headset', desc: 'Help desk, suporte tecnico, TI' },
     { value: 'dev', label: 'Desenvolvimento (geral)', icone: 'ti-code', desc: 'Nao sei ainda, quero ver de tudo' },
     // Fora de TI: espelha AREAS_FORA_DE_TI (backend/config/areas.js).
-    { value: 'adm', label: 'Administrativo / Financeiro / RH', icone: 'ti-file-text', desc: 'Administrativo, fiscal, contábil, DP, recrutamento' },
+    { value: 'adm', label: 'Administrativo / Recepção', icone: 'ti-file-text', desc: 'Assistente e auxiliar administrativo, recepção, secretariado' },
+    { value: 'financeiro', label: 'Financeiro / Contábil', icone: 'ti-coin', desc: 'Financeiro, contábil, fiscal, faturamento, crédito' },
+    { value: 'rh', label: 'RH / Recrutamento', icone: 'ti-users', desc: 'Recrutamento, DP, benefícios, treinamento' },
     { value: 'vendas', label: 'Vendas / Atendimento', icone: 'ti-message-circle', desc: 'Comercial, inside sales, customer success' },
     { value: 'marketing', label: 'Marketing / Comunicação', icone: 'ti-speakerphone', desc: 'Social media, conteúdo, tráfego, comunicação' },
     { value: 'operacoes', label: 'Operações / Logística', icone: 'ti-truck', desc: 'Logística, compras, produção, qualidade' },
     { value: 'juridico', label: 'Jurídico', icone: 'ti-scale', desc: 'Advocacia, assistente jurídico, estágio em direito' },
+    { value: 'engenharia', label: 'Engenharia / Indústria / Manutenção', icone: 'ti-tool', desc: 'Engenharia, obras, manutenção, técnicos, offshore' },
 ];
 
 export const LEVEL_OPTIONS = [

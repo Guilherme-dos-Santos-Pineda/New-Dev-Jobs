@@ -34,6 +34,10 @@ export default function VersoesCurriculo() {
 
     const gerar = (g) => acao(`gerar:${chave(g)}`, async () => { trocarVersao(g, await api.gerarVersaoCv(g.area, g.lang)); setAberto(chave(g)); });
     const aprovar = (g) => acao(`aprovar:${chave(g)}`, async () => trocarVersao(g, await api.aprovarVersaoCv(g.versao.id)));
+    const alternar = () => acao('chave', async () => {
+        const r = await api.iaNosEnvios(!dados.ligado);
+        setDados((d) => ({ ...d, ligado: r.ligado, nosEnvios: d.podeLigar && r.ligado }));
+    });
     const apagar = (g) => acao(`apagar:${chave(g)}`, async () => { await api.apagarVersaoCv(g.versao.id); trocarVersao(g, null); });
 
     if (!dados) return <div className="page"><div className="muted">{t('Carregando…')}</div></div>;
@@ -54,9 +58,24 @@ export default function VersoesCurriculo() {
                 <li><b>{t('Confira')}</b> {t('ao lado de vagas reais desse tipo e veja o que a IA mudou.')}</li>
                 <li><b>{t('Aprove.')}</b> {t('A partir daí, as vagas desse tipo recebem esta versão. As outras continuam recebendo o currículo do seu perfil.')}</li>
             </ol>
-            {dados.nosEnvios
-                ? <div className="why ok" style={{ marginBottom: 14 }}><i className="ti ti-circle-check" />{t('Ligado: seus envios usam a versão aprovada do tipo de cada vaga.')}</div>
-                : <div className="why" style={{ marginBottom: 14 }}><i className="ti ti-info-circle" />{t('Você está vendo como administrador. As versões só vão nos envios de quem tem o plano Automático + IA.')}</div>}
+            {dados.podeLigar ? (
+                <div className={`card ia-chave ${dados.ligado ? 'on' : ''}`}>
+                    <div>
+                        <div className="ia-chave-titulo">
+                            <i className={`ti ${dados.ligado ? 'ti-sparkles' : 'ti-file'}`} />
+                            {dados.ligado ? t('Seus envios vão com o currículo da IA') : t('Seus envios vão com o currículo do perfil')}
+                        </div>
+                        <div className="muted">{dados.ligado
+                            ? t('Cada vaga recebe a versão aprovada do tipo dela. Tipo sem versão aprovada recebe o currículo do perfil. Em Enviadas aparece qual foi.')
+                            : t('A IA não entra nos envios. Suas versões continuam salvas para quando você ligar.')}</div>
+                    </div>
+                    <button className={`btn sm ${dados.ligado ? '' : 'primary'}`} disabled={!!ocupado} onClick={alternar}>
+                        {ocupado === 'chave' ? '…' : dados.ligado ? t('Desligar') : t('Ligar')}
+                    </button>
+                </div>
+            ) : (
+                <div className="why" style={{ marginBottom: 14 }}><i className="ti ti-info-circle" />{t('Você está vendo como administrador. As versões só vão nos envios de quem tem o plano Automático + IA.')}</div>
+            )}
             {erro && <div className="card cv-erro" style={{ marginBottom: 14 }}>{erro}</div>}
 
             <div className="card cv-versoes">

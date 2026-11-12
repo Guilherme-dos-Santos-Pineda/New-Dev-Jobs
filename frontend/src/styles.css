@@ -2278,3 +2278,10 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .why.ok { border-color: rgba(34, 197, 94, .35); }
 .why.ok i { color: #22c55e; }
 @media (max-width: 640px) { .ia-abas { grid-template-columns: 1fr; } }
+
+/* Liga/desliga da IA nos envios (VersoesCurriculo.jsx) */
+.ia-chave { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; border-left: 3px solid var(--color-border); }
+.ia-chave.on { border-left-color: var(--color-success); }
+.ia-chave-titulo { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 2px; }
+.ia-chave.on .ia-chave-titulo i { color: var(--color-success); }
+@media (max-width: 640px) { .ia-chave { flex-direction: column; align-items: flex-start; } }

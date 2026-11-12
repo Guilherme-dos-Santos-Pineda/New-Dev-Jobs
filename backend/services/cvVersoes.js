@@ -49,12 +49,17 @@ const forma = (v) => ({
 /** A tela inteira: os tipos de vaga do feed da pessoa e as versões que ela já tem. */
 export async function painelDeVersoes(userId, { acesso = false, nosEnvios = false } = {}) {
     if (!acesso) return { disponivel: false };
+    // Lido do banco, não do req.user: o middleware guarda o usuário por 60 s e o
+    // liga/desliga voltaria ao estado anterior ao recarregar a tela.
+    const [u] = await sql`select "CvIaNosEnvios" from "Users" where "Id" = ${userId}`;
+    const ligado = u?.CvIaNosEnvios !== false;
     if (!(await tabelaExiste())) return { disponivel: false, faltaMigration: true };
     const grupos = gruposDoFeed(await getMatches(userId).catch(() => []), idiomaDoMatch);
     const versoes = (await sql`select * from "CvVersoes" where "UserId" = ${userId} order by "CreatedAt"`).map(forma);
     return {
         disponivel: true,
-        nosEnvios,
+        // podeLigar: o plano tem IA nos envios. ligado: a pessoa deixou ligado.
+        podeLigar: nosEnvios, ligado, nosEnvios: nosEnvios && ligado,
         grupos: grupos.map((g) => ({
             ...g, areaNome: AREA_LEGIVEL[g.area] || g.area,
             versao: versoes.find((v) => v.area === g.area && v.lang === g.lang) || null,
@@ -166,7 +171,8 @@ const areaDoEnvio = (job) => {
  */
 export async function versaoParaEnvio(user, job) {
     try {
-        if (!versoesNosEnvios(user) || !(await tabelaExiste())) return null;
+        // Desligado pela pessoa (migration 0028): vai o PDF do perfil.
+        if (!versoesNosEnvios(user) || user.CvIaNosEnvios === false || !(await tabelaExiste())) return null;
         const area = areaDoEnvio(job);
         if (!area || area === 'other') return null;
         const lang = idiomaDaVaga(job);
@@ -185,4 +191,11 @@ export async function versaoParaEnvio(user, job) {
         console.warn(`cv-versoes: envio segue com o PDF do perfil (${e.message})`);
         return null;
     }
+}
+
+/** Liga/desliga a versão da IA nos envios. Só para quem tem o plano com IA. */
+export async function ligarIaNosEnvios(user, ligado) {
+    if (!versoesNosEnvios(user)) throw new VersaoError('Disponível no plano Automático + IA.', 403);
+    const [u] = await sql`update "Users" set "CvIaNosEnvios" = ${!!ligado} where "Id" = ${user.Id} returning "CvIaNosEnvios"`;
+    return { ligado: u.CvIaNosEnvios };
 }

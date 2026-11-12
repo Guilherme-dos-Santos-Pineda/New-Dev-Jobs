@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { config } from '../config.js';
-import { painelDeVersoes, gerarVersao, aprovarVersao, apagarVersao, VersaoError, podeUsarVersoes, versoesNosEnvios } from '../services/cvVersoes.js';
+import { painelDeVersoes, gerarVersao, aprovarVersao, apagarVersao, VersaoError, podeUsarVersoes, versoesNosEnvios, ligarIaNosEnvios } from '../services/cvVersoes.js';
 
 const router = Router();
 const ehAdmin = (u) => config.isAdminEmail(u.Email) || u.Role === 'admin';
@@ -22,6 +22,8 @@ const idDe = (req) => {
 };
 
 router.get('/', requireAuth, responder((req) => painelDeVersoes(req.user.Id, acesso(req))));
+// Liga/desliga a versão da IA nos envios (antes do /:id, que só aceita número).
+router.put('/nos-envios', requireAuth, responder((req) => ligarIaNosEnvios(req.user, req.body?.ligado === true)));
 router.post('/', requireAuth, responder((req) => gerarVersao(req.user.Id, { area: String(req.body?.area || ''), lang: req.body?.lang }, acesso(req))));
 router.post('/:id/aprovar', requireAuth, responder((req) => aprovarVersao(req.user.Id, idDe(req), acesso(req))));
 router.delete('/:id', requireAuth, responder((req) => apagarVersao(req.user.Id, idDe(req), acesso(req))));

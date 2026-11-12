@@ -151,6 +151,7 @@ export const api = {
     analiseCvAntiga: (id) => request('GET', `/curriculo/analise/${encodeURIComponent(id)}`),
     adminRoboPlano: () => request('GET', '/admin/robo-plano'),
     versoesCv: () => request('GET', '/curriculo/versoes'),
+    iaNosEnvios: (ligado) => request('PUT', '/curriculo/versoes/nos-envios', { ligado }),
     gerarVersaoCv: (area, lang) => request('POST', '/curriculo/versoes', { area, lang }),
     aprovarVersaoCv: (id) => request('POST', `/curriculo/versoes/${encodeURIComponent(id)}/aprovar`),
     apagarVersaoCv: (id) => request('DELETE', `/curriculo/versoes/${encodeURIComponent(id)}`),

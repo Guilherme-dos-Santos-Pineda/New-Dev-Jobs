@@ -328,6 +328,30 @@ export async function runMonitoring({
         items.push(...batchItems);
     }
 
+    const s = await processarPosts(items, { region, excludeCountries });
+
+    // Cadência: carimba os recrutadores que ESTE run varreu (saved/selected),
+    // para a próxima rodada priorizar quem está há mais tempo sem ser checado.
+    const visitados = [...authorUrls, ...recrutadoresDoPlano];
+    if (visitados.length) {
+        await sql`
+            update "Recruiters"
+            set "LastCheckedAt" = now(), "CheckCount" = "CheckCount" + 1, "UpdatedAt" = now()
+            where "LinkedinUrl" = any(${visitados})`;
+    }
+
+    s.recruiters = visitados.length;
+    s.source = source;
+    await setRunStats(runId, s);
+    return s;
+}
+
+// Transforma posts em vagas: IA (só com email), checagem do email, região,
+// recrutador e insert com dedup. Usado pelo monitoramento do LinkedIn e por
+// fontes próprias (vagasGithub.js), que montam o item no mesmo formato:
+// { id, content, author: { name, linkedinUrl }, linkedinUrl, postedAt: { date } }.
+// `fonte` vai para ScrapedPosts.Source.
+export async function processarPosts(items, { region = 'global', excludeCountries, fonte = 'monitoring' } = {}) {
     // found = encontrados; novos/duplicados = vagas; descartadosIA/semEmail/rejeitados; aiUsed
     const s = { found: items.length, novos: 0, duplicados: 0, descartadosIA: 0, semEmail: 0, rejeitados: 0, foraRegiao: 0, recrutadoresAdd: 0, aiUsed: 0 };
     let aiCalls = 0;
@@ -358,7 +382,7 @@ export async function runMonitoring({
         // Salva o cru sempre (mantém o Status anterior em conflito)
         await sql`
             insert into "ScrapedPosts" ("Source", "Author", "AuthorUrl", "Url", "LinkedinId", "Content", "PostedAt", "AiResult", "Status")
-            values ('monitoring', ${authorName}, ${authorUrl || null}, ${item.linkedinUrl || null}, ${postId}, ${content}, ${postedAt}, ${ai ? sql.json(ai) : null}, 'pending')
+            values (${fonte}, ${authorName}, ${authorUrl || null}, ${item.linkedinUrl || null}, ${postId}, ${content}, ${postedAt}, ${ai ? sql.json(ai) : null}, 'pending')
             on conflict ("LinkedinId") do update set "AiResult" = excluded."AiResult", "PostedAt" = excluded."PostedAt"`;
 
         if (prevStatus === 'rejected') { s.rejeitados += 1; continue; } // bloqueado permanentemente
@@ -381,20 +405,6 @@ export async function runMonitoring({
             await sql`update "Recruiters" set "LastPostDate" = greatest(coalesce("LastPostDate", to_timestamp(0)), ${postedAt}), "UpdatedAt" = now() where "Id" = ${recId}`;
         }
     }
-
-    // Cadência: carimba os recrutadores que ESTE run varreu (saved/selected),
-    // para a próxima rodada priorizar quem está há mais tempo sem ser checado.
-    const visitados = [...authorUrls, ...recrutadoresDoPlano];
-    if (visitados.length) {
-        await sql`
-            update "Recruiters"
-            set "LastCheckedAt" = now(), "CheckCount" = "CheckCount" + 1, "UpdatedAt" = now()
-            where "LinkedinUrl" = any(${visitados})`;
-    }
-
-    s.recruiters = visitados.length;
-    s.source = source;
-    await setRunStats(runId, s);
     return s;
 }
 

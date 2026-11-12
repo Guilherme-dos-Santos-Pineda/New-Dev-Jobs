@@ -6,6 +6,7 @@ import { applyToJob, ApplyError } from './services/sender.js';
 import { runDiscovery, runMonitoring } from './services/scraper.js';
 import { garantirRoboDoPlano } from './services/roboDoPlano.js';
 import { garantirRoboDasVagas } from './services/vagasAnunciadas.js';
+import { tickVagasGithub } from './services/vagasGithub.js';
 import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
 import { tickCampaigns } from './services/campaigns.js';
@@ -164,7 +165,9 @@ async function runDueSchedules(boss) {
         select count(*)::int usados from "ScraperRuns"
         where "CreatedAt" >= date_trunc('day', now())
           -- O robô de cada pagante (roboPessoal.js) tem conta e limite próprios: não come o teto dos gerais.
-          and coalesce("Params"->>'pagante', '') = ''`;
+          and coalesce("Params"->>'pagante', '') = ''
+          -- O leitor do GitHub (vagasGithub.js) não usa a Apify: não conta no teto.
+          and coalesce("Params"->>'fonte', '') <> 'github'`;
     const cabem = vagasNesteTick({
         usadosHoje: usados,
         tetoDiario: SCHEDULER_MAX_PER_DAY,
@@ -229,6 +232,7 @@ function startScheduler(boss) {
         tickCampaigns().catch((e) => console.error('tickCampaigns falhou:', e.message));
         tickAutoEnvio().catch((e) => console.error('tickAutoEnvio falhou:', e.message));
         tickRobosPessoais().catch((e) => console.error('tickRobosPessoais falhou:', e.message));
+        tickVagasGithub().catch((e) => console.error('tickVagasGithub falhou:', e.message));
     };
     tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
     const agendador = setInterval(tick, 60000);

@@ -77,6 +77,9 @@ export const config = {
     apify: {
         token: APIFY_TOKEN,        // compat (conta primária)
         tokens: apifyTokens,       // pool (primária + fallbacks), para rotação de crédito
+        // Conta só dos robôs dos pagantes (roboPessoal.js), FORA do pool: o crédito
+        // dela não é gasto pelo monitoramento, e o dos pagantes não tira o do monitoramento.
+        tokenPagantes: (process.env.APIFY_TOKEN_PAGANTES || '').trim() || null,
         profileActorId: APIFY_PROFILE_ACTOR_ID,
         postActorId: APIFY_POST_ACTOR_ID,
         configured: apifyTokens.length > 0,

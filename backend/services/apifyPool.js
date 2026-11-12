@@ -18,6 +18,14 @@ const accounts = config.apify.tokens.map((token, i) => ({
     calls: 0,
 }));
 
+// A conta dos robôs dos pagantes (APIFY_TOKEN_PAGANTES), fora do pool.
+const contaPagantes = config.apify.tokenPagantes
+    ? { label: 'Conta dos pagantes', token: config.apify.tokenPagantes, exhaustedUntil: 0, lastError: null, lastUsedAt: null, calls: 0 }
+    : null;
+
+/** A conta dos pagantes está configurada e com crédito? */
+export const contaPagantesDisponivel = (now = Date.now()) => !!contaPagantes && contaPagantes.exhaustedUntil <= now;
+
 // 1º dia do próximo mês em UTC — quando o crédito grátis da Apify renova.
 export function endOfMonthMs(now = Date.now()) {
     const d = new Date(now);
@@ -67,8 +75,10 @@ export function apifyExhaustedUntil(now = Date.now()) {
  * Roda um actor da Apify com fallback entre contas. Só rotaciona em erro de CRÉDITO;
  * erro transitório sobe para o retry do pg-boss. @returns { items, account }.
  */
-export async function runActor(actorId, input) {
-    const pool = healthyAccounts();
+export async function runActor(actorId, input, { conta = null } = {}) {
+    // Robô dos pagantes: SÓ a conta dele (quem chama decide se cai no pool).
+    const pool = conta === 'pagantes' ? (contaPagantesDisponivel() ? [contaPagantes] : []) : healthyAccounts();
+    if (conta === 'pagantes' && !pool.length) throw new Error('A conta da Apify dos pagantes não está configurada ou está sem crédito.');
     if (!pool.length) {
         throw new Error(accounts.length
             ? 'Todas as contas Apify estão sem crédito este mês — aguarde a virada do mês ou faça reset no admin.'
@@ -112,7 +122,7 @@ export function apifyPoolState() {
     return {
         total: accounts.length,
         healthy: accounts.filter((a) => a.exhaustedUntil <= now).length,
-        accounts: accounts.map((a) => ({
+        accounts: [...accounts, ...(contaPagantes ? [contaPagantes] : [])].map((a) => ({
             label: a.label,
             tokenHint: a.token ? `…${a.token.slice(-4)}` : '—',
             exhausted: a.exhaustedUntil > now,
@@ -126,7 +136,7 @@ export function apifyPoolState() {
 
 // Reset manual (admin): limpa as marcações de esgotado (virou o mês, troquei a conta…).
 export function resetApifyPool() {
-    for (const a of accounts) { a.exhaustedUntil = 0; a.lastError = null; }
+    for (const a of [...accounts, ...(contaPagantes ? [contaPagantes] : [])]) { a.exhaustedUntil = 0; a.lastError = null; }
     return apifyPoolState();
 }
 

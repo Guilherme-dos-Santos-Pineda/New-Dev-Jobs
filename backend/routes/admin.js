@@ -14,8 +14,7 @@ import { decideConcessaoDePlano, DIAS_MAX_CONCESSAO } from '../services/billingL
 import { PLANS } from '../config/plans.js';
 import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
 import { condicaoMonitoravel, DIAS_ENTRE_VISITAS } from '../services/recrutadorMonitoravel.js';
-import { painelRoboDoPlano } from '../services/roboDoPlano.js';
-import { getMatches } from '../services/jobsQuery.js';
+import { painelRobosPessoais, rodarRoboDe } from '../services/roboPessoal.js';
 import { REMOVIDA_PELO_ADMIN, detectArea } from '../services/classify.js';
 import { feedbackDisponivel, MOTIVOS } from '../services/jobFeedback.js';
 import {
@@ -416,11 +415,19 @@ router.post('/scraper/run', requireAdmin, validate(runSchema), async (req, res) 
 // GET /api/admin/robo-plano: o que o robô de quem comprou faz por cada pagante.
 router.get('/robo-plano', requireAdmin, async (_req, res) => {
     try {
-        res.json(await painelRoboDoPlano(getMatches));
+        res.json(await painelRobosPessoais());
     } catch (e) {
         console.error('admin robo-plano:', e.message);
         res.status(500).json({ error: 'Não deu para montar o painel do robô agora.' });
     }
+});
+
+// POST /api/admin/robo-plano/:userId/rodar — roda o robô daquela pessoa agora.
+// Responde na hora: a busca leva minutos e o painel mostra "rodando" até acabar.
+router.post('/robo-plano/:userId/rodar', requireAdmin, (req, res) => {
+    rodarRoboDe(req.params.userId, { forcar: true, por: req.user.Email })
+        .catch((e) => console.error('robô pessoal (admin):', e.message));
+    res.json({ iniciado: true });
 });
 
 router.get('/robots', requireAdmin, async (_req, res) => {

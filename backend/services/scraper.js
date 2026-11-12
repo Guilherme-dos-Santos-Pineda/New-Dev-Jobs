@@ -232,6 +232,7 @@ export async function runMonitoring({
     queries, maxPosts = 10, runId, source = 'saved', recruiterIds,
     contentType = 'jobs', postedLimit, sortBy, scrapePages, startPage,
     region = 'global', excludeCountries, maxRecruiters = 10, creditoMinimo, doPlano, vagasAnunciadas,
+    conta = null, // 'pagantes': só a conta da Apify dos robôs dos pagantes (roboPessoal.js)
 } = {}) {
     // Robô das vagas anunciadas no LinkedIn Jobs: outro ator, outro destino.
     if (vagasAnunciadas) return runVagasAnunciadas({ runId, creditoMinimo });
@@ -323,7 +324,7 @@ export async function runMonitoring({
     const items = [];
     for (const input of chamadas) {
         // runActor rotaciona entre contas Apify se o crédito de uma esgotar no meio.
-        const { items: batchItems } = await runActor(config.apify.postActorId, input);
+        const { items: batchItems } = await runActor(config.apify.postActorId, input, { conta });
         items.push(...batchItems);
     }
 

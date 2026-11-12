@@ -12,6 +12,7 @@ import { tickCampaigns } from './services/campaigns.js';
 import { apifyExhaustedUntil } from './services/apifyPool.js';
 import { runMaintenance } from './services/maintenance.js';
 import { tickAutoEnvio } from './services/autoEnvio.js';
+import { tickRobosPessoais } from './services/roboPessoal.js';
 
 // =========================
 // Worker de envio (processo separado: `npm run worker`)
@@ -156,7 +157,9 @@ async function runDueSchedules(boss) {
     // sem executar nada de útil.
     const [{ usados }] = await sql`
         select count(*)::int usados from "ScraperRuns"
-        where "CreatedAt" >= date_trunc('day', now())`;
+        where "CreatedAt" >= date_trunc('day', now())
+          -- O robô de cada pagante (roboPessoal.js) tem conta e limite próprios: não come o teto dos gerais.
+          and coalesce("Params"->>'pagante', '') = ''`;
     const cabem = vagasNesteTick({
         usadosHoje: usados,
         tetoDiario: SCHEDULER_MAX_PER_DAY,
@@ -220,6 +223,7 @@ function startScheduler(boss) {
         revertExpiredPlans().catch((e) => console.error('revertExpiredPlans falhou:', e.message));
         tickCampaigns().catch((e) => console.error('tickCampaigns falhou:', e.message));
         tickAutoEnvio().catch((e) => console.error('tickAutoEnvio falhou:', e.message));
+        tickRobosPessoais().catch((e) => console.error('tickRobosPessoais falhou:', e.message));
     };
     tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
     const agendador = setInterval(tick, 60000);

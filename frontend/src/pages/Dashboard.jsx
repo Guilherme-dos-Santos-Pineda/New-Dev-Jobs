@@ -15,6 +15,7 @@ import { marcarVoltaParaVagas } from '../lib/voltarParaVagas.js';
 import CommunityBanner from '../components/CommunityBanner.jsx';
 import PedidoFeedback from '../components/PedidoFeedback.jsx';
 import ConviteAutomatico from '../components/ConviteAutomatico.jsx';
+import AvisoPoucaVaga from '../components/AvisoPoucaVaga.jsx';
 import AutoEnvio from '../components/AutoEnvio.jsx';
 
 // =========================
@@ -297,6 +298,7 @@ export default function Dashboard() {
                 <AutoEnvio style={{ marginBottom: 14 }} />
                 <PerguntaRetorno />
                 <PedidoFeedback />
+                <AvisoPoucaVaga onMudou={() => carregar()} />
                 <ConviteAutomatico />
                 <CommunityBanner variant="button" style={{ marginBottom: 14 }} />
                 <CartaoVagasLink />

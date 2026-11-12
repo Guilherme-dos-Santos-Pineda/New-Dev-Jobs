@@ -9,6 +9,7 @@ import { normalizeList, normalizeDomain } from '../services/normalize.js';
 import { uploadCv, removeCv } from '../lib/cvStorage.js';
 import { invalidateMatches } from '../services/jobsQuery.js';
 import { esquecerVagasPorLink } from '../services/vagasPorLink.js';
+import { sugestoesDePerfil, aplicarSugestao } from '../services/ampliarPerfil.js';
 
 const router = Router();
 
@@ -172,6 +173,22 @@ router.put('/', requireAuth, async (req, res) => {
 });
 
 // POST /api/profile/reset  — volta o perfil aos padrões (mantém o CV)
+// GET /api/profile/ampliar — tem pouca vaga? O que abrir no perfil, e quanto rende.
+router.get('/ampliar', requireAuth, async (req, res) => {
+    try { res.json(await sugestoesDePerfil(req.user)); } catch (e) {
+        console.warn(`ampliar perfil: ${e.message}`);
+        res.json({ pouca: false, sugestoes: [] });
+    }
+});
+
+// POST /api/profile/ampliar { id } — aplica uma das sugestões (o servidor monta a mudança).
+router.post('/ampliar', requireAuth, async (req, res) => {
+    try { res.json(await aplicarSugestao(req.user, String(req.body?.id || ''))); } catch (e) {
+        console.error(`ampliar perfil: ${e.message}`);
+        res.status(500).json({ error: 'Não deu para mudar o perfil agora.' });
+    }
+});
+
 router.post('/reset', requireAuth, async (req, res) => {
     const current = await getProfile(req.user.Id);
     await upsertProfile(req.user.Id, { ...EMPTY_PROFILE });

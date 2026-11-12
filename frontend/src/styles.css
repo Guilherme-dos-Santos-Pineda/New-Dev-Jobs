@@ -2297,3 +2297,9 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .aviso-ia { display: flex; align-items: flex-start; gap: 8px; }
 .aviso-ia-fechar { background: none; border: 0; color: inherit; opacity: .6; cursor: pointer; padding: 0 2px; font-size: 16px; line-height: 1; }
 .aviso-ia-fechar:hover { opacity: 1; }
+
+/* "Seu perfil tem pouca vaga" (components/AvisoPoucaVaga.jsx) */
+.aviso-pouca-vaga { border-left: 3px solid var(--color-warning, #f59e0b); }
+.apv-lista { display: grid; gap: 8px; }
+.apv-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+.apv-ganho { color: var(--color-success); margin-left: 4px; }

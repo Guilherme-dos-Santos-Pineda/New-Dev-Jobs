@@ -47,7 +47,9 @@ test('na dúvida a vaga aparece: sem local, sem modalidade ou local desconhecido
     assert.equal(foraDoLocal(hibrida(null), so('SP')), false);
     assert.equal(foraDoLocal(hibrida('Brasil'), so('SP')), false);
     assert.equal(foraDoLocal(hibrida('Itabuna'), so('SP')), false);
-    assert.equal(foraDoLocal({ Location: 'Recife/PE' }, so('SP')), false);
+    // Desde 12/11/2026, cidade sem modalidade escrita conta como presencial
+    // (detectModality): vaga em Recife não aparece para quem só quer SP.
+    assert.equal(foraDoLocal({ Location: 'Recife/PE' }, so('SP')), true);
 });
 
 test('sem estado nem cidade marcados, nada muda', () => {

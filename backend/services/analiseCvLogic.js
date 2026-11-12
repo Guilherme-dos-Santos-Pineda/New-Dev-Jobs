@@ -13,6 +13,9 @@
 // A análise fica GRÁTIS (decisão do dono, 11/11/2026): 2 por pessoa. O plano pago
 // vai vender as versões por área, não a análise. Era 3 "durante o teste, depois
 // só no pago". O valor que vale é o do Admin › Currículo IA; este é o padrão.
+import { conferirFatos } from './conferirFatos.js';
+export { conferirFatos };
+
 export const LIMITE_ANALISES = 2;
 export const MAX_TEXTO_CV = 15000;
 export const MIN_TEXTO_CV = 200;
@@ -57,6 +60,7 @@ PROIBIDO INVENTAR (este currículo será enviado a recrutadores reais):
 - NUNCA invente empresa, cargo, data, curso, certificação, tecnologia, número ou resultado que não esteja no texto.
 - Métrica só se o número estiver no currículo. Onde um número ajudaria e a pessoa não deu, escreva um lembrete entre colchetes para ela preencher, por exemplo "[quantos usuários?]" ou "[em quanto tempo?]".
 - Contato: copie exatamente o que está no currículo. Se faltar, deixe vazio.
+- Cidade, datas, anos e períodos: copie exatamente do currículo. NUNCA deduza a cidade (pelo DDD, pela empresa ou pela faculdade) nem o ano de início ou de conclusão. Se não estiver escrito, deixe sem.
 - Palavra-chave que a pessoa não demonstra no texto NÃO entra nas habilidades: fica só na lista de palavras-chave, como sugestão do que estudar ou mostrar.
 
 Escreva no mesmo idioma do currículo original.
@@ -82,7 +86,13 @@ Responda APENAS com JSON válido, neste formato:
 }`;
 
 /** A mensagem do usuário: o currículo e o que a pessoa procura. */
-export function mensagemDoUsuario(textoCv, perfil = {}, palavras = []) {
+/** A data de hoje, para a IA não "corrigir" ano recente que ela acha que é futuro. */
+export function avisoDeData(agora = new Date()) {
+    const ano = agora.getUTCFullYear();
+    return `Hoje é ${agora.toISOString().slice(0, 10)}. Anos até ${ano} (e previsões de conclusão depois dele) são reais: copie todo ano e todo período EXATAMENTE como estão no currículo, nunca troque um ano por outro.`;
+}
+
+export function mensagemDoUsuario(textoCv, perfil = {}, palavras = [], agora = new Date()) {
     const areas = lista(perfil.Areas).map((a) => AREA_LEGIVEL[a] || a);
     const niveis = lista(perfil.Levels).map((n) => NIVEL_LEGIVEL[n] || n);
     const contexto = [
@@ -90,7 +100,7 @@ export function mensagemDoUsuario(textoCv, perfil = {}, palavras = []) {
         niveis.length && `Nível que procura: ${niveis.join(', ')}.`,
         palavras.length && `Palavras-chave que mais aparecem nas vagas que a pessoa recebe: ${palavras.join(', ')}.`,
     ].filter(Boolean).join('\n');
-    return `${contexto ? `${contexto}\n\n` : ''}Analise este currículo em profundidade e reescreva-o completo:\n\n${String(textoCv).slice(0, MAX_TEXTO_CV)}`;
+    return `${avisoDeData(agora)}\n\n${contexto ? `${contexto}\n\n` : ''}Analise este currículo em profundidade e reescreva-o completo:\n\n${String(textoCv).slice(0, MAX_TEXTO_CV)}`;
 }
 
 const texto = (v, max = 2000) => (v == null ? '' : String(v).replace(/\s+/g, ' ').trim().slice(0, max));
@@ -136,7 +146,8 @@ export function lerResposta(conteudo, textoCv = '') {
         dicas: textos(p.dicas, 10),
         // "Já tem" é conferido no texto ORIGINAL, não no reescrito: é o que o ATS lê hoje.
         palavrasChave: textos(p.palavrasChaveATS, 20, 60).map((palavra) => ({ palavra, temNoCurriculo: original.includes(semAcento(palavra)) })),
-        curriculo: reescrito,
+        // A IA não pode pôr no currículo ano, cidade ou contato que a pessoa não escreveu.
+        curriculo: textoCv ? conferirFatos(reescrito, textoCv) : reescrito,
     };
 }
 
@@ -175,3 +186,4 @@ export function acessoLiberado({ ativa = true, bloqueado = false, admin = false 
     if (admin) return true;
     return ativa && !bloqueado;
 }
+

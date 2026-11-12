@@ -247,9 +247,19 @@ export function detectModality(job) {
     // 2 dias remotos" seria lido como remoto puro.
     if (/h[íi]brid|hybrid/.test(texto)) return ['hibrido'];
     if (/100% remoto|totalmente remoto|home ?office|trabalho remoto|fully remote|remote[- ]first|\bremoto\b|\bremote\b/.test(texto)) return ['remoto'];
-    if (/presencial|no local da empresa|on[- ]site/.test(texto)) return ['presencial'];
+    if (/presencial|no local da empresa|on[- ]?site/.test(texto)) return ['presencial'];
+
+    // Nada escrito sobre modalidade, mas a vaga tem cidade ou bairro ("Guarulhos/SP",
+    // "Centro do Rio de Janeiro/RJ"): na prática é presencial. Vaga remota quase
+    // sempre diz "remoto". Até 12/11/2026 essas passavam para quem marcou só remoto
+    // (relato de usuário: 36 das 70 vagas de um feed de financeiro eram assim).
+    const local = String(job.Location || '').trim().toLowerCase();
+    if (local && !LOCAL_GENERICO.test(local)) return ['presencial'];
     return null;
 }
+
+// Location que não diz onde se trabalha: não serve para concluir "presencial".
+const LOCAL_GENERICO = /^(?:-|n\/?a\b|brasil|brazil|br$|remot|home|anywhere|worldwide|global|latam|am[ée]rica|todo o|nacional|qualquer|diversa|v[áa]ria|a definir|indefinid|n[ãa]o (?:informad|definid)|online)/;
 
 export { parseArr };
 
@@ -271,7 +281,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 10;
+export const CLASSIFY_VERSION = 11;
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 

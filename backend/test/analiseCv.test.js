@@ -100,3 +100,58 @@ test('desligada ou bloqueado tira o acesso, menos do admin', () => {
     assert.equal(acessoLiberado({ ativa: false, admin: true }), true);
     assert.equal(acessoLiberado({ bloqueado: true, admin: true }), true);
 });
+
+// Relato de 12/11/2026: o currículo reescrito trazia cidade e ano que não estavam no original.
+test('conferirFatos: tira ano e cidade inventados, mantém o que está no original', async () => {
+    const { conferirFatos } = await import('../services/analiseCvLogic.js');
+    const original = 'Maria Souza\nmaria@exemplo.com | (11) 98888-7777\nAnálise e Desenvolvimento de Sistemas, Fatec, 2019 - 2021\nDesenvolvedora na Acme, 2022 - atual';
+    const cv = {
+        nome: 'Maria Souza', titulo: 'Desenvolvedora', contato: 'maria@exemplo.com | (11) 98888-7777 | São Paulo/SP | linkedin.com/in/maria-inventada',
+        resumoProfissional: 'Desenvolvedora baseada em São Paulo com experiência desde 2022.',
+        habilidades: [], projetos: [], certificacoes: [], idiomas: [],
+        experiencias: [{ cargo: 'Desenvolvedora', empresa: 'Acme', periodo: '2022 - atual', atividades: ['Criou APIs em Campinas em 2023'], tecnologias: '' }],
+        formacao: [{ curso: 'Análise e Desenvolvimento de Sistemas', instituicao: 'Fatec', periodo: '2019 - 2021' }, { curso: 'MBA', instituicao: 'USP', periodo: '2024' }],
+    };
+    const r = conferirFatos(cv, original);
+    assert.equal(r.contato, 'maria@exemplo.com | (11) 98888-7777 | linkedin.com/in/maria-inventada', 'contato verdadeiro fica, só a cidade inventada sai');
+    assert.ok(!/s[ãa]o paulo/i.test(r.resumoProfissional), r.resumoProfissional);
+    assert.ok(r.resumoProfissional.includes('2022'));
+    assert.equal(r.experiencias[0].periodo, '2022 - atual');
+    assert.ok(!/campinas|2023/i.test(r.experiencias[0].atividades[0]), r.experiencias[0].atividades[0]);
+    assert.equal(r.formacao[0].periodo, '2019 - 2021');
+    assert.equal(r.formacao[1].periodo, '', 'ano de conclusão que não existe no original sai');
+});
+
+test('conferirFatos: cidade escrita no original fica, com ou sem acento', async () => {
+    const { conferirFatos } = await import('../services/analiseCvLogic.js');
+    const r = conferirFatos({ contato: 'Sao Paulo, SP', resumoProfissional: 'Moro em São Paulo.', experiencias: [], formacao: [] }, 'Contato: São Paulo - SP');
+    assert.equal(r.contato, 'Sao Paulo, SP');
+    assert.equal(r.resumoProfissional, 'Moro em São Paulo.');
+});
+
+test('conferirFatos: ano colado no texto do PDF conta; nome de faculdade não perde a cidade', async () => {
+    const { conferirFatos } = await import('../services/analiseCvLogic.js');
+    const original = 'Jovem Aprendiz em Distribuição 2018 - 2020Philip Morris Brasil\nFormação: UNIVESP';
+    const r = conferirFatos({
+        experiencias: [{ cargo: 'Jovem Aprendiz', empresa: 'Philip Morris', periodo: '2018 - 2020', atividades: [] }],
+        formacao: [{ curso: 'Engenharia de Computação', instituicao: 'Universidade Virtual do Estado de São Paulo (UNIVESP)', periodo: '' }],
+    }, original);
+    assert.equal(r.experiencias[0].periodo, '2018 - 2020');
+    assert.equal(r.formacao[0].instituicao, 'Universidade Virtual do Estado de São Paulo (UNIVESP)');
+});
+
+test('conferirFatos: cidade pequena no formato Cidade/UF também sai se não estiver no original', async () => {
+    const { conferirFatos } = await import('../services/analiseCvLogic.js');
+    const r = conferirFatos({ contato: 'joao@x.com | (16) 99999-0000 | Araraquara/SP', resumoProfissional: 'Dev em Leopoldina - MG.', experiencias: [], formacao: [] },
+        'joao@x.com (16) 99999-0000 Leopoldina - MG');
+    assert.equal(r.contato, 'joao@x.com | (16) 99999-0000');
+    assert.equal(r.resumoProfissional, 'Dev em Leopoldina - MG.');
+});
+
+test('a IA recebe a data de hoje: 2026 não vira 2024 (relato de 12/11/2026)', async () => {
+    const { mensagemDoUsuario } = await import('../services/analiseCvLogic.js');
+    const { mensagemVersao } = await import('../services/cvVersoesLogic.js');
+    const agora = new Date('2026-11-12T12:00:00Z');
+    assert.match(mensagemDoUsuario('cv', {}, [], agora), /Hoje é 2026-11-12/);
+    assert.match(mensagemVersao('cv', { area: 'backend', lang: 'pt' }, agora), /Hoje é 2026-11-12/);
+});

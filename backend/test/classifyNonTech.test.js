@@ -184,6 +184,21 @@ test('vaga sem modalidade identificável PASSA (metade da base não tem o campo)
     assert.equal(passesFilters(semInfo, perfil), true);
 });
 
+// Relato de 12/11/2026: quem marcou só remoto recebia vaga com cidade e sem nada
+// escrito sobre modalidade (36 de 70 num feed de financeiro). Com cidade, é presencial.
+test('vaga com cidade e sem modalidade escrita é presencial; local genérico não conta', () => {
+    assert.deepEqual(detectModality({ Location: 'Guarulhos/SP', Description: 'Assistente financeiro' }), ['presencial']);
+    assert.deepEqual(detectModality({ Location: 'Centro do Rio de Janeiro/RJ' }), ['presencial']);
+    assert.equal(detectModality({ Location: 'Brasil' }), null);
+    assert.deepEqual(detectModality({ Location: 'Remoto' }), ['remoto']);
+    assert.equal(detectModality({ Location: 'N/A' }), null);
+    // O texto vence a cidade: remoto escrito continua remoto, mesmo com sede na cidade.
+    assert.deepEqual(detectModality({ Location: 'São Paulo/SP', Description: 'Vaga 100% remota, home office' }), ['remoto']);
+    assert.deepEqual(detectModality({ Description: 'Atuação onsite no cliente' }), ['presencial']);
+    const perfil = { Region: 'br', Modalities: ['remoto'], Areas: [] };
+    assert.equal(passesFilters({ JobTitle: 'Desenvolvedor Java', Email: 'r@x.com.br', Location: 'Curitiba/PR', Description: 'vaga no Brasil' }, perfil), false);
+});
+
 test('sem filtro de modalidade declarado, nada é barrado por modalidade', () => {
     const perfil = { Region: 'br', Modalities: [], Areas: [] };
     const base = { JobTitle: 'Desenvolvedor Java', Email: 'r@x.com.br', Description: 'vaga no Brasil' };

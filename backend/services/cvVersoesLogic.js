@@ -4,7 +4,7 @@
 // Ideia do dono (11/11/2026): vagas parecidas reaproveitam o mesmo currículo
 // adaptado. A IA cria UMA versão por área e idioma; a pessoa aprova; os envios
 // seguintes só escolhem a versão pela área e pelo idioma da vaga, sem IA.
-import { lerResposta } from './analiseCvLogic.js';
+import { lerResposta, avisoDeData } from './analiseCvLogic.js';
 
 export const MAX_VERSOES = 8;
 export const VAGAS_DE_EXEMPLO = 4;
@@ -60,6 +60,7 @@ PROIBIDO INVENTAR (este currículo vai para recrutadores reais):
 - NUNCA invente empresa, cargo, data, curso, certificação, tecnologia, número ou resultado que não esteja no texto.
 - Esta versão vai ANEXADA direto aos recrutadores, sem a pessoa editar: NÃO deixe lacunas nem lembretes entre colchetes. Onde um número ajudaria e a pessoa não deu, escreva a frase sem número.
 - Contato: copie exatamente o que está no currículo.
+- Cidade, datas, anos e períodos: copie exatamente do currículo. NUNCA deduza a cidade (pelo DDD, pela empresa ou pela faculdade) nem o ano de início ou de conclusão. Se não estiver escrito, deixe sem.
 - Traduzir NÃO é inventar: se o idioma pedido for inglês, traduza fielmente.
 
 Responda APENAS com JSON válido:
@@ -76,9 +77,11 @@ Responda APENAS com JSON válido:
   }
 }`;
 
-export function mensagemVersao(textoCv, { area, lang, exemplos = [] }) {
+export function mensagemVersao(textoCv, { area, lang, exemplos = [] }, agora = new Date()) {
     const vagas = exemplos.map((v, i) => `Vaga ${i + 1}: ${v.titulo}${v.empresa ? ` (${v.empresa})` : ''}\nSkills: ${v.skills.join(', ') || 'não informadas'}\n${v.descricao}`).join('\n\n');
-    return `Tipo de vaga: ${AREA_LEGIVEL[area] || area}.
+    return `${avisoDeData(agora)}
+
+Tipo de vaga: ${AREA_LEGIVEL[area] || area}.
 Idioma do currículo adaptado: ${lang === 'en' ? 'inglês' : 'português'}.
 
 Exemplos reais dessas vagas:

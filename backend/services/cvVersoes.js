@@ -179,7 +179,8 @@ export async function versaoParaEnvio(user, job) {
             buffer = await curriculoEmPdf(v.curriculo, { lang: v.lang });
             pdfs.guardar(chave, buffer);
         }
-        return { buffer, filename: nomeDoAnexo(v.curriculo?.nome || user.Name), versaoId: v.id, area };
+        const nome = `${v.areaNome}${v.lang === 'en' ? ' (inglês)' : ''}`;
+        return { buffer, filename: nomeDoAnexo(v.curriculo?.nome || user.Name), versaoId: v.id, area, nome };
     } catch (e) {
         console.warn(`cv-versoes: envio segue com o PDF do perfil (${e.message})`);
         return null;

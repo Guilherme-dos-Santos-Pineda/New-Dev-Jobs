@@ -114,6 +114,7 @@ function DetalheCandidatura({ a, onClose, t }) {
         { rotulo: t('Status'), valor: t(st.label), tom: st.tom },
         { rotulo: t('Email destinatário'), valor: a.to || '' },
         { rotulo: t('Idioma / template'), valor: a.lang ? `${a.lang.toUpperCase()} · ${a.template || 'job_inquiry'}` : 'PT · job_inquiry' },
+        { rotulo: t('Currículo enviado'), valor: a.cvVersao ? t('Versão da IA: {nome}', { nome: a.cvVersao }) : t('O do seu perfil'), tom: a.cvVersao ? 'ok' : '' },
     ];
 
     return (

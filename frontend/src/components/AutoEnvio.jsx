@@ -53,7 +53,7 @@ export default function AutoEnvio({ style }) {
                 </div>
                 <div className="muted">
                     {ligado
-                        ? t('Próximo envio: {quando}, horário de Brasília. Sai pelo seu Gmail, para as vagas que passam nos seus filtros: as da semana saem todas; as mais antigas são divididas pelos dias do seu plano, para não faltar vaga no fim. O que sair aparece em Enviadas.', { quando: quando(user.autoEnvioProximo, t) })
+                        ? t('Próximo envio: {quando}, horário de Brasília. Sai pelo seu Gmail, para as vagas que passam nos seus filtros: primeiro as da semana, depois as mais antigas, até o seu limite do dia. O que sair aparece em Enviadas.', { quando: quando(user.autoEnvioProximo, t) })
                         : t('Ligue e seu currículo sai sozinho todo dia às 9h, horário de Brasília, sem você precisar entrar. Vai para as vagas que passam nos seus filtros: primeiro as da semana, depois as mais antigas.')}
                 </div>
                 {!pronto && !ligado && <div className="hint">{t('Antes de ligar, conecte o Gmail e anexe o currículo.')}</div>}

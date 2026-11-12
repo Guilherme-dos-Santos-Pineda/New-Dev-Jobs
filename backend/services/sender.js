@@ -88,8 +88,9 @@ export async function applyToJob(userId, jobId, editado = null) {
     }
 
     const [created] = await sql`
-        insert into "Applications" ("UserId", "JobId", "Status", "MatchScore", "Subject", "Body", "SentAt")
-        values (${userId}, ${jobId}, 'sent', ${match.score}, ${rendered.subject}, ${rendered.text}, now())
+        insert into "Applications" ("UserId", "JobId", "Status", "MatchScore", "Subject", "Body", "SentAt", "CvVersaoId", "CvVersaoNome")
+        values (${userId}, ${jobId}, 'sent', ${match.score}, ${rendered.subject}, ${rendered.text}, now(),
+                ${versao?.versaoId ?? null}, ${versao?.nome ?? null})
         returning "Id"`;
 
     // A vaga saiu do conjunto "ainda não candidatadas": derruba o memo do

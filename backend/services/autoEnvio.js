@@ -40,8 +40,8 @@ const faixa = (m, agora) => {
  * `diasRestantes` (dias até o plano vencer) liga o RITMO: a vaga da semana sai
  * toda no dia, mas o estoque antigo é dividido pelos dias que faltam. Medido em
  * 11/11/2026: entram ~1 a 2 vagas novas por dia no perfil de um pagante, e o
- * envio de até 50 por dia acabava o estoque em 4 a 9 dias; o resto do mês sem
- * envio nenhum. Decisão do dono: o envio tem de durar o plano inteiro.
+ * envio de até 50 por dia acabava o estoque em 4 a 9 dias. DESLIGADO no envio
+ * das 9h: o dono prefere os 50 por dia e mais vaga na base (ver enviarDoDia).
  */
 export function escolherVagas(matches, restam, agora = Date.now(), { diasRestantes } = {}) {
     const ordenadas = [...matches]
@@ -80,8 +80,10 @@ async function enviarDoDia(usuario) {
 
     await assertCanSend(usuario.Id);
     const { remainingToday } = await planUsage(usuario.Id, usuario.Plan);
-    const ids = escolherVagas(await getMatches(usuario.Id), remainingToday, Date.now(),
-        { diasRestantes: diasAteVencer(usuario.PlanExpiresAt) });
+    // Sem ritmo: sai até o limite do dia. O ritmo (diasRestantes) ficou pronto e
+    // desligado: o dono quer os 50 por dia nas primeiras semanas e mais vaga na base,
+    // não menos envio (11/11/2026). "Depois a gente pode esticar."
+    const ids = escolherVagas(await getMatches(usuario.Id), remainingToday);
     if (ids.length) await enqueue(usuario.Id, ids);
     return ids.length;
 }
@@ -96,7 +98,7 @@ export async function tickAutoEnvio(agora = Date.now()) {
     rodando = true;
     try {
         const usuarios = await sql`
-            select "Id", "Plan", "PlanExpiresAt" from "Users"
+            select "Id", "Plan" from "Users"
             where "AutoEnvio" = true and ("AutoEnvioUltimo" is null or "AutoEnvioUltimo" < current_date)`;
         for (const u of usuarios) {
             if (!planOf(u.Plan).autoSend) continue;

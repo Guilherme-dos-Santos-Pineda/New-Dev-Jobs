@@ -22,6 +22,8 @@ function shapeApp(a) {
         // Nao e o mesmo caso do feed, onde o email de contato fica oculto porque a
         // vaga ainda nao foi enviada. Aqui o email ja aparece em "to" desde sempre.
         description: a.Description, lang: a.Lang, postUrl: linkDoPost(a.PostId),
+        // Qual currículo foi: a versão da IA (plano com IA) ou, sem ela, o do perfil.
+        cvVersao: a.CvVersaoNome || null,
     };
 }
 

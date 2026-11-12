@@ -74,7 +74,7 @@ export function mapCharge(c = {}) {
         pdf: null,
         provider: 'stripe',
         method: c.payment_method_details?.type || 'card',
-        plan: c.payment_intent?.metadata?.plan || c.metadata?.plan || null,
+        plan: c.payment_intent?.metadata?.plan || c.metadata?.plan || (c.payment_intent?.metadata?.addon === 'ia' ? 'ia' : null),
     };
 }
 
@@ -82,9 +82,18 @@ export function mapCharge(c = {}) {
 //   { action: 'grant' }     → pagamento único aprovado: concede `days` de acesso.
 //   { action: 'subscribe' } → assinatura (legado): aplica plano da subscription.
 //   { action: 'ignore' }    → pagamento não concluído / dados faltando.
+//   { action: 'grantIa' }   → plano de IA (R$ 5) aprovado: libera a IA por 30 dias.
 export function decideCheckoutSession(session = {}) {
     const userId = session.client_reference_id || session.metadata?.userId || null;
     const plan = session.metadata?.plan || null;
+    // O plano de IA vem com metadata.addon = 'ia' e SEM plan: nunca pode cair no
+    // 'grant', que gravaria um Plan vazio/errado e tiraria o Automático da pessoa.
+    if (session.metadata?.addon === 'ia') {
+        if (session.mode === 'payment' && session.payment_status === 'paid' && userId) {
+            return { action: 'grantIa', userId, sessionId: session.id || null };
+        }
+        return { action: 'ignore', userId, plan: null };
+    }
     if (session.mode === 'payment') {
         if (session.payment_status === 'paid' && userId && plan) {
             return { action: 'grant', userId, plan, days: PLAN_DAYS };

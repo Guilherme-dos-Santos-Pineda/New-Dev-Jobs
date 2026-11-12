@@ -22,7 +22,8 @@ export default function CartaoAnaliseCv() {
         api.analiseCv().then(setEstado).catch(() => {});
     }, [oculto]);
 
-    if (oculto || !estado?.disponivel || estado.ultima || estado.restantes === 0) return null;
+    // Só para quem ainda não usou: o teste de 48 h começa no primeiro uso.
+    if (oculto || !estado?.disponivel || estado.ultima || (estado.ia && estado.ia.modo !== 'novo')) return null;
 
     function agoraNao() {
         try { localStorage.setItem(CHAVE, '1'); } catch { /* sem armazenamento: some só nesta visita */ }
@@ -33,7 +34,7 @@ export default function CartaoAnaliseCv() {
         <div className="card vh-retorno" style={{ marginBottom: 14 }}>
             <div className="vh-retorno-txt">
                 <div className="vh-retorno-titulo"><i className="ti ti-sparkles" /> {t('Novo: melhore seu currículo com IA')} <span className="badge info">{t('Em teste')}</span></div>
-                <div className="muted">{t('Nota, o que falta para as suas vagas e o que melhorar no seu currículo. Grátis.')}</div>
+                <div className="muted">{t('Nota, o que melhorar e um currículo adaptado para cada tipo de vaga. Teste grátis de 48 horas.')}</div>
             </div>
             <div className="vh-retorno-acoes">
                 <Link className="btn primary sm" to="/app/curriculo">{t('Analisar meu currículo')}</Link>

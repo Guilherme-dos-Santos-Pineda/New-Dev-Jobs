@@ -877,6 +877,17 @@ const ajusteAnaliseSchema = z.object({
     extras: z.number().int().min(0).max(EXTRAS_MAXIMO).optional(),
     motivo: z.string().max(300).nullable().optional(),
 }).refine((b) => b.userId || b.email, { message: 'Informe a pessoa.' });
+// PUT /api/admin/analise-cv/ia { email, dias } — libera a IA (como a compra de R$ 5) sem cobrança.
+const liberarIaSchema = z.object({ email: z.string().email(), dias: z.number().int().min(1).max(365).optional() });
+router.put('/analise-cv/ia', requireAdmin, validate(liberarIaSchema), async (req, res) => {
+    const [u] = await sql`select "Id", "Email" from "Users" where lower("Email") = ${req.body.email.trim().toLowerCase()}`;
+    if (!u) return res.status(404).json({ error: 'Nenhuma conta com esse email.' });
+    const { concederIa } = await import('../services/iaPlano.js');
+    const ok = await concederIa(u.Id, { dias: req.body.dias ?? 30, por: `admin ${req.user.Email}` });
+    if (!ok) return res.status(409).json({ error: 'Não deu para liberar agora (falta a migration 0029?).' });
+    res.json({ ok: true });
+});
+
 router.put('/analise-cv/pessoa', requireAdmin, validate(ajusteAnaliseSchema), async (req, res) => {
     try {
         const { userId, email, ...ajuste } = req.body;

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { api } from '../api.js';
 import { useT } from '../lib/i18n.jsx';
+import PlanoIA from '../components/PlanoIA.jsx';
 
 // Currículo com IA: uma seção própria no menu (11/11/2026, o dono achou confuso
 // a análise e as versões misturadas). Duas abas, cada uma dizendo em uma frase o
@@ -9,7 +10,7 @@ import { useT } from '../lib/i18n.jsx';
 // pessoa) e "Um currículo por tipo de vaga" (VersoesCurriculo.jsx, plano com IA).
 
 /** Topo comum às duas abas. A aba de versões só aparece para quem tem acesso. */
-export function CabecalhoIA({ versoes }) {
+export function CabecalhoIA({ versoes, ia }) {
     const { t } = useT();
     return (
         <>
@@ -19,6 +20,7 @@ export function CabecalhoIA({ versoes }) {
                     <p className="muted">{t('A IA trabalha no seu currículo. Nada muda nos seus envios sem você aprovar.')}</p>
                 </div>
             </div>
+            <PlanoIA ia={ia} />
             {versoes && (
                 <div className="ia-abas" role="tablist">
                     <NavLink to="/app/curriculo" end role="tab" className={({ isActive }) => `ia-aba ${isActive ? 'on' : ''}`}>
@@ -143,6 +145,21 @@ export default function Curriculo() {
     const [versoes, setVersoes] = useState(false);
     useEffect(() => { api.versoesCv().then((v) => setVersoes(!!v?.disponivel)).catch(() => {}); }, []);
 
+    // Volta do checkout do plano de IA: confere o pagamento direto na Stripe (o
+    // webhook é a outra via) e recarrega o estado.
+    const [aviso, setAviso] = useState('');
+    useEffect(() => {
+        const q = new URLSearchParams(window.location.search);
+        const sessao = q.get('session_id');
+        if (q.get('checkout') === 'success' && sessao) {
+            window.history.replaceState(null, '', window.location.pathname);
+            api.confirmarPagamento(sessao)
+                .then((r) => { setAviso(r?.concedido ? t('Pronto: a IA está liberada por 30 dias.') : t('Pagamento em processamento. Assim que confirmar, a IA é liberada.')); return api.analiseCv(); })
+                .then((e) => e && setEstado(e))
+                .catch(() => setAviso(t('Pagamento em processamento. Assim que confirmar, a IA é liberada.')));
+        }
+    }, []);
+
     useEffect(() => {
         api.analiseCv().then(setEstado).catch(() => setEstado({ disponivel: false }));
         // GET /profile devolve { profile: {...} }: ler direto em p dava "sem currículo" para todo mundo.
@@ -211,19 +228,17 @@ export default function Curriculo() {
     const r = aberta || estado.ultima;
     const historico = estado.historico || [];
     const semLimite = estado.restantes == null;
-    const acabou = !semLimite && estado.restantes <= 0;
+    const acabou = estado.ia ? !estado.ia.podeAnalisar : (!semLimite && estado.restantes <= 0);
 
     return (
         <div className="page cv-pagina">
-            <CabecalhoIA versoes={versoes} />
+            <CabecalhoIA versoes={versoes} ia={estado.ia} />
+            {aviso && <div className="why ok" style={{ marginBottom: 14 }}><i className="ti ti-circle-check" />{aviso}</div>}
             <p className="muted ia-explica">{t('A IA lê o currículo que você anexou em Meu perfil e mostra o que está bom e o que falta para as vagas que você recebe. Seu currículo não muda.')}</p>
 
             <div className="card cv-acao">
                 <div className="cv-acao-txt">
-                    <span className="badge info">{t('Em teste')}</span>{' '}
-                    {semLimite
-                        ? t('Sem limite para administradores.')
-                        : t('Você tem {n} de {limite} análises grátis.', { n: estado.restantes, limite: estado.limite })}
+                    {semLimite ? t('Sem limite para administradores.') : t('A análise lê o currículo do seu perfil e leva até 1 minuto.')}
                 </div>
                 {temCv === false ? (
                     <Link className="btn primary" to="/app/perfil">{t('Anexar meu currículo primeiro')}</Link>
@@ -233,7 +248,7 @@ export default function Curriculo() {
                     </button>
                 )}
                 {erro && <div className="cv-erro">{erro}</div>}
-                {acabou && <div className="muted cv-erro">{t('Você já usou as suas análises grátis. Elas continuam salvas aqui embaixo.')}</div>}
+                {acabou && historico.length > 0 && <div className="muted cv-erro">{t('Suas análises continuam salvas aqui embaixo.')}</div>}
             </div>
 
             {historico.length > 1 && (

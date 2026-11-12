@@ -4,7 +4,7 @@ import { getCvBuffer } from '../lib/cvStorage.js';
 import { pdfToText } from './pdfText.js';
 import { getMatches } from './jobsQuery.js';
 import { idiomaDaVaga, areaDaVaga, areaForaDeTI } from './classify.js';
-import { planOf } from '../config/plans.js';
+import { estadoIaDe, registrarUso } from './iaPlano.js';
 import { criarCacheLimitado } from '../lib/cacheLimitado.js';
 import { curriculoEmPdf, nomeDoAnexo } from './cvPdf.js';
 import { MIN_TEXTO_CV } from './analiseCvLogic.js';
@@ -14,13 +14,12 @@ import { gruposDoFeed, SISTEMA_VERSAO, mensagemVersao, lerVersao, AREA_LEGIVEL, 
 // =========================
 // Versões do currículo por tipo de vaga (11/11/2026)
 // =========================
-// Quem tem o plano com IA (`cvVersoes` em config/plans.js) cria uma versão por
-// tipo de vaga do feed, confere ao lado das vagas reais e aprova. Dali em
-// diante, todo envio para uma vaga desse tipo (área + idioma) leva a versão
-// aprovada, em PDF montado aqui (cvPdf.js), no lugar do PDF anexado no perfil.
-// Sem versão aprovada para o tipo, vai o PDF do perfil, como sempre.
-// O admin vê a tela sem o plano (para testar), mas só o PLANO liga no envio.
-export const versoesNosEnvios = (user) => !!planOf(user?.Plan).cvVersoes;
+// A pessoa cria uma versão por tipo de vaga do feed, confere ao lado das vagas
+// reais e aprova. Dali em diante, todo envio para uma vaga desse tipo (área +
+// idioma) leva a versão aprovada, em PDF montado aqui (cvPdf.js), no lugar do
+// PDF do perfil. Sem versão aprovada para o tipo, vai o PDF do perfil.
+// Quem pode criar e quando vai nos envios: o teste de 48 h ou o plano de IA
+// (iaLogic.js). A aba aparece para todos, com o estado do teste ou do plano.
 
 /**
  * Admin › Currículo IA manda aqui: a chave das versões desligada, ou a pessoa
@@ -36,7 +35,14 @@ export async function iaLiberada(user) {
 
 export async function podeUsarVersoes(user, admin = false) {
     if (admin) return true;
-    return versoesNosEnvios(user) && (await iaLiberada(user));
+    return iaLiberada(user);
+}
+
+/** Por que não dá para usar a IA agora, na língua de quem lê. */
+export function motivoSemIa(ia) {
+    if (ia.modo === 'plano') return 'Você usou os 10 usos de IA deste período. Eles voltam quando você liberar a IA de novo.';
+    if (ia.modo === 'teste') return 'No teste grátis vai 1 análise e 1 currículo adaptado. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
+    return 'Seu teste grátis de 48 horas acabou. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
 }
 const MODELO = process.env.CV_AI_MODEL || 'gpt-5.4-mini';
 const TEMPO_MAXIMO_MS = 100_000;
@@ -64,8 +70,10 @@ const forma = (v) => ({
 });
 
 /** A tela inteira: os tipos de vaga do feed da pessoa e as versões que ela já tem. */
-export async function painelDeVersoes(userId, { acesso = false, nosEnvios = false } = {}) {
+export async function painelDeVersoes(userId, { acesso = false, admin = false } = {}) {
     if (!acesso) return { disponivel: false };
+    const ia = await estadoIaDe(userId, { admin });
+    const nosEnvios = ia.nosEnvios;
     // Lido do banco, não do req.user: o middleware guarda o usuário por 60 s e o
     // liga/desliga voltaria ao estado anterior ao recarregar a tela.
     const [u] = await sql`select "CvIaNosEnvios" from "Users" where "Id" = ${userId}`;
@@ -75,8 +83,8 @@ export async function painelDeVersoes(userId, { acesso = false, nosEnvios = fals
     const versoes = (await sql`select * from "CvVersoes" where "UserId" = ${userId} order by "CreatedAt"`).map(forma);
     return {
         disponivel: true,
-        // podeLigar: o plano tem IA nos envios. ligado: a pessoa deixou ligado.
-        podeLigar: nosEnvios, ligado, nosEnvios: nosEnvios && ligado,
+        // podeLigar: o teste ou o plano está valendo. ligado: a pessoa deixou ligado.
+        podeLigar: nosEnvios, ligado, nosEnvios: nosEnvios && ligado, ia,
         grupos: grupos.map((g) => ({
             ...g, areaNome: AREA_LEGIVEL[g.area] || g.area,
             versao: versoes.find((v) => v.area === g.area && v.lang === g.lang) || null,
@@ -118,8 +126,10 @@ async function chamarOpenAI(mensagem) {
 const gerando = new Set();
 
 /** Cria (ou refaz) a versão de um tipo de vaga. Sai como rascunho: a pessoa aprova. */
-export async function gerarVersao(userId, { area, lang }, { acesso = false } = {}) {
-    if (!acesso) throw new VersaoError('Disponível no plano com IA.', 403);
+export async function gerarVersao(userId, { area, lang }, { acesso = false, admin = false } = {}) {
+    if (!acesso) throw new VersaoError('A IA está desligada para a sua conta.', 403);
+    const ia = await estadoIaDe(userId, { admin });
+    if (!ia.podeVersao) throw new VersaoError(motivoSemIa(ia), 429);
     if (!(await tabelaExiste())) throw new VersaoError('Falta aplicar a migration 0026.', 409);
     const idioma = lang === 'en' ? 'en' : 'pt';
     if (gerando.has(userId)) throw new VersaoError('Já tem uma versão sendo feita. Aguarde.', 409);
@@ -148,6 +158,8 @@ export async function gerarVersao(userId, { area, lang }, { acesso = false } = {
                 "Model" = excluded."Model", "TokensIn" = excluded."TokensIn", "TokensOut" = excluded."TokensOut",
                 "CreatedAt" = now(), "AprovadaEm" = null
             returning *`;
+        // Só conta depois de dar certo: falha da IA não gasta uso.
+        await registrarUso(userId, 'versao', ia).catch((e) => console.warn(`cv-versoes: uso não contado (${e.message})`));
         return forma(linha);
     } finally {
         gerando.delete(userId);
@@ -155,7 +167,7 @@ export async function gerarVersao(userId, { area, lang }, { acesso = false } = {
 }
 
 export async function aprovarVersao(userId, id, { acesso = false } = {}) {
-    if (!acesso) throw new VersaoError('Disponível no plano com IA.', 403);
+    if (!acesso) throw new VersaoError('A IA está desligada para a sua conta.', 403);
     const [v] = await sql`
         update "CvVersoes" set "Status" = 'aprovada', "AprovadaEm" = now()
         where "Id" = ${id} and "UserId" = ${userId} returning *`;
@@ -164,7 +176,7 @@ export async function aprovarVersao(userId, id, { acesso = false } = {}) {
 }
 
 export async function apagarVersao(userId, id, { acesso = false } = {}) {
-    if (!acesso) throw new VersaoError('Disponível no plano com IA.', 403);
+    if (!acesso) throw new VersaoError('A IA está desligada para a sua conta.', 403);
     const [v] = await sql`delete from "CvVersoes" where "Id" = ${id} and "UserId" = ${userId} returning "Id"`;
     if (!v) throw new VersaoError('Versão não encontrada.', 404);
     return { apagada: true };
@@ -189,8 +201,10 @@ const areaDoEnvio = (job) => {
 export async function versaoParaEnvio(user, job) {
     try {
         // Desligado pela pessoa (migration 0028): vai o PDF do perfil.
-        if (!versoesNosEnvios(user) || user.CvIaNosEnvios === false || !(await tabelaExiste())) return null;
+        if (user.CvIaNosEnvios === false || !(await tabelaExiste())) return null;
         if (!(await iaLiberada(user))) return null;
+        // Teste de 48 h ou plano de IA valendo (iaLogic.js).
+        if (!(await estadoIaDe(user.Id)).nosEnvios) return null;
         const area = areaDoEnvio(job);
         if (!area || area === 'other') return null;
         const lang = idiomaDaVaga(job);
@@ -211,9 +225,9 @@ export async function versaoParaEnvio(user, job) {
     }
 }
 
-/** Liga/desliga a versão da IA nos envios. Só para quem tem o plano com IA. */
+/** Liga/desliga a versão da IA nos envios. Só com o teste ou o plano de IA valendo. */
 export async function ligarIaNosEnvios(user, ligado) {
-    if (!versoesNosEnvios(user)) throw new VersaoError('Disponível no plano Automático + IA.', 403);
+    if (!(await estadoIaDe(user.Id)).nosEnvios) throw new VersaoError('Libere a IA para usar as versões nos envios.', 403);
     const [u] = await sql`update "Users" set "CvIaNosEnvios" = ${!!ligado} where "Id" = ${user.Id} returning "CvIaNosEnvios"`;
     return { ligado: u.CvIaNosEnvios };
 }

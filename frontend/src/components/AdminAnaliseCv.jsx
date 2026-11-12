@@ -12,7 +12,6 @@ const segundos = (ms) => (ms == null ? '' : `${(ms / 1000).toFixed(1).replace('.
 export default function AdminAnaliseCv() {
     const toast = useToast();
     const [d, setD] = useState(null);
-    const [limite, setLimite] = useState('');
     const [ocupado, setOcupado] = useState(false);
     const [aberta, setAberta] = useState(null);
     const [email, setEmail] = useState('');
@@ -24,7 +23,6 @@ export default function AdminAnaliseCv() {
         try {
             const r = await api.adminAnaliseCv();
             setD(r);
-            setLimite(String(r.controle.limite));
         } catch (e) { toast.show(e.message, 'error'); setD({ erro: true }); }
     }
     useEffect(() => { carregar(); }, []);
@@ -48,13 +46,17 @@ export default function AdminAnaliseCv() {
         if (!versoesAtivas && !window.confirm('Desligar "Um currículo por tipo de vaga" para todo mundo? A aba some (menos para você) e os envios voltam a levar o currículo do perfil.')) return;
         acao(() => api.adminAnaliseCvControle({ versoesAtivas }), versoesAtivas ? 'Versões e envio com IA ligados.' : 'Versões e envio com IA desligados.');
     };
-    const salvarLimite = () => acao(() => api.adminAnaliseCvControle({ limite: Number(limite) }), 'Limite salvo.');
     const ajustar = (ajuste, ok) => acao(() => api.adminAnaliseCvPessoa(ajuste), ok);
 
     // modo: 'bloquear' | 'desbloquear' | 'extras'
     function porEmail(modo) {
         const alvo = email.trim();
         if (!alvo) return;
+        if (modo === 'liberar') {
+            acao(() => api.adminLiberarIa(alvo, 30), 'IA liberada por 30 dias (10 usos).');
+            setEmail(''); setMotivo('');
+            return;
+        }
         const ajuste = modo === 'bloquear' ? { email: alvo, bloqueado: true, motivo: motivo.trim() || null }
             : modo === 'desbloquear' ? { email: alvo, bloqueado: false }
                 : { email: alvo, extras: Number(extras) || 0, motivo: motivo.trim() || undefined };
@@ -100,20 +102,16 @@ export default function AdminAnaliseCv() {
                     <span className={`badge ${d.controle.ativa ? 'ok' : 'warn'}`}>{d.controle.ativa ? 'Ligada para todos' : 'Desligada'}</span>
                     <span className="muted" style={{ fontSize: 13, flex: 1, minWidth: 200 }}>
                         {d.controle.ativa
-                            ? 'Todo mundo com currículo anexado vê a aba e faz a análise, até o limite abaixo.'
+                            ? 'Todo mundo com currículo anexado vê a aba: no teste de 48 h ou com a IA liberada.'
                             : 'A aba sumiu para todos. Você, como admin, continua usando para testar.'}
                     </span>
                     {d.controle.ativa
                         ? <button className="btn danger sm" disabled={ocupado || semMigration} onClick={() => mudarChave(false)}><i className="ti ti-power" /> Desligar para todos</button>
                         : <button className="btn primary sm" disabled={ocupado || semMigration} onClick={() => mudarChave(true)}><i className="ti ti-power" /> Ligar</button>}
                 </div>
-                <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13 }}>Análises por pessoa:</span>
-                    <input className="input" type="number" min={0} max={d.limiteMaximo} value={limite}
-                        onChange={(e) => setLimite(e.target.value)} style={{ width: 80 }} />
-                    <button className="btn ghost sm" disabled={ocupado || semMigration || Number(limite) === d.controle.limite || limite === ''}
-                        onClick={salvarLimite}>Salvar limite</button>
-                    <span className="muted" style={{ fontSize: 12.5 }}>Vale para todos, somado às extras de cada um. Zero = ninguém analisa mais (quem já analisou continua vendo a última).</span>
+                <div className="muted" style={{ fontSize: 12.5, marginTop: 12, lineHeight: 1.55 }}>
+                    Quanto cada um usa (análises e currículos adaptados somam): <b>teste grátis de 48 h</b> a partir do primeiro uso, com 1 análise e 1 currículo adaptado;
+                    depois, <b>plano de IA</b> por R$ 5 (30 dias, 10 usos), que quem comprou o Automático já ganha junto. As extras de cada pessoa somam aos dois.
                 </div>
             </div>
 
@@ -145,7 +143,7 @@ export default function AdminAnaliseCv() {
                     { l: 'últimas 24 h', v: nf(n.ultimas24h), i: 'ti-clock' },
                     { l: 'últimos 7 dias', v: nf(n.ultimos7d), i: 'ti-calendar' },
                     { l: 'pessoas que usaram', v: nf(n.pessoas), i: 'ti-users' },
-                    { l: 'chegaram no limite', v: nf(n.chegaramNoLimite), i: 'ti-lock' },
+                    { l: 'com a IA liberada', v: nf(n.iaLiberada), i: 'ti-sparkles', sub: n.emTeste != null ? `${nf(n.emTeste)} no teste de 48 h agora` : '' },
                     { l: 'nota média dada', v: n.scoreMedio ?? '', i: 'ti-star' },
                     { l: 'tokens por análise', v: tokensPorAnalise ? nf(tokensPorAnalise) : '', i: 'ti-coins', sub: n.comTokens ? `${nf(n.tokensIn)} entrada · ${nf(n.tokensOut)} saída` : 'conta desde a migration 0025' },
                     { l: 'tempo médio', v: segundos(n.duracaoMediaMs), i: 'ti-hourglass' },
@@ -176,13 +174,14 @@ export default function AdminAnaliseCv() {
 
             {/* ---- Bloquear ou dar análises por email ---- */}
             <div className="card" style={{ padding: 18, marginBottom: 16 }}>
-                <div className="section-title"><i className="ti ti-user-cog" /> Bloquear, desbloquear ou dar análises a alguém</div>
+                <div className="section-title"><i className="ti ti-user-cog" /> Liberar, bloquear ou dar usos a alguém</div>
                 <p className="muted" style={{ fontSize: 12.5, marginTop: -6 }}>Pelo email, mesmo de quem nunca usou. Bloqueada, a pessoa não vê as duas abas e os envios dela voltam a levar o currículo do perfil. Quem está bloqueado aparece no topo da lista abaixo.</p>
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                     <input className="input" style={{ flex: 2, minWidth: 220 }} placeholder="email da conta" value={email} onChange={(e) => setEmail(e.target.value)} />
                     <input className="input" style={{ width: 90 }} type="number" min={0} max={d.extrasMaximo} title="Análises extras" value={extras} onChange={(e) => setExtras(e.target.value)} />
                     <input className="input" style={{ flex: 2, minWidth: 180 }} placeholder="motivo (opcional, só você vê)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
                     <button className="btn ghost sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail('extras')}><i className="ti ti-plus" /> Definir extras</button>
+                    <button className="btn ghost sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail('liberar')}><i className="ti ti-sparkles" /> Liberar IA 30 dias</button>
                     <button className="btn ghost sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail('desbloquear')}><i className="ti ti-lock-open" /> Desbloquear</button>
                     <button className="btn danger sm" disabled={ocupado || semMigration || !email.trim()} onClick={() => porEmail('bloquear')}><i className="ti ti-ban" /> Bloquear</button>
                 </div>

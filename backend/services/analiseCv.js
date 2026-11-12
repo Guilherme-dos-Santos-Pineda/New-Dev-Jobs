@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { getCvBuffer } from '../lib/cvStorage.js';
 import { pdfToText } from './pdfText.js';
 import { getMatches } from './jobsQuery.js';
+import { estadoIaDe, registrarUso } from './iaPlano.js';
 import {
     SISTEMA, mensagemDoUsuario, lerResposta, palavrasDoFeed, analisesRestantes,
     MIN_TEXTO_CV, lerControle, acessoLiberado, LIMITE_MAXIMO, EXTRAS_MAXIMO,
@@ -84,14 +85,23 @@ export async function ajusteDe(userId) {
     return { bloqueado: !!r?.Bloqueado, extras: r?.Extras || 0 };
 }
 
-/** O que vale para esta pessoa agora: acesso, limite e quantas restam. */
+/**
+ * O que vale para esta pessoa agora. Desde 11/11/2026 quem conta é o teste de
+ * 48 h ou o plano de IA (iaLogic.js), não mais um limite fixo de análises grátis.
+ */
 async function situacao(userId, admin) {
     const controle = await controleGlobal();
-    const ajuste = await ajusteDe(userId);
+    const ia = await estadoIaDe(userId, { admin });
     const usadas = await contarUsadas(userId);
-    const liberado = acessoLiberado({ ativa: controle.ativa, bloqueado: ajuste.bloqueado, admin });
-    const restantes = analisesRestantes(usadas, { admin, limite: controle.limite, extras: ajuste.extras, bloqueado: ajuste.bloqueado });
-    return { liberado, usadas, restantes, limite: controle.limite + ajuste.extras };
+    const liberado = acessoLiberado({ ativa: controle.ativa, bloqueado: ia.bloqueado, admin });
+    const restantes = ia.bloqueado ? 0 : (ia.analisesRestantes ?? Infinity);
+    return { liberado, usadas, restantes, ia, limite: null };
+}
+
+function motivoSemAnalise(ia) {
+    if (ia.modo === 'plano') return 'Você usou os 10 usos de IA deste período. Eles voltam quando você liberar a IA de novo.';
+    if (ia.modo === 'teste') return 'No teste grátis vai 1 análise. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
+    return 'Seu teste grátis de 48 horas acabou. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
 }
 
 /** O que a tela precisa: se existe, quantas restam e a última análise. */
@@ -111,6 +121,7 @@ export async function estadoDaAnalise(userId, { admin = false } = {}) {
     return {
         disponivel: true, limite: s.limite, usadas: s.usadas,
         restantes: Number.isFinite(s.restantes) ? s.restantes : null, // null = sem limite (admin)
+        ia: s.ia,
         ultima: ultima ? { id: ultima.Id, criadaEm: ultima.CreatedAt, ...ultima.Result } : null,
         historico: historico.map((h) => ({ id: h.Id, criadaEm: h.CreatedAt, score: h.score })),
     };
@@ -169,9 +180,7 @@ export async function analisarCurriculo(userId, { admin = false } = {}) {
     try {
         const s = await situacao(userId, admin);
         if (!s.liberado) throw new AnaliseError('A análise de currículo não está disponível agora.', 403);
-        if (s.restantes <= 0) {
-            throw new AnaliseError(`Você já usou as ${s.limite} análises grátis.`, 429);
-        }
+        if (!s.ia.podeAnalisar) throw new AnaliseError(motivoSemAnalise(s.ia), 429);
         const [perfil] = await sql`select "CvPath", "Areas", "Levels" from "Profiles" where "UserId" = ${userId}`;
         if (!perfil?.CvPath) throw new AnaliseError('Anexe seu currículo em PDF no perfil antes de analisar.', 400);
 
@@ -196,6 +205,8 @@ export async function analisarCurriculo(userId, { admin = false } = {}) {
                 insert into "CvAnalyses" ("UserId", "Model", "Result")
                 values (${userId}, ${MODELO}, ${sql.json(resultado)})
                 returning "Id", "CreatedAt"`;
+        // Só conta depois de dar certo: falha da IA não gasta uso.
+        await registrarUso(userId, 'analise', s.ia).catch((e) => console.warn(`análise de CV: uso não contado (${e.message})`));
         return { id: linha.Id, criadaEm: linha.CreatedAt, ...resultado };
     } catch (e) {
         // Recusa da regra (limite, bloqueio, sem currículo) não é falha da ferramenta.
@@ -248,6 +259,13 @@ export async function painelAdmin() {
             scoreMedio: r.score_medio, tokensIn: Number(r.tokens_in), tokensOut: Number(r.tokens_out),
             comTokens: r.com_tokens, duracaoMediaMs: r.duracao_media, chegaramNoLimite: esgotadas.n,
         };
+        // Plano de IA (migration 0029): quantos com a IA liberada e quantos no teste agora.
+        const [ia] = await sql`
+            select count(*) filter (where "IaAte" > now())::int as liberada,
+                   count(*) filter (where "IaTesteDesde" > now() - interval '48 hours')::int as teste
+            from "Users"`.catch(() => [{ liberada: null, teste: null }]);
+        numeros.iaLiberada = ia.liberada;
+        numeros.emTeste = ia.teste;
     }
     // Versões e envio com IA: quanto existe e quanto já saiu (migrations 0026 e 0027).
     let versoes = null;

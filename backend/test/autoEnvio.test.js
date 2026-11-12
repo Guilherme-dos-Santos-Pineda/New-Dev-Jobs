@@ -95,9 +95,3 @@ test('diasAteVencer: arredonda para cima, no mínimo 1, sem validade conta 30', 
     assert.equal(diasAteVencer(null, agora), 30);
 });
 
-test('plano com IA: automático + versões do currículo, fora de venda (só concessão)', () => {
-    assert.equal(PLANS.ia.autoSend, true);
-    assert.equal(PLANS.ia.cvVersoes, true);
-    assert.equal(PLANS.ia.aVenda, false);
-    assert.ok(!PLANS.starter.cvVersoes && !PLANS.free.cvVersoes);
-});

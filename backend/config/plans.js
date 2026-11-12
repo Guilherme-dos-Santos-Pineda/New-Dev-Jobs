@@ -33,17 +33,10 @@ export const PLANS = {
         label: 'Automático', dailyLimit: 50, allowManual: true, autoSend: true, priority: 5,
         price: 10, period: 'pagamento único · 30 dias', popular: true,
         desc: 'Você para de entrar todo dia para mandar currículo: a gente manda por você.',
-        features: ['seu currículo sai sozinho todo dia às 9h, sem você entrar', 'até 50 envios por dia, em vez de 20', 'vagas do seu perfil, as da semana primeiro', 'sai do seu Gmail, com o seu nome', 'liga e desliga quando quiser'],
+        features: ['seu currículo sai sozinho todo dia às 9h, sem você entrar', 'até 50 envios por dia, em vez de 20', 'a IA no currículo junto, enquanto o plano valer', 'vagas do seu perfil, as da semana primeiro', 'sai do seu Gmail, com o seu nome', 'liga e desliga quando quiser'],
     },
-    // Automático + currículo adaptado pela IA a cada tipo de vaga (cvVersoes.js:
-    // versaoParaEnvio). Fora de venda: o dono concede em Admin › Usuários para
-    // testar com gente de verdade antes de pôr preço (11/11/2026).
-    ia: {
-        label: 'Automático + IA', dailyLimit: 50, allowManual: true, autoSend: true, cvVersoes: true, aVenda: false, priority: 6,
-        price: 30, period: 'pagamento único · 30 dias', popular: false,
-        desc: 'O automático, com o seu currículo adaptado pela IA para cada tipo de vaga.',
-        features: ['tudo do Automático', 'um currículo adaptado pela IA para cada tipo de vaga do seu feed', 'você confere e aprova cada versão antes de ela ir', 'cada envio leva a versão do tipo da vaga'],
-    },
+    // A IA no currículo NÃO é um Plan: é um plano à parte (R$ 5, iaLogic.js) que
+    // soma com este. Quem compra o Automático ganha a IA junto (grantOneTime).
     pro: {
         // Fora de venda: fica para quem já tem (concessão), que não perde nada.
         label: 'Pro', dailyLimit: 200, allowManual: true, autoSend: true, aVenda: false, priority: 10,

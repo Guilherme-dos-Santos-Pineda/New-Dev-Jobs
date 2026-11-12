@@ -52,7 +52,7 @@ export default function VersoesCurriculo() {
 
     return (
         <div className="page cv-pagina">
-            <CabecalhoIA versoes />
+            <CabecalhoIA versoes ia={dados.ia} />
             <ol className="ia-passos">
                 <li><b>{t('Crie')}</b> {t('a versão de um tipo de vaga do seu feed. A IA adapta o seu currículo para ele, sem inventar nada.')}</li>
                 <li><b>{t('Confira')}</b> {t('ao lado de vagas reais desse tipo e veja o que a IA mudou.')}</li>
@@ -73,8 +73,8 @@ export default function VersoesCurriculo() {
                         {ocupado === 'chave' ? '…' : dados.ligado ? t('Desligar') : t('Ligar')}
                     </button>
                 </div>
-            ) : (
-                <div className="why" style={{ marginBottom: 14 }}><i className="ti ti-info-circle" />{t('Você está vendo como administrador. As versões só vão nos envios de quem tem o plano Automático + IA.')}</div>
+            ) : dados.ia?.modo === 'admin' ? null : (
+                <div className="why" style={{ marginBottom: 14 }}><i className="ti ti-info-circle" />{t('As versões aprovadas vão nos envios durante o teste grátis e com a IA liberada.')}</div>
             )}
             {erro && <div className="card cv-erro" style={{ marginBottom: 14 }}>{erro}</div>}
 
@@ -99,7 +99,7 @@ export default function VersoesCurriculo() {
                                             <button className="btn sm" onClick={() => setAberto(estaAberto ? null : k)}>{estaAberto ? t('Fechar') : t('Ver')}</button>
                                         </>
                                     ) : (
-                                        <button className="btn primary sm" disabled={!!ocupado} onClick={() => gerar(g)}>
+                                        <button className="btn primary sm" disabled={!!ocupado || dados.ia?.podeVersao === false} onClick={() => gerar(g)}>
                                             {ocupado === `gerar:${k}` ? t('Adaptando… até 1 minuto') : t('Criar versão')}
                                         </button>
                                     )}
@@ -132,7 +132,7 @@ export default function VersoesCurriculo() {
                                                     <i className="ti ti-check" /> {ocupado === `aprovar:${k}` ? t('Salvando…') : t('Aprovar esta versão')}
                                                 </button>
                                             )}
-                                            <button className="btn sm" disabled={!!ocupado} onClick={() => gerar(g)}>
+                                            <button className="btn sm" disabled={!!ocupado || dados.ia?.podeVersao === false} onClick={() => gerar(g)}>
                                                 {ocupado === `gerar:${k}` ? t('Adaptando… até 1 minuto') : t('Refazer')}
                                             </button>
                                             <button className="btn ghost sm" disabled={!!ocupado} onClick={() => apagar(g)}>{t('Excluir')}</button>

@@ -9,6 +9,8 @@ import { PLANOS_PAGOS_ATIVOS, compraLiberada } from '../config/planosPagos.js';
 import { planUsage } from '../services/usage.js';
 import { stripe, stripeConfigured, planFromPriceId } from '../services/stripeClient.js';
 import { deveConvidar, itemDeCheckout, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
+import { itemDoCheckoutIa } from '../services/iaLogic.js';
+import { concederIa, iaJuntoDoPlano } from '../services/iaPlano.js';
 
 // =========================
 // Comércio / planos (Fase 5+6) — Stripe real
@@ -78,6 +80,30 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
         res.json({ url: session.url });
     } catch (e) {
         console.error('Erro no checkout Stripe:', e.message);
+        res.status(502).json({ error: 'Falha ao iniciar o checkout.' });
+    }
+});
+
+// POST /api/billing/checkout-ia — o plano de IA (R$ 5, 30 dias, 10 usos). Rota
+// própria, para não mexer no checkout do Automático. Volta para Currículo IA.
+router.post('/checkout-ia', requireAuth, async (req, res) => {
+    if (!compraLiberada(req.user.Email)) return res.status(403).json({ error: 'As compras estão desativadas no momento.' });
+    if (!stripeConfigured) return res.status(503).json({ error: 'Pagamentos indisponíveis no momento.' });
+    try {
+        const meta = { userId: req.user.Id, addon: 'ia' };
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            line_items: [itemDoCheckoutIa()],
+            client_reference_id: req.user.Id,
+            customer_email: req.user.Email,
+            metadata: meta,
+            payment_intent_data: { metadata: meta },
+            success_url: `${config.frontendUrl}/app/curriculo?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${config.frontendUrl}/app/curriculo?checkout=cancel`,
+        });
+        res.json({ url: session.url });
+    } catch (e) {
+        console.error('Erro no checkout da IA:', e.message);
         res.status(502).json({ error: 'Falha ao iniciar o checkout.' });
     }
 });
@@ -178,6 +204,8 @@ async function grantOneTime({ userId, plan, customerId, days = 30 }) {
         returning "Id"`;
     if (!aplicado.length) return;
     console.log(`💳 pagamento único: user ${userId} → ${plan} por ${days} dias (até ${expiresAt.toISOString()})`);
+    // Quem compra o Automático ganha a IA junto, até o fim do plano (decisão do dono, 11/11/2026).
+    await iaJuntoDoPlano(userId, expiresAt).catch((e) => console.warn(`IA junto do plano falhou: ${e.message}`));
 }
 
 // POST /api/billing/confirmar  { sessionId } — a volta do checkout confere o
@@ -189,6 +217,10 @@ router.post('/confirmar', requireAuth, validate(confirmarSchema), async (req, re
     try {
         const s = await stripe.checkout.sessions.retrieve(req.body.sessionId);
         const decisao = decideCheckoutSession(s);
+        if (decisao.action === 'grantIa' && decisao.userId === req.user.Id) {
+            await concederIa(decisao.userId, { sessao: decisao.sessionId || s.id, por: 'volta do checkout' });
+            return res.json({ concedido: true, ia: true });
+        }
         if (decisao.action !== 'grant' || decisao.userId !== req.user.Id) return res.json({ concedido: false });
         await grantOneTime({ userId: decisao.userId, plan: decisao.plan, customerId: s.customer, days: decisao.days });
         res.json({ concedido: true });
@@ -219,7 +251,10 @@ router.post('/webhook', async (req, res) => {
             case 'checkout.session.completed': {
                 const s = event.data.object;
                 const decision = decideCheckoutSession(s);
-                if (decision.action === 'grant') {
+                if (decision.action === 'grantIa') {
+                    // Plano de IA (R$ 5): libera a IA por 30 dias. Não toca no Plan.
+                    await concederIa(decision.userId, { sessao: decision.sessionId || s.id, por: 'webhook' });
+                } else if (decision.action === 'grant') {
                     // Pagamento único aprovado → concede os dias de acesso.
                     await grantOneTime({ userId: decision.userId, plan: decision.plan, customerId: s.customer, days: decision.days });
                 } else if (decision.action === 'subscribe') {

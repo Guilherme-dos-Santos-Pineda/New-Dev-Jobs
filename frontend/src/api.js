@@ -244,6 +244,7 @@ export const api = {
     adminAnaliseCvDetalhe: (id) => request('GET', `/admin/analise-cv/${id}`),
     adminAnaliseCvControle: (patch) => request('PUT', '/admin/analise-cv/controle', patch),
     adminAnaliseCvPessoa: (ajuste) => request('PUT', '/admin/analise-cv/pessoa', ajuste),
+    adminLiberarIa: (email, dias) => request('PUT', '/admin/analise-cv/ia', { email, dias }),
     adminCampaigns: () => request('GET', '/admin/campaigns'),
     adminCreateCampaign: (payload) => request('POST', '/admin/campaigns', payload),
     adminCampaignStatus: (id, status) => request('POST', `/admin/campaigns/${id}/status`, { status }),
@@ -255,6 +256,7 @@ export const api = {
     getSubscription: () => request('GET', '/billing/subscription'),
     setPlan: (plan, userId) => request('POST', '/billing/set-plan', { plan, userId }),
     checkout: (plan) => request('POST', '/billing/checkout', { plan }),
+    checkoutIa: () => request('POST', '/billing/checkout-ia'),
     billingHistory: () => request('GET', '/billing/history'),
     billingPortal: () => request('POST', '/billing/portal'),
 

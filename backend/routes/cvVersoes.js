@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { config } from '../config.js';
-import { painelDeVersoes, gerarVersao, aprovarVersao, apagarVersao, VersaoError, podeUsarVersoes, versoesNosEnvios, ligarIaNosEnvios } from '../services/cvVersoes.js';
+import { painelDeVersoes, gerarVersao, aprovarVersao, apagarVersao, VersaoError, podeUsarVersoes, ligarIaNosEnvios } from '../services/cvVersoes.js';
 
 const router = Router();
 const ehAdmin = (u) => config.isAdminEmail(u.Email) || u.Role === 'admin';
-const acesso = async (req) => ({ acesso: await podeUsarVersoes(req.user, ehAdmin(req.user)), nosEnvios: versoesNosEnvios(req.user) });
+const acesso = async (req) => ({ acesso: await podeUsarVersoes(req.user, ehAdmin(req.user)), admin: ehAdmin(req.user) });
 const responder = (fn) => async (req, res) => {
     try {
         res.json(await fn(req));

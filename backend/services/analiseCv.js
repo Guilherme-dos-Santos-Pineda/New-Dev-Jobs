@@ -100,8 +100,8 @@ async function situacao(userId, admin) {
 
 function motivoSemAnalise(ia) {
     if (ia.modo === 'plano') return 'Você usou os 10 usos de IA deste período. Eles voltam quando você liberar a IA de novo.';
-    if (ia.modo === 'teste') return 'No teste grátis vai 1 análise. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
-    return 'Seu teste grátis de 48 horas acabou. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
+    if (ia.modo === 'teste') return 'No teste grátis vai 1 análise. O plano de IA (R$ 5, 30 dias, 10 usos) fica em Assinatura.';
+    return 'Seu teste grátis de 48 horas acabou. O plano de IA (R$ 5, 30 dias, 10 usos) fica em Assinatura.';
 }
 
 /** O que a tela precisa: se existe, quantas restam e a última análise. */

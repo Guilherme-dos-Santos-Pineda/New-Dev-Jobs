@@ -99,7 +99,7 @@ router.post('/checkout-ia', requireAuth, async (req, res) => {
             metadata: meta,
             payment_intent_data: { metadata: meta },
             success_url: `${config.frontendUrl}/app/curriculo?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${config.frontendUrl}/app/curriculo?checkout=cancel`,
+            cancel_url: `${config.frontendUrl}/app/assinatura`,
         });
         res.json({ url: session.url });
     } catch (e) {

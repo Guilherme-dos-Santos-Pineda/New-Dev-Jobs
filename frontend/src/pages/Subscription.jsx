@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast.jsx';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
 import AutoEnvio from '../components/AutoEnvio.jsx';
-import PlanoIA from '../components/PlanoIA.jsx';
+import { CartaoPlanoIa } from '../components/PlanoIA.jsx';
 
 const money = (cents, currency = 'brl') =>
     ((cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: (currency || 'brl').toUpperCase() });
@@ -88,6 +88,14 @@ export default function Subscription() {
         } else if (c === 'cancel') toast.show('Checkout cancelado.', 'error');
         params.delete('checkout'); params.delete('session_id'); setParams(params, { replace: true });
     }, []);  
+
+    // Voltar do checkout sem pagar restaura a página do cache do navegador com o
+    // botão em "Redirecionando…" (relato do dono, 11/11/2026). O pageshow destrava.
+    useEffect(() => {
+        const destravar = () => setBusy('');
+        window.addEventListener('pageshow', destravar);
+        return () => window.removeEventListener('pageshow', destravar);
+    }, []);
 
     async function upgrade(planId) {
         setBusy(planId);
@@ -329,7 +337,6 @@ export default function Subscription() {
                 {t('Ajude a manter a ferramenta funcionando. O grátis continua grátis, e o plano pago faz seu currículo sair sozinho todo dia.')}
             </p>
             {!stripeEnabled && <div className="notice danger"><i className="ti ti-alert-circle" />{t('Pagamentos não configurados no servidor.')}</div>}
-            {ia && <PlanoIA ia={ia} cartao />}
             <div className="cards-grid" style={{ marginBottom: 18 }}>
                 {loadingPlans
                     ? [0, 1, 2].map((i) => <div key={i} className="skeleton sk-card" />)
@@ -365,6 +372,7 @@ export default function Subscription() {
                             </div>
                         );
                     })}
+                {!loadingPlans && ia && <CartaoPlanoIa ia={ia} indice={plans.length} disponivel={stripeEnabled} />}
             </div>
 
             {/* Rodapé: plano atual + contato */}

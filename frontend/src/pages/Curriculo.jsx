@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { api } from '../api.js';
 import { useT } from '../lib/i18n.jsx';
-import PlanoIA from '../components/PlanoIA.jsx';
+import { AvisoIA } from '../components/PlanoIA.jsx';
 
 // Currículo com IA: uma seção própria no menu (11/11/2026, o dono achou confuso
 // a análise e as versões misturadas). Duas abas, cada uma dizendo em uma frase o
@@ -20,7 +20,7 @@ export function CabecalhoIA({ versoes, ia }) {
                     <p className="muted">{t('A IA trabalha no seu currículo. Nada muda nos seus envios sem você aprovar.')}</p>
                 </div>
             </div>
-            <PlanoIA ia={ia} />
+            <AvisoIA ia={ia} />
             {versoes && (
                 <div className="ia-abas" role="tablist">
                     <NavLink to="/app/curriculo" end role="tab" className={({ isActive }) => `ia-aba ${isActive ? 'on' : ''}`}>

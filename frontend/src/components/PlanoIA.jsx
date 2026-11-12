@@ -1,19 +1,67 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useT } from '../lib/i18n.jsx';
 
-// O estado da IA da pessoa, no topo de Currículo IA (backend/services/iaLogic.js):
-// teste de 48 h (1 análise e 1 currículo adaptado), plano de IA (R$ 5, 30 dias,
-// 10 usos, ou junto do Automático) ou teste acabado. Sempre diz o que dá para
-// fazer agora e, quando cabe, oferece liberar.
+// IA no currículo (backend/services/iaLogic.js): teste de 48 h e plano de R$ 5.
+// Decisão do dono (11/11/2026): a COMPRA mora em Assinatura, num cartão igual
+// aos outros planos (CartaoPlanoIa). Em Currículo IA fica só um aviso do estado,
+// que a pessoa pode fechar (AvisoIA). Botão de compra na aba incomodava.
 const quando = (ms) => new Date(ms).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const dia = (ms) => new Date(ms).toLocaleDateString();
 
-export default function PlanoIA({ ia, cartao = false }) {
+const chaveAviso = (modo) => `avisoIa:${modo}`;
+function fechado(modo) {
+    try { return !!localStorage.getItem(chaveAviso(modo)); } catch { return false; }
+}
+
+/** O aviso do estado da IA, no topo de Currículo IA. Fechar cala aquele estado; o próximo aparece. */
+export function AvisoIA({ ia }) {
+    const { t } = useT();
+    const [oculto, setOculto] = useState(() => fechado(ia?.modo));
+    if (!ia || ia.modo === 'admin' || oculto) return null;
+
+    let icone = 'ti-gift';
+    let texto;
+    if (ia.modo === 'novo') {
+        texto = t('Teste grátis de 48 horas: a partir do primeiro uso, você tem 1 análise e 1 currículo adaptado a um tipo de vaga.');
+    } else if (ia.modo === 'teste') {
+        texto = t('Teste grátis até {quando}: restam {a} análise(s) e {v} currículo(s) adaptado(s).', { quando: quando(ia.ate), a: ia.analisesRestantes, v: ia.versoesRestantes });
+    } else if (ia.modo === 'plano') {
+        icone = 'ti-sparkles';
+        texto = t('IA liberada até {quando}: restam {n} de 10 usos (análises e currículos adaptados somam).', { quando: dia(ia.ate), n: ia.restantes });
+    } else {
+        icone = 'ti-lock';
+        texto = <>{t('Seu teste grátis de 48 horas acabou. Para continuar, veja o plano de IA em')} <Link to="/app/assinatura">{t('Assinatura')}</Link>.</>;
+    }
+
+    function fechar() {
+        try { localStorage.setItem(chaveAviso(ia.modo), '1'); } catch { /* sem armazenamento: some só nesta visita */ }
+        setOculto(true);
+    }
+
+    return (
+        <div className={`why aviso-ia aviso-ia-${ia.modo}`} style={{ marginBottom: 14 }}>
+            <i className={`ti ${icone}`} />
+            <span style={{ flex: 1 }}>{texto}</span>
+            <button type="button" className="aviso-ia-fechar" onClick={fechar} aria-label={t('Fechar aviso')}><i className="ti ti-x" /></button>
+        </div>
+    );
+}
+
+/** O plano de IA em Assinatura, no mesmo formato dos outros planos. */
+export function CartaoPlanoIa({ ia, indice = 3, disponivel = true }) {
     const { t } = useT();
     const [indo, setIndo] = useState(false);
     const [erro, setErro] = useState('');
     const trava = useRef(false);
-    if (!ia || (ia.modo === 'admin' && !cartao)) return null;
+    // Voltar do checkout sem pagar (botão Voltar do navegador) restaura a página
+    // do cache com o botão travado em "Redirecionando…". O pageshow destrava.
+    useEffect(() => {
+        const destravar = () => { setIndo(false); trava.current = false; };
+        window.addEventListener('pageshow', destravar);
+        return () => window.removeEventListener('pageshow', destravar);
+    }, []);
 
     async function comprar() {
         if (trava.current) return;
@@ -30,52 +78,40 @@ export default function PlanoIA({ ia, cartao = false }) {
         }
     }
 
-    const ativa = ia.modo === 'plano';
-    const botao = (
-        <button className={`btn sm ${ativa && ia.restantes > 0 ? '' : 'primary'}`} disabled={indo} onClick={comprar}>
-            <i className="ti ti-sparkles" /> {indo ? t('Abrindo o pagamento…') : ativa ? t('Mais 30 dias por R$ 5') : t('Liberar a IA por R$ 5')}
-        </button>
-    );
-
-    let icone = 'ti-gift';
-    let titulo;
-    let texto;
-    let comprarAqui = false;
-    if (ia.modo === 'admin') {
-        icone = 'ti-sparkles';
-        titulo = t('IA no currículo');
-        texto = t('Você é administrador: sem limite.');
-    } else if (ia.modo === 'novo') {
-        titulo = t('Teste grátis de 48 horas');
-        texto = t('Comece quando quiser: a partir do primeiro uso, você tem 48 horas para 1 análise e 1 currículo adaptado a um tipo de vaga. Ou libere direto: R$ 5 por 30 dias, com 10 usos.');
-        comprarAqui = true;
-    } else if (ia.modo === 'teste') {
-        titulo = t('Teste grátis até {quando}', { quando: quando(ia.ate) });
-        texto = t('Restam {a} análise(s) e {v} currículo(s) adaptado(s). Depois, a IA fica por R$ 5: 30 dias e 10 usos.', { a: ia.analisesRestantes, v: ia.versoesRestantes });
-        comprarAqui = true;
-    } else if (ia.modo === 'plano') {
-        icone = 'ti-sparkles';
-        titulo = t('IA liberada até {quando}', { quando: new Date(ia.ate).toLocaleDateString() });
-        texto = ia.restantes > 0
-            ? t('Restam {n} de 10 usos (análises e currículos adaptados somam). Suas versões aprovadas vão nos envios.', { n: ia.restantes })
-            : t('Você usou os 10 usos deste período. As versões aprovadas continuam indo nos envios.');
-        comprarAqui = true;
-    } else {
-        icone = 'ti-lock';
-        titulo = t('Seu teste grátis acabou');
-        texto = t('Libere a IA por R$ 5: 30 dias, 10 usos entre análises e currículos adaptados, e as versões aprovadas vão nos seus envios. Pagamento único, sem renovação automática.');
-        comprarAqui = true;
-    }
-
+    const ativa = ia?.modo === 'plano';
     return (
-        <div className={`card plano-ia plano-ia-${ia.modo}`}>
-            <div className="plano-ia-txt">
-                {cartao && <div className="plano-ia-preco">{t('IA no currículo · R$ 5 por 30 dias · 10 usos')}</div>}
-                <div className="plano-ia-titulo"><i className={`ti ${icone}`} /> {titulo}</div>
-                <div className="muted">{texto}</div>
-                {erro && <div className="cv-erro">{erro}</div>}
+        <div className={`card plan-card fade-in d${indice + 1}`} style={ativa ? { borderColor: 'var(--color-accent)' } : undefined}>
+            <div className="row" style={{ alignItems: 'center' }}>
+                <span className="plan-tag">{t('IA no currículo')}</span>
+                {ativa && <span className="badge ok" style={{ marginLeft: 'auto' }}>{t('ativa')}</span>}
             </div>
-            {comprarAqui && ia.modo !== 'admin' && botao}
+            <div className="plan-desc">{t('A IA analisa seu currículo e faz uma versão para cada tipo de vaga, que vai nos seus envios depois que você aprova.')}</div>
+            <div className="plan-price-row">
+                <span className="plan-price-v">R$5</span>
+                <span className="plan-price-p">{t('pagamento único · 30 dias')}</span>
+            </div>
+            <div className="plan-note"><i className="ti ti-gift" /> {t('teste grátis de 48 horas antes de pagar')}</div>
+            <ul className="plan-feat-list">
+                {[
+                    t('10 usos entre análises e currículos adaptados'),
+                    t('nota, pontos fortes e o que melhorar'),
+                    t('um currículo para cada tipo de vaga do seu feed'),
+                    t('você aprova antes de ir nos envios'),
+                    t('incluída no plano Automático'),
+                ].map((f) => <li key={f}><i className="ti ti-check" />{f}</li>)}
+            </ul>
+            {ia?.modo === 'admin' ? (
+                <button className="btn block sm" disabled>{t('Sem limite (admin)')}</button>
+            ) : ativa ? (
+                <button className="btn block sm" disabled={indo || !disponivel} onClick={comprar}>
+                    {indo ? t('Redirecionando…') : t('Liberada até {quando} · mais 30 dias', { quando: dia(ia.ate) })}
+                </button>
+            ) : (
+                <button className="btn primary block sm" disabled={indo || !disponivel} onClick={comprar}>
+                    {indo ? t('Redirecionando…') : (<><i className="ti ti-sparkles" /> {t('Liberar a IA')}</>)}
+                </button>
+            )}
+            {erro && <div className="cv-erro" style={{ marginTop: 8 }}>{erro}</div>}
         </div>
     );
 }

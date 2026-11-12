@@ -41,8 +41,8 @@ export async function podeUsarVersoes(user, admin = false) {
 /** Por que não dá para usar a IA agora, na língua de quem lê. */
 export function motivoSemIa(ia) {
     if (ia.modo === 'plano') return 'Você usou os 10 usos de IA deste período. Eles voltam quando você liberar a IA de novo.';
-    if (ia.modo === 'teste') return 'No teste grátis vai 1 análise e 1 currículo adaptado. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
-    return 'Seu teste grátis de 48 horas acabou. Libere a IA por R$ 5 para ter 10 usos em 30 dias.';
+    if (ia.modo === 'teste') return 'No teste grátis vai 1 análise e 1 currículo adaptado. O plano de IA (R$ 5, 30 dias, 10 usos) fica em Assinatura.';
+    return 'Seu teste grátis de 48 horas acabou. O plano de IA (R$ 5, 30 dias, 10 usos) fica em Assinatura.';
 }
 const MODELO = process.env.CV_AI_MODEL || 'gpt-5.4-mini';
 const TEMPO_MAXIMO_MS = 100_000;

@@ -143,14 +143,24 @@ function DetalheCandidatura({ a, onClose, t }) {
 
                 {/* Em cima, antes da descrição: no fim do detalhe ninguém achava (relato de
                     11/11/2026, a recrutadora pediu o link do post e a pessoa não viu o botão). */}
-                {a.postUrl && (
+                {a.postUrl ? (
                     <div className="det-secao det-post">
                         <a className="btn sm primary" href={a.postUrl} target="_blank" rel="noopener noreferrer">
-                            <i className="ti ti-brand-linkedin" /> {t('Ver o post no LinkedIn')}
+                            <i className={`ti ${/github\.com/.test(a.postUrl) ? 'ti-brand-github' : 'ti-brand-linkedin'}`} /> {/github\.com/.test(a.postUrl) ? t('Ver a vaga no GitHub') : t('Ver o post no LinkedIn')}
                         </a>
                         <button type="button" className="btn sm" onClick={copiarLink}>
                             <i className={`ti ${copiado ? 'ti-check' : 'ti-copy'}`} /> {copiado ? t('Link copiado') : t('Copiar link do post')}
                         </button>
+                    </div>
+                ) : a.buscaUrl && (
+                    // Vaga de antes de o link do post ser guardado (julho a setembro de
+                    // 2026, ~1/3 dos envios): a busca do LinkedIn por cargo e empresa
+                    // costuma achar o post (relato de usuário, 12/11/2026).
+                    <div className="det-secao det-post">
+                        <a className="btn sm" href={a.buscaUrl} target="_blank" rel="noopener noreferrer">
+                            <i className="ti ti-search" /> {t('Procurar o post no LinkedIn')}
+                        </a>
+                        <span className="muted" style={{ fontSize: 12.5, alignSelf: 'center' }}>{t('O link do post desta vaga não foi guardado.')}</span>
                     </div>
                 )}
 

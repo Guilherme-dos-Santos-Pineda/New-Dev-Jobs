@@ -15,6 +15,7 @@ import { PLANS } from '../config/plans.js';
 import { diagnosticoDoFeed } from '../services/diagnosticoFeed.js';
 import { condicaoMonitoravel, DIAS_ENTRE_VISITAS } from '../services/recrutadorMonitoravel.js';
 import { painelRobosPessoais, rodarRoboDe } from '../services/roboPessoal.js';
+import { painelGithub, tickVagasGithub, githubRodando } from '../services/vagasGithub.js';
 import { REMOVIDA_PELO_ADMIN, detectArea } from '../services/classify.js';
 import { feedbackDisponivel, MOTIVOS } from '../services/jobFeedback.js';
 import {
@@ -427,6 +428,24 @@ router.get('/robo-plano', requireAdmin, async (_req, res) => {
 router.post('/robo-plano/:userId/rodar', requireAdmin, (req, res) => {
     rodarRoboDe(req.params.userId, { forcar: true, por: req.user.Email })
         .catch((e) => console.error('robô pessoal (admin):', e.message));
+    res.json({ iniciado: true });
+});
+
+// GET /api/admin/github: o leitor das vagas do GitHub (services/vagasGithub.js).
+router.get('/github', requireAdmin, async (_req, res) => {
+    try {
+        res.json(await painelGithub());
+    } catch (e) {
+        console.error('admin github:', e.message);
+        res.status(500).json({ error: 'Não deu para montar o painel do GitHub agora.' });
+    }
+});
+
+// POST /api/admin/github/rodar: lê os repositórios agora. Responde na hora.
+router.post('/github/rodar', requireAdmin, (req, res) => {
+    if (githubRodando()) return res.status(409).json({ error: 'Já está lendo os repositórios.' });
+    tickVagasGithub({ forcar: true, por: req.user.Email })
+        .catch((e) => console.error('github (admin):', e.message));
     res.json({ iniciado: true });
 });
 

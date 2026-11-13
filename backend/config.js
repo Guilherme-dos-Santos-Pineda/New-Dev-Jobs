@@ -39,11 +39,13 @@ const {
 
 const adminEmails = ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 
-// Pool de tokens Apify: primário + numerados (APIFY_TOKEN_2..5), deduplicado.
+// Pool de tokens Apify: primário + numerados (APIFY_TOKEN_2..9), deduplicado.
 const apifyTokens = [...new Set([
     APIFY_TOKEN,
     process.env.APIFY_TOKEN_2, process.env.APIFY_TOKEN_3,
     process.env.APIFY_TOKEN_4, process.env.APIFY_TOKEN_5,
+    // Até 9 contas: mais crédito grátis rende mais vaga (12/11/2026: 6 contas no pool + 1 dos pagantes).
+    process.env.APIFY_TOKEN_6, process.env.APIFY_TOKEN_7, process.env.APIFY_TOKEN_8, process.env.APIFY_TOKEN_9,
 ].map((t) => (t || '').trim()).filter(Boolean))];
 
 // Integração real só fica ativa se houver Client ID + Secret.

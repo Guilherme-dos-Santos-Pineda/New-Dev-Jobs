@@ -51,10 +51,31 @@ export function umaPorRecrutador(vagas, contatados = []) {
     return saida;
 }
 
-/** Endereços para os quais o usuário mandou currículo nos últimos 30 dias (15 no plano pago). */
-export async function contatadosRecentes(userId) {
+async function diasDoUsuario(userId) {
     const [u] = await sql`select "Plan", "PlanExpiresAt" from "Users" where "Id" = ${userId}`;
-    const dias = diasEntreEnvios(u?.Plan, u?.PlanExpiresAt);
+    return diasEntreEnvios(u?.Plan, u?.PlanExpiresAt);
+}
+
+// Egress (14/11/2026): esta consulta era a que mais devolvia linhas no banco, ~12 mil
+// em 20 minutos (quem manda 50 por dia tem centenas de endereços), porque rodava a
+// cada feed montado E a cada envio. Agora o feed guarda o resultado 60 s por pessoa
+// e o envio (jaContatado) pergunta só pelos endereços daquela vaga.
+const GUARDA_MS = 60_000;
+const guardados = new Map();
+
+/** Endereços para os quais o usuário mandou currículo nos últimos 30 dias (15 no plano pago). */
+export function contatadosRecentes(userId) {
+    const g = guardados.get(userId);
+    if (g && Date.now() - g.em < GUARDA_MS) return g.lista;
+    const lista = buscarContatados(userId);
+    guardados.set(userId, { em: Date.now(), lista });
+    lista.catch(() => guardados.delete(userId));
+    if (guardados.size > 1000) guardados.delete(guardados.keys().next().value);
+    return lista;
+}
+
+async function buscarContatados(userId) {
+    const dias = await diasDoUsuario(userId);
     const rows = await sql`
         select j."Email" from "Applications" a
         join "Jobs" j on j."Id" = a."JobId"
@@ -63,10 +84,23 @@ export async function contatadosRecentes(userId) {
     return [...new Set(rows.flatMap((r) => enderecos(r.Email)))];
 }
 
-/** O usuário já mandou para algum endereço desta vaga nos últimos 30 dias? */
+/**
+ * O usuário já mandou para algum endereço desta vaga nos últimos 30 dias (15 no
+ * plano pago)? Pergunta ao banco só por estes endereços, sem guarda: é a
+ * autoridade final antes do envio, e devolve no máximo poucas linhas.
+ */
 export async function jaContatado(userId, campoEmail) {
     const ends = enderecos(campoEmail);
     if (!ends.length) return false;
-    const contatados = new Set(await contatadosRecentes(userId));
-    return ends.some((e) => contatados.has(e));
+    const dias = await diasDoUsuario(userId);
+    const padroes = ends.map((e) => `%${e.replace(/[%_\\]/g, (c) => `\\${c}`)}%`);
+    const rows = await sql`
+        select j."Email" from "Applications" a
+        join "Jobs" j on j."Id" = a."JobId"
+        where a."UserId" = ${userId} and a."SentAt" > now() - make_interval(days => ${dias})
+          and lower(j."Email") like any(${padroes}::text[])
+        limit 20`;
+    // O like acha "ba@x.com" ao procurar "a@x.com": a confirmação é por endereço inteiro.
+    const ja = new Set(rows.flatMap((r) => enderecos(r.Email)));
+    return ends.some((e) => ja.has(e));
 }

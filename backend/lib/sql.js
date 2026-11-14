@@ -62,7 +62,12 @@ const sql = url
         // um tique e outro. Cada reconexão refaz o TLS e o postgres.js baixa a
         // tabela de tipos (~380 linhas): ~3600 vezes por dia, a consulta que mais
         // devolvia linhas no banco, e tudo isso conta no egress do plano grátis.
-        idle_timeout: 300,     // devolve conexão ociosa ao pooler (segundos)
+        idle_timeout: 900,     // devolve conexão ociosa ao pooler (segundos)
+        // Cada conexão nova refaz o TLS e baixa a tabela de tipos (~395 linhas). Medido
+        // em 14/11/2026: 10 conexões novas em 20 min, ~4 mil linhas, a 2ª consulta que
+        // mais devolvia linhas. O padrão do postgres.js troca a conexão a cada 30-60 min;
+        // atrás do pooler (6543) ela pode durar mais.
+        max_lifetime: 4 * 60 * 60,
         connect_timeout: 10,   // falha rápido em vez de pendurar a request
         transform: { undefined: null },
     })

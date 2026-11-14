@@ -4,8 +4,8 @@ import { config } from '../config.js';
 // =========================================================================
 // Pool de contas Apify com rotação/fallback do crédito grátis (~$5/mês por conta).
 // Roda um actor consumindo UMA conta por vez; quando o crédito de uma esgota
-// (erro de cota da Apify), marca como esgotada até a virada do mês e passa para a
-// próxima. Análogo à cadeia de fallback da IA. Estado em memória (reseta no deploy;
+// (erro de cota da Apify), marca como esgotada até a renovação DAQUELA conta e
+// passa para a próxima. Análogo à cadeia de fallback da IA. Estado em memória (reseta no deploy;
 // a exaustão é redetectada na 1ª chamada e há reset manual no admin).
 // =========================================================================
 
@@ -32,8 +32,22 @@ export function endOfMonthMs(now = Date.now()) {
     return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
 }
 
+/**
+ * Recusa por execuções SIMULTÂNEAS demais, não por crédito. A conta grátis aceita
+ * 5 execuções (8 GB de memória) ao mesmo tempo. Em 13/11/2026 seis robôs de
+ * pagantes rodaram juntos, a sexta foi recusada, e a mensagem ("exceed the memory
+ * limit... for all your Actor runs", às vezes com status 402) caiu em `isQuotaError`:
+ * a conta dos pagantes, com US$ 4,94 sobrando, ficou "sem crédito" até o fim do
+ * mês e todo robô de pagante passou a falhar. Testada ANTES do crédito.
+ */
+export function isConcorrenciaError(e) {
+    const msg = String(e?.message || '').toLowerCase();
+    return /memory limit|concurrent|currently used|actor jobs|parallel runs|too many (actor )?runs/.test(msg);
+}
+
 // Erro de crédito/cota da Apify (definitivo p/ a conta) vs. transitório (rede/5xx).
 export function isQuotaError(e) {
+    if (isConcorrenciaError(e)) return false;
     const status = e?.statusCode || e?.status;
     if (status === 402 || status === 403) return true;
     const msg = String(e?.message || '').toLowerCase();
@@ -51,6 +65,44 @@ export function isAuthError(e) {
     if (status === 401) return true;
     return /token is not valid|authentication token|user was not found|unauthorized/i.test(String(e?.message || ''));
 }
+
+/**
+ * Até quando a conta fica parada depois de "sem crédito". Cada conta da Apify
+ * renova num dia diferente (o ciclo começa no dia do cadastro: 03, 06, 08, 11 e
+ * 12/12 em dezembro de 2026), e marcar até o dia 1º fazia a conta ser testada no
+ * dia 1º, falhar de novo e ficar parada até o dia 1º do mês SEGUINTE. Sem a data
+ * do ciclo, volta a tentar em 6 horas: uma chamada recusada custa nada.
+ */
+export const ESPERA_SEM_CICLO_MS = 6 * 3600 * 1000;
+export function paradaAte(fimDoCiclo, now = Date.now()) {
+    const fim = fimDoCiclo ? new Date(fimDoCiclo).getTime() : NaN;
+    return Number.isFinite(fim) && fim > now ? fim : now + ESPERA_SEM_CICLO_MS;
+}
+
+async function fimDoCiclo(token) {
+    try {
+        const r = await fetch('https://api.apify.com/v2/users/me/limits', {
+            headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000),
+        });
+        return (await r.json())?.data?.monthlyUsageCycle?.endAt || null;
+    } catch { return null; }
+}
+
+// No máximo 4 execuções nossas por conta ao mesmo tempo (a Apify aceita 5, e uma
+// fica livre para o admin e para o que estiver rodando lá por fora).
+export const MAX_POR_CONTA = 4;
+async function comVaga(acct, fn) {
+    acct.ativas ??= 0;
+    acct.fila ??= [];
+    if (acct.ativas >= MAX_POR_CONTA) await new Promise((ok) => acct.fila.push(ok));
+    acct.ativas += 1;
+    try { return await fn(); } finally {
+        acct.ativas -= 1;
+        acct.fila.shift()?.();
+    }
+}
+
+const dormir = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 function healthyAccounts(now = Date.now()) {
     return accounts.filter((a) => a.token && a.exhaustedUntil <= now);
@@ -88,7 +140,18 @@ export async function runActor(actorId, input, { conta = null } = {}) {
     for (const acct of pool) {
         try {
             const client = new ApifyClient({ token: acct.token });
-            const run = await client.actor(actorId).call(input);
+            // Recusa por execuções simultâneas: espera e tenta de novo na MESMA conta.
+            const run = await comVaga(acct, async () => {
+                for (let tentativa = 1; ; tentativa++) {
+                    try {
+                        return await client.actor(actorId).call(input);
+                    } catch (e) {
+                        if (!isConcorrenciaError(e) || tentativa >= 4) throw e;
+                        console.warn(`⤷ Apify ${acct.label} com execuções demais ao mesmo tempo, tentando de novo em ${30 * tentativa} s`);
+                        await dormir(30_000 * tentativa);
+                    }
+                }
+            });
             const ds = await client.dataset(run.defaultDatasetId).listItems();
             acct.lastUsedAt = Date.now();
             acct.calls += 1;
@@ -104,10 +167,10 @@ export async function runActor(actorId, input, { conta = null } = {}) {
                 continue;
             }
             if (isQuotaError(e)) {
-                acct.exhaustedUntil = endOfMonthMs();
+                acct.exhaustedUntil = paradaAte(await fimDoCiclo(acct.token));
                 acct.lastError = `crédito esgotado: ${String(e.message || '').slice(0, 120)}`;
                 errs.push(acct.label);
-                console.warn(`⤷ Apify ${acct.label} sem crédito — rotacionando para a próxima conta`);
+                console.warn(`⤷ Apify ${acct.label} sem crédito até ${new Date(acct.exhaustedUntil).toISOString().slice(0, 16)} (${String(e.message || '').slice(0, 120)})`);
                 continue;
             }
             throw e; // rede/5xx/actor → transitório: deixa o pg-boss retentar

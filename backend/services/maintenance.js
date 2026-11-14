@@ -97,7 +97,25 @@ export async function expireStuckQueue(horas = HORAS_ATE_DESISTIR) {
     return linhas.length;
 }
 
-/** Uma passada completa. Nunca lança: manutenção não pode derrubar o worker. */
+/**
+ * Execução de robô que ficou "rodando" porque o serviço reiniciou no meio (todo
+ * deploy reinicia). A mais longa leva uns 20 minutos; com 3 horas sem terminar,
+ * ninguém mais vai fechá-la. Até 14/11/2026 ela ficava assim para sempre, e o
+ * painel mostrava um robô rodando que não existia.
+ */
+const HORAS_ATE_RUN_PRESA = 3;
+export async function fecharRunsPresas(horas = HORAS_ATE_RUN_PRESA) {
+    const linhas = await sql`
+        update "ScraperRuns"
+        set "Status" = 'failed',
+            "Error" = 'interrompida: o serviço reiniciou no meio da execução',
+            "FinishedAt" = now()
+        where "Status" in ('running', 'queued')
+          and "CreatedAt" < now() - make_interval(hours => ${horas})
+        returning "Id"`;
+    return linhas.length;
+}
+
 /**
  * Uma vez por dia: vaga dos últimos 30 dias cujo email todo é de domínio que não
  * existe perde o email e sai do feed. Num UPDATE só, porque cada mudança em
@@ -123,8 +141,9 @@ export async function limparDominiosMortos(hoje = new Date().toISOString().slice
     return mortas.length;
 }
 
+/** Uma passada completa. Nunca lança: manutenção não pode derrubar o worker. */
 export async function runMaintenance() {
-    const out = { classificadas: 0, runs: 0, posts: 0, presos: 0 };
+    const out = { classificadas: 0, runs: 0, posts: 0, presos: 0, runsPresas: 0 };
     try {
         out.classificadas = await reclassifyPending();
     } catch (e) { console.error('reclassifyPending falhou:', e.message); }
@@ -136,6 +155,10 @@ export async function runMaintenance() {
         out.presos = await expireStuckQueue();
         if (out.presos) console.warn(`⚠️  ${out.presos} envio(s) preso(s) em queued foram marcados como falha`);
     } catch (e) { console.error('expireStuckQueue falhou:', e.message); }
+    try {
+        out.runsPresas = await fecharRunsPresas();
+        if (out.runsPresas) console.warn(`⚠️  ${out.runsPresas} execução(ões) de robô presa(s) como rodando foram fechadas`);
+    } catch (e) { console.error('fecharRunsPresas falhou:', e.message); }
     try {
         await limparDominiosMortos();
     } catch (e) { console.error('limparDominiosMortos falhou:', e.message); }

@@ -69,9 +69,21 @@ async function situacaoDe(p, agora = Date.now()) {
 
 const rodando = new Set();
 
+// UM robô de pagante por vez, venha do agendador ou do "Rodar agora". Em 13/11/2026
+// seis cliques no admin dispararam seis execuções juntas na conta dos pagantes, e a
+// Apify recusou a sexta (limite de execuções simultâneas da conta grátis).
+let fila = Promise.resolve();
+
 /** Roda o robô de uma pessoa. `forcar` (botão do admin) ignora o intervalo de 6 dias. */
-export async function rodarRoboDe(userId, { forcar = false, por = 'agendador' } = {}) {
-    if (rodando.has(userId)) return { pulado: 'já está rodando' };
+export function rodarRoboDe(userId, opcoes = {}) {
+    if (rodando.has(userId)) return Promise.resolve({ pulado: 'já está rodando' });
+    rodando.add(userId); // já conta como rodando enquanto espera a vez: o painel mostra e o botão trava
+    const vez = fila.then(() => rodarAgora(userId, opcoes)).finally(() => rodando.delete(userId));
+    fila = vez.catch(() => {});
+    return vez;
+}
+
+async function rodarAgora(userId, { forcar = false, por = 'agendador' } = {}) {
     const [p] = (await pagantes()).filter((x) => x.Id === userId);
     if (!p) return { pulado: 'sem plano ativo' };
     const h = await historicoDe(userId);
@@ -87,7 +99,6 @@ export async function rodarRoboDe(userId, { forcar = false, por = 'agendador' } 
     const [run] = await sql`
         insert into "ScraperRuns" ("Type", "Status", "Params", "StartedAt")
         values ('monitoring', 'running', ${sql.json(params)}, now()) returning "Id"`;
-    rodando.add(userId);
     try {
         const stats = await runMonitoring({
             source: 'global', queries: consultas, maxPosts: POSTS_POR_CONSULTA, contentType: 'all',
@@ -100,8 +111,6 @@ export async function rodarRoboDe(userId, { forcar = false, por = 'agendador' } 
         await sql`update "ScraperRuns" set "Status" = 'failed', "Error" = ${String(e.message || 'erro').slice(0, 300)}, "FinishedAt" = now() where "Id" = ${run.Id}`;
         console.warn(`robô de ${p.Name || userId} falhou: ${e.message}`);
         return { erro: e.message };
-    } finally {
-        rodando.delete(userId);
     }
 }
 

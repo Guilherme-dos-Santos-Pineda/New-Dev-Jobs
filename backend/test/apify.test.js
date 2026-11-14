@@ -1,6 +1,36 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isAuthError, isQuotaError, endOfMonthMs, apifyPoolState, resetApifyPool, temFolgaDeCredito } from '../services/apifyPool.js';
+import {
+    isAuthError, isQuotaError, isConcorrenciaError, paradaAte, ESPERA_SEM_CICLO_MS,
+    endOfMonthMs, apifyPoolState, resetApifyPool, temFolgaDeCredito,
+} from '../services/apifyPool.js';
+
+// ---------- Execuções simultâneas demais NÃO é falta de crédito (13/11/2026) ----------
+test('isConcorrenciaError: limite de memória/execuções simultâneas', () => {
+    const msg = 'By launching this job you will exceed the memory limit of 8192MB for all your Actor runs and builds (currently used: 8192MB, requested: 1024MB).';
+    assert.equal(isConcorrenciaError({ statusCode: 402, message: msg }), true);
+    assert.equal(isConcorrenciaError({ message: 'You have exceeded the limit of concurrent actor jobs' }), true);
+    assert.equal(isConcorrenciaError({ message: 'Monthly usage hard limit exceeded' }), false);
+    assert.equal(isConcorrenciaError(null), false);
+});
+test('isQuotaError: recusa por execuções simultâneas não marca a conta como sem crédito, mesmo com 402', () => {
+    const msg = 'By launching this job you will exceed the memory limit of 8192MB for all your Actor runs and builds (currently used: 8192MB, requested: 1024MB).';
+    assert.equal(isQuotaError({ statusCode: 402, message: msg }), false);
+    assert.equal(isQuotaError({ message: 'You have exceeded the limit of concurrent actor jobs' }), false);
+});
+
+// ---------- Conta sem crédito para até a renovação DELA, não até o dia 1º ----------
+test('paradaAte: usa o fim do ciclo da conta', () => {
+    const agora = Date.UTC(2026, 10, 14, 12);
+    assert.equal(paradaAte('2026-12-03T00:00:00.000Z', agora), Date.UTC(2026, 11, 3));
+});
+test('paradaAte: sem ciclo, ciclo inválido ou já passado, tenta de novo em 6 horas', () => {
+    const agora = Date.UTC(2026, 11, 1, 0);
+    assert.equal(paradaAte(null, agora), agora + ESPERA_SEM_CICLO_MS);
+    assert.equal(paradaAte('lixo', agora), agora + ESPERA_SEM_CICLO_MS);
+    // O bug: no dia 1º a conta (que só renova no dia 3) ficava parada até 1º de janeiro.
+    assert.equal(paradaAte('2026-11-30T00:00:00.000Z', agora), agora + ESPERA_SEM_CICLO_MS);
+});
 
 // ---------- Robô extra só gasta o que sobra do monitoramento ----------
 test('temFolgaDeCredito: soma o que resta em cada conta', () => {

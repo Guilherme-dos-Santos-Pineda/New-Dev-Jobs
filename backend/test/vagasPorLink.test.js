@@ -86,3 +86,24 @@ test('a resposta não leva link nem telefone na descrição', () => {
     const [v] = vagasParaPerfil([vagaDoPost(post(texto))], { Region: 'br' });
     assert.doesNotMatch(v.description, /lnkd\.in|94111/);
 });
+
+test('filtros da tela: texto sem acento, modalidade, período, área e fonte (14/11/2026)', async () => {
+    const { filtrarVagasPorLink, areasDaLista } = await import('../services/vagasPorLink.js');
+    const agora = Date.UTC(2026, 10, 14, 12);
+    const d = (dias) => new Date(agora - dias * 86400000);
+    const lista = [
+        { id: 'a', title: 'Desenvolvedor Java', company: 'Acme', description: 'Spring', createdAt: d(0.5), area: 'backend', mods: ['remoto'], fonte: 'post' },
+        { id: 'b', title: 'Analista de Dados', company: 'Beta', description: 'Python e Power BI', createdAt: d(5), area: 'data', mods: ['hibrido'], fonte: 'anuncio' },
+        { id: 'c', title: 'Estágio em Programação', company: 'Gama', description: '', createdAt: d(20), area: 'dev', mods: [], fonte: 'post' },
+    ];
+    const ids = (f) => filtrarVagasPorLink(lista, f, agora).map((v) => v.id);
+    assert.deepEqual(ids({ q: 'programacao' }), ['c']);
+    assert.deepEqual(ids({ q: 'python bi' }), ['b']);
+    assert.deepEqual(ids({ mod: 'remoto' }), ['a']);
+    assert.deepEqual(ids({ dias: 1 }), ['a']);
+    assert.deepEqual(ids({ dias: 7 }), ['a', 'b']);
+    assert.deepEqual(ids({ area: 'data' }), ['b']);
+    assert.deepEqual(ids({ fonte: 'post' }), ['a', 'c']);
+    assert.deepEqual(ids({}), ['a', 'b', 'c']);
+    assert.deepEqual(areasDaLista(lista).map((a) => a.id).sort(), ['backend', 'data', 'dev']);
+});

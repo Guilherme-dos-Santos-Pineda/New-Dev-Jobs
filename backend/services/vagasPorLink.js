@@ -105,7 +105,41 @@ export function vagasParaPerfil(vagas, perfil, agora = Date.now()) {
         .map(({ vaga, score }) => ({
             id: vaga.Id, title: vaga.JobTitle, company: vaga.Company || null, createdAt: vaga.CreatedAt, matchScore: score, url: vaga.url,
             description: semContato(vaga.Description)?.slice(0, PREVIEW_CHARS) ?? null,
+            // Para os filtros da tela (filtrarVagasPorLink).
+            area: vaga.Area === 'nontech' ? areaForaDeTI(vaga) : vaga.Area,
+            mods: Array.isArray(vaga.Mods) ? vaga.Mods : [],
+            fonte: vaga.Anunciada ? 'anuncio' : 'post',
         }));
+}
+
+const dobra = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/**
+ * Os filtros da tela de vagas por link (pedido do dono, 14/11/2026), por cima do
+ * perfil: texto (título, empresa ou descrição), modalidade, período, área e fonte.
+ * Vaga sem modalidade identificada só some quando se pede uma modalidade.
+ */
+export function filtrarVagasPorLink(lista, { q, mod, dias, area, fonte } = {}, agora = Date.now()) {
+    const termos = dobra(q).split(/\s+/).filter((x) => x.length >= 2);
+    const desde = Number(dias) > 0 ? agora - Number(dias) * DIA_MS : null;
+    return lista.filter((v) => {
+        if (termos.length) {
+            const texto = dobra(`${v.title} ${v.company || ''} ${v.description || ''}`);
+            if (!termos.every((t) => texto.includes(t))) return false;
+        }
+        if (mod && !(v.mods || []).includes(mod)) return false;
+        if (desde && new Date(v.createdAt).getTime() < desde) return false;
+        if (area && v.area !== area) return false;
+        if (fonte && v.fonte !== fonte) return false;
+        return true;
+    });
+}
+
+/** Quantas vagas há em cada área da lista, para o seletor mostrar só as que existem. */
+export function areasDaLista(lista) {
+    const conta = {};
+    for (const v of lista) if (v.area) conta[v.area] = (conta[v.area] || 0) + 1;
+    return Object.entries(conta).sort((a, b) => b[1] - a[1]).map(([id, n]) => ({ id, n }));
 }
 
 let vagas = [];
@@ -169,18 +203,27 @@ async function vagasAtuais() {
 // O cartão em Vagas e a tela pedem a mesma lista em seguida: guarda a promessa por 5 min.
 const memo = new Map();
 
-export async function vagasPorLinkDe(userId) {
+/** A lista inteira da pessoa (pelo perfil), guardada 5 min. Os filtros da tela vêm depois. */
+function listaDe(userId) {
     const guardado = memo.get(userId);
-    if (guardado && Date.now() - guardado.em < MEMO_MS) return guardado.resultado;
-    const resultado = (async () => {
+    if (guardado && Date.now() - guardado.em < MEMO_MS) return guardado.lista;
+    const lista = (async () => {
         const [perfil] = await sql`select * from "Profiles" where "UserId" = ${userId}`;
-        const lista = vagasParaPerfil(await vagasAtuais(), perfil || null);
-        return { vagas: lista.slice(0, TETO_DA_RESPOSTA), total: lista.length };
+        return vagasParaPerfil(await vagasAtuais(), perfil || null);
     })();
-    memo.set(userId, { em: Date.now(), resultado });
-    resultado.catch(() => memo.delete(userId));
+    memo.set(userId, { em: Date.now(), lista });
+    lista.catch(() => memo.delete(userId));
     if (memo.size > 2000) memo.delete(memo.keys().next().value);
-    return resultado;
+    return lista;
+}
+
+export async function vagasPorLinkDe(userId, filtros = {}) {
+    const lista = await listaDe(userId);
+    const filtradas = filtrarVagasPorLink(lista, filtros);
+    return {
+        vagas: filtradas.slice(0, TETO_DA_RESPOSTA).map(({ mods, fonte, ...v }) => ({ ...v, mods, fonte })),
+        total: filtradas.length, semFiltro: lista.length, areas: areasDaLista(lista),
+    };
 }
 
 /** Perfil salvo muda o que a pessoa vê: a lista guardada cai junto. */

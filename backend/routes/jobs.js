@@ -55,7 +55,13 @@ router.get('/matches', requireAuth, async (req, res) => {
 // GET /api/jobs/links — vagas sem email, com candidatura pelo link do post.
 // Fica ANTES de /:id, senão "links" seria lido como id de vaga.
 router.get('/links', requireAuth, async (req, res) => {
-    res.json(await vagasPorLinkDe(req.user.Id));
+    // Filtros da tela, por cima do perfil. Valores fora da lista são ignorados.
+    const q = String(req.query.q || '').slice(0, 80);
+    const mod = ['remoto', 'hibrido', 'presencial'].includes(req.query.mod) ? req.query.mod : '';
+    const dias = [1, 7, 30].includes(Number(req.query.dias)) ? Number(req.query.dias) : 0;
+    const area = /^[a-z]{2,15}$/.test(String(req.query.area || '')) ? req.query.area : '';
+    const fonte = ['anuncio', 'post'].includes(req.query.fonte) ? req.query.fonte : '';
+    res.json(await vagasPorLinkDe(req.user.Id, { q, mod, dias, area, fonte }));
 });
 
 // GET /api/jobs/feedback/mine — os 👍 do usuário, e se o recurso está ligado

@@ -145,7 +145,10 @@ export const api = {
 
     // jobs matches + fila de envio
     getMatches: () => request('GET', '/jobs/matches'),
-    vagasPorLink: () => request('GET', '/jobs/links'),
+    vagasPorLink: (filtros = {}) => {
+        const qs = new URLSearchParams(Object.entries(filtros).filter(([, v]) => v)).toString();
+        return request('GET', `/jobs/links${qs ? `?${qs}` : ''}`);
+    },
     analiseCv: () => request('GET', '/curriculo/analise'),
     analisarCv: () => request('POST', '/curriculo/analise'),
     analiseCvAntiga: (id) => request('GET', `/curriculo/analise/${encodeURIComponent(id)}`),

@@ -171,6 +171,7 @@ regra existente, não acrescente uma nova que a contradiga.
 - O título é a primeira linha do post, sem a IA, então erra às vezes ("Vaga para Consultor de Poços" caiu em `po`). Na amostra de 40, duas ficaram duvidosas. Título vago (`other`) fica de fora.
 - Fica em memória, igual ao feed, com cópia em disco de um dia: ~4 MB de egress só quando a cópia não serve, e só os posts novos a cada 10 minutos, se alguém pedir.
 - O menu continua com três itens: a entrada é um cartão em Vagas, que some sem vaga para mostrar.
+- **Filtros na tela** (14/11/2026, pedido do dono): busca por texto (título, empresa ou descrição, sem acento), modalidade, período (24 h, 7 e 30 dias), área (só as que existem na lista da pessoa, com a contagem), origem (anúncio do LinkedIn ou post de recrutador) e "esconder as que já abri". Valem POR CIMA do perfil: a lista da pessoa fica guardada 5 min e `filtrarVagasPorLink` (pura, testada) corta por requisição; o teto de 100 vem depois do filtro, então filtrar alcança vaga que não cabia na primeira tela. Sem filtro, a tela abre do cache como antes.
 - **O check diz "Aberta", não "Enviada"**: a candidatura acontece fora daqui e não dá para saber se saiu. Fica no navegador (`vagasLinkAbertas`), então outro aparelho não mostra.
 
 ## Prova real (ponta a ponta)

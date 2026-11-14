@@ -2303,3 +2303,14 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .apv-lista { display: grid; gap: 8px; }
 .apv-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
 .apv-ganho { color: var(--color-success); margin-left: 4px; }
+
+/* Filtros das vagas por link (pages/VagasLink.jsx) */
+.vl-filtros { padding: 14px 16px; margin-bottom: 14px; display: grid; gap: 10px; }
+.vl-busca { position: relative; }
+.vl-busca i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: .6; }
+.vl-busca .input { padding-left: 34px; width: 100%; }
+.vl-linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vl-linha .select { width: auto; max-width: 230px; }
+.vl-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+.vl-total { font-size: 12.5px; display: flex; gap: 12px; align-items: center; }
+@media (max-width: 640px) { .vl-linha .select { max-width: none; flex: 1 1 45%; } }

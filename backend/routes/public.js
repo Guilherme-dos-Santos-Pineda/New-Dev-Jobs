@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { unsubscribeByToken } from '../services/campaigns.js';
+import { contarVisita } from '../services/indicacao.js';
+import { canalDaOrigem } from '../services/indicacaoLogic.js';
 
 // Rotas PÚBLICAS (sem auth). Ex.: descadastro de campanha via link no email.
 const router = Router();
@@ -33,6 +35,14 @@ router.get('/unsubscribe', async (req, res) => {
     } catch {
         return res.status(500).send(page('Erro', 'Não foi possível processar. Tente novamente mais tarde.'));
     }
+});
+
+// POST /api/public/visita { utm_source, ref, referrer }: a landing conta uma visita
+// por navegador por dia, por canal. Sem cookie, sem IP: só o canal entra na soma.
+router.post('/visita', (req, res) => {
+    const b = req.body || {};
+    contarVisita(canalDaOrigem({ utm_source: b.utm_source, ref: b.ref, referrer: b.referrer }));
+    res.status(204).end();
 });
 
 export default router;

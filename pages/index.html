@@ -1149,5 +1149,35 @@
         }
 
     </script>
+    <!-- ==================== ORIGEM DA VISITA ==================== -->
+    <script>
+        // De onde a pessoa veio (backend/services/indicacao.js). Guarda a PRIMEIRA
+        // visita no navegador (o app, no mesmo domínio, manda depois do cadastro) e
+        // conta uma visita por dia neste navegador. Sem cookie e sem IP.
+        (function () {
+            try {
+                var q = new URLSearchParams(location.search);
+                var ref = q.get('ref');
+                if (ref) localStorage.setItem('ref', ref.slice(0, 12));
+                var o = {
+                    utm_source: q.get('utm_source') || undefined,
+                    utm_medium: q.get('utm_medium') || undefined,
+                    utm_campaign: q.get('utm_campaign') || undefined,
+                    ref: ref || undefined,
+                    referrer: document.referrer || undefined,
+                    pagina: location.pathname,
+                    em: new Date().toISOString()
+                };
+                if (!localStorage.getItem('origem')) localStorage.setItem('origem', JSON.stringify(o));
+                var hoje = o.em.slice(0, 10);
+                if (localStorage.getItem('visitaDia') === hoje) return;
+                localStorage.setItem('visitaDia', hoje);
+                fetch('/api/public/visita', {
+                    method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ utm_source: o.utm_source, ref: o.ref, referrer: o.referrer })
+                }).catch(function () {});
+            } catch (e) { /* sem armazenamento: não conta */ }
+        })();
+    </script>
 </body>
 </html>

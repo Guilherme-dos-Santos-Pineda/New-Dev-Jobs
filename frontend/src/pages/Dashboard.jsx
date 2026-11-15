@@ -17,6 +17,7 @@ import PedidoFeedback from '../components/PedidoFeedback.jsx';
 import ConviteAutomatico from '../components/ConviteAutomatico.jsx';
 import AvisoPoucaVaga from '../components/AvisoPoucaVaga.jsx';
 import AutoEnvio from '../components/AutoEnvio.jsx';
+import { PLANOS_PAGOS_ATIVOS } from '../lib/flags.js';
 
 // =========================
 // Vagas para você (a tela inicial)
@@ -121,6 +122,8 @@ export default function Dashboard() {
     const boas = (lista || []).filter((v) => v.matchScore >= MIN_AUTO && !estado[v.id]);
     const quantasAuto = Math.min(restam, boas.length);
     const enviando = !!fila?.active;
+    // Plano grátis com venda aberta: no fim da cota, oferece o Automático.
+    const semAutomatico = !user?.planLimits?.autoSend && (PLANOS_PAGOS_ATIVOS || !!user?.podeComprar);
     // O envio derrubou a conexão: sem isto o cartão só volta a pedir o Gmail, e a
     // pessoa conecta a mesma conta de novo sem saber o que aconteceu.
     const erroFila = !conectado && !enviando ? fila?.items?.filter((i) => i.status === 'failed').at(-1)?.error : null;
@@ -252,12 +255,23 @@ export default function Dashboard() {
                             <div className="progress" style={{ marginTop: 10 }}><span style={{ width: `${Math.round(((fila.sent + fila.failed + fila.skipped) / (fila.total || 1)) * 100)}%` }} /></div>
                         </div>
                         <button className="btn ghost" onClick={pararEnvio}><i className="ti ti-player-stop" /> {t('Parar')}</button>
-                    </>) : restam <= 0 ? (
+                    </>) : restam <= 0 ? (<>
+                        {/* Acabou a cota: em vez de só "volte amanhã", dois jeitos de mandar mais.
+                            O 429 do servidor não muda (avisoDoLimite); isto é só a tela. */}
                         <div className="vh-hero-txt">
                             <div className="vh-hero-titulo"><i className="ti ti-circle-check" /> {t('Você já mandou os {n} currículos de hoje.', { n: limite })}</div>
                             <div className="vh-hero-sub">{t('A contagem zera às 21h, horário de Brasília. As vagas continuam aqui.')}</div>
+                            <div className="vh-hero-sub">
+                                {semAutomatico
+                                    ? t('Quer mandar mais? Com o Automático são 50 por dia, por R$ 10 em 30 dias. Ou indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.')
+                                    : t('Quer mandar mais? Indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.')}
+                            </div>
                         </div>
-                    ) : !conectado ? (<>
+                        <div className="vh-limite-acoes">
+                            {semAutomatico && <Link className="btn primary vh-hero-btn" to="/app/assinatura"><i className="ti ti-crown" /> {t('Automático: 50 por dia')}</Link>}
+                            <Link className={`btn ${semAutomatico ? '' : 'primary '}vh-hero-btn`} to="/app/indicar"><i className="ti ti-gift" /> {t('Indicar um amigo')}</Link>
+                        </div>
+                    </>) : !conectado ? (<>
                         <div className="vh-hero-txt">
                             <div className="vh-hero-titulo">{t('Envio automático')}</div>
                             <div className="vh-hero-sub">{t('Conecte seu Gmail e a gente manda seu currículo para as melhores vagas, com o seu nome. Só pedimos permissão para enviar, nunca para ler.')}</div>

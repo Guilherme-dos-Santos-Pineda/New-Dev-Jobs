@@ -1,5 +1,6 @@
 import sql from '../lib/sql.js';
 import { planOf } from '../config/plans.js';
+import { limiteComBonus } from './indicacaoLogic.js';
 
 // =========================
 // Uso diário do plano (fonte única da verdade)
@@ -21,14 +22,20 @@ export async function countSentToday(userId) {
  */
 export async function planUsage(userId, planName) {
     const plan = planOf(planName);
-    const usedToday = await countSentToday(userId);
+    // Uma consulta só: o envio de hoje e o bônus de indicação (+10 por dia, indicacao.js).
+    const [row] = await sql`
+        select (select count(*)::int from "Applications" where "UserId" = ${userId} and "SentAt"::date = current_date) as count,
+               (select "BonusEnviosAte" from "Users" where "Id" = ${userId}) as bonus`;
+    const usedToday = row.count;
+    const dailyLimit = limiteComBonus(plan.dailyLimit, row.bonus);
     return {
         plan: planName || 'free',
         label: plan.label,
-        dailyLimit: plan.dailyLimit,
+        dailyLimit,
+        bonusAte: dailyLimit > plan.dailyLimit ? row.bonus : null,
         allowManual: plan.allowManual,
         autoSend: !!plan.autoSend,
         usedToday,
-        remainingToday: Math.max(0, plan.dailyLimit - usedToday),
+        remainingToday: Math.max(0, dailyLimit - usedToday),
     };
 }

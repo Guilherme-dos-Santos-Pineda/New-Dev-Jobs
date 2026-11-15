@@ -25,6 +25,7 @@ const Profile = lazyWithReload(() => import('./pages/Profile.jsx'));
 const Feedback = lazyWithReload(() => import('./pages/Feedback.jsx'));
 const Subscription = lazyWithReload(() => import('./pages/Subscription.jsx'));
 const Admin = lazyWithReload(() => import('./pages/Admin.jsx'));
+const Indicar = lazyWithReload(() => import('./pages/Indicar.jsx'));
 
 function PageFallback() {
     return <div className="center" style={{ minHeight: '60vh' }}><div className="spinner" /></div>;
@@ -62,6 +63,7 @@ export default function App() {
                     {/* Com os planos pagos desligados a página nem existe: link antigo cai nas vagas. */}
                     <Route path="assinatura" element={<Assinatura />} />
                     <Route path="admin" element={<Admin />} />
+                    <Route path="indicar" element={<Indicar />} />
                     {/* compat: rotas antigas */}
                     <Route path="vagas" element={<Navigate to="/app" replace />} />
                     <Route path="configuracoes" element={<Navigate to="/app/perfil" replace />} />

@@ -138,4 +138,45 @@ const passos = [
 const pior = passos.reduce((a, b) => (b[1] > a[1] ? b : a));
 console.log(`\n  Maior degrau: ${pior[0]} (perde ${pior[1]})\n`);
 
+
+
+// =========================
+// Por canal (migration 0030, desde 14/11/2026)
+// =========================
+// Conta antiga não tem origem: entra como "antes de medir", para o total bater.
+// Visitas: uma por navegador por dia, contadas pela landing (sem cookie, sem IP).
+const [temOrigem] = await sql`select to_regclass('public."VisitasDiarias"') is not null as ok`;
+if (temOrigem.ok) {
+    const canais = await sql`
+        with u as (
+            select u."Id", coalesce(u."Origem"->>'canal', case when u."CreatedAt" < '2026-11-15' then 'antes de medir' else 'sem origem' end) as canal,
+                   (p."UserId" is not null) as perfil, (u."Plan" is distinct from 'free' and u."StripeCustomerId" is not null) as pagou
+            from "Users" u left join "Profiles" p on p."UserId" = u."Id"
+            where u."Email" <> ${DONO} and u."Email" not like '%teste-newdevjobs.local'
+        ), env as (select distinct "UserId" from "Applications")
+        select canal, count(*)::int as contas, count(*) filter (where perfil)::int as perfil,
+               count(*) filter (where u."Id" in (select "UserId" from env))::int as enviaram,
+               count(*) filter (where pagou)::int as pagaram
+        from u group by canal order by contas desc limit 20`;
+    const visitas = await sql`
+        select "Canal" as canal, sum("Visitas")::int as n from "VisitasDiarias"
+        where "Dia" > current_date - 30 group by "Canal" order by n desc limit 20`;
+    const vis = Object.fromEntries(visitas.map((x) => [x.canal, x.n]));
+    console.log('  Por canal (contas de sempre; visitas dos últimos 30 dias)');
+    console.log(`    ${'canal'.padEnd(18)} ${'visitas'.padStart(7)} ${'contas'.padStart(6)} ${'perfil'.padStart(6)} ${'enviaram'.padStart(8)} ${'pagaram'.padStart(7)}`);
+    for (const c of canais) {
+        console.log(`    ${c.canal.padEnd(18)} ${String(vis[c.canal] ?? '').padStart(7)} ${String(c.contas).padStart(6)} ${String(c.perfil).padStart(6)} ${String(c.enviaram).padStart(8)} ${String(c.pagaram).padStart(7)}`);
+    }
+    for (const x of visitas) if (!canais.some((c) => c.canal === x.canal)) console.log(`    ${x.canal.padEnd(18)} ${String(x.n).padStart(7)} ${'0'.padStart(6)}`);
+
+    const [ind] = await sql`
+        select count(*) filter (where "IndicadoPor" is not null)::int as indicados,
+               count(*) filter (where "IndicacaoPremiadaEm" is not null)::int as premiados,
+               count(*) filter (where "BonusEnviosAte" > now())::int as com_bonus
+        from "Users"`;
+    console.log(`
+  Indique e ganhe: ${ind.indicados} indicados, ${ind.premiados} premiados, ${ind.com_bonus} com bônus agora
+`);
+}
+
 await sql.end();

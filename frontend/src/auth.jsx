@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { api, classifyApiError } from './api.js';
 import { supabase } from './lib/supabase.js';
+import { enviarOrigem } from './lib/origem.js';
 
 const AuthCtx = createContext(null);
 
@@ -34,6 +35,7 @@ export function AuthProvider({ children }) {
     const loadUser = useCallback(async () => {
         const { user, googleConfigured } = await api.me();
         setUser(user);
+        if (user) enviarOrigem();
         setGoogleConfigured(!!googleConfigured);
         setMeError(null);
         return user;

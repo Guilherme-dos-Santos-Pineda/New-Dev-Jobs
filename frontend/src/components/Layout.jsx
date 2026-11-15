@@ -99,6 +99,7 @@ function MenuUsuario({ user, onBug, onSair, compacto }) {
                     <button role="menuitem" onClick={() => ir('/app/perfil')}><i className="ti ti-user" /> {t('Meu perfil')}</button>
                     <a role="menuitem" href={GRUPO_WHATSAPP} target="_blank" rel="noopener" onClick={() => setAberto(false)}><i className="ti ti-brand-whatsapp" /> {t('Comunidade no WhatsApp')}</a>
                     <button role="menuitem" onClick={() => ir('/app/feedback')}><i className="ti ti-message-2" /> {t('Depoimentos')}</button>
+                    <button role="menuitem" onClick={() => ir('/app/indicar')}><i className="ti ti-gift" /> {t('Indique e ganhe')}</button>
                     {(PLANOS_PAGOS_ATIVOS || user?.podeComprar) && <button role="menuitem" onClick={() => ir('/app/assinatura')}><i className="ti ti-crown" /> {t('Assinatura')}</button>}
                     {user?.isAdmin && <button role="menuitem" onClick={() => ir('/app/admin')}><i className="ti ti-shield-cog" /> Admin</button>}
                     <div className="mu-sep" />

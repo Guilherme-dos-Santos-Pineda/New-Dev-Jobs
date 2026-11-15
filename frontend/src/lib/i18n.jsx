@@ -726,6 +726,28 @@ const EN = {
     'Revisar as {n} vagas e marcar só as que você quiser.': 'Review the {n} jobs and check only the ones you want.',
     'Escolher uma a uma é um recurso dos planos pagos.': 'Picking them one by one is a paid-plan feature.',
     'Permissão apenas de envio (gmail.send). Nunca lemos seus emails.': 'Send-only permission (gmail.send). We never read your emails.',
+    // Indique e ganhe e fim da cota (14/11/2026)
+    "Indique e ganhe": "Refer and earn",
+    "Indicar um amigo": "Refer a friend",
+    "Automático: 50 por dia": "Automatic: 50 a day",
+    "Quer mandar mais? Com o Automático são 50 por dia, por R$ 10 em 30 dias. Ou indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.": "Want to send more? Automatic gives you 50 a day, R$ 10 for 30 days. Or refer a friend: you both get +10 sends a day for 7 days.",
+    "Quer mandar mais? Indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.": "Want to send more? Refer a friend: you both get +10 sends a day for 7 days.",
+    "Tô usando o New Dev Jobs: ele manda seu currículo direto para o email do recrutador, pelo seu Gmail. 20 por dia, de graça. Entra pelo meu link:": "I'm using New Dev Jobs: it sends your résumé straight to the recruiter's email, from your Gmail. 20 a day, free. Join through my link:",
+    "Copie o link:": "Copy the link:",
+    "Cada amigo que mandar o primeiro currículo pelo seu link dá +{n} envios por dia, por {d} dias, para você e para ele.": "Every friend who sends their first résumé through your link gives you both +{n} sends a day for {d} days.",
+    "Seu link": "Your link",
+    "Copiar link": "Copy link",
+    "Criaram conta pelo seu link": "Signed up through your link",
+    "Já mandaram o primeiro currículo": "Already sent their first résumé",
+    "Seu bônus": "Your bonus",
+    "+{n} envios por dia até {data}": "+{n} sends a day until {data}",
+    "Nenhum bônus ativo agora.": "No active bonus right now.",
+    "Você entrou pelo link de alguém: o seu bônus sai no seu primeiro envio pelo Gmail.": "You joined through someone's link: your bonus kicks in on your first send through Gmail.",
+    "Como funciona": "How it works",
+    "Seu amigo cria a conta pelo seu link.": "Your friend signs up through your link.",
+    "Quando ele mandar o primeiro currículo pelo Gmail conectado, vocês dois ganham +{n} envios por dia por {d} dias.": "When they send their first résumé through their connected Gmail, you both get +{n} sends a day for {d} days.",
+    "Cada amigo soma mais {d} dias, até {teto} dias de bônus.": "Each friend adds {d} more days, up to {teto} days of bonus.",
+    "Vale para conta nova. A mesma pessoa com duas contas não conta.": "Only new accounts count. The same person with two accounts doesn't.",
 };
 const DICT = { pt: {}, en: EN };
 

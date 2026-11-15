@@ -35,7 +35,7 @@ export async function publicUser(user) {
         autoEnvio: !!user.AutoEnvio,
         autoEnvioProximo: user.AutoEnvio ? proximoEnvio(user.AutoEnvioUltimo) : null,
         podeComprar: compraLiberada(user.Email),
-        usage: { usedToday: usage.usedToday, remainingToday: usage.remainingToday, dailyLimit: usage.dailyLimit },
+        usage: { usedToday: usage.usedToday, remainingToday: usage.remainingToday, dailyLimit: usage.dailyLimit, bonusAte: usage.bonusAte },
         isAdmin: config.isAdminEmail(user.Email) || user.Role === 'admin',
         hasProfile: !!profile,
         hasCv: !!profile?.CvPath,

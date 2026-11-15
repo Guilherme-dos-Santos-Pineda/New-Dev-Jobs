@@ -2,6 +2,13 @@
 
 Registro das alterações relevantes. Datas no formato AAAA-MM-DD.
 
+## 2026-11-15 — De onde vem quem cria conta, e o que fazer quando a cota acaba
+
+- **Origem por canal**: a landing e o app guardam a primeira visita (utm, site anterior, link de indicação) e a conta nova grava o canal (migration `0030`). Visitas contadas por dia e canal, sem cookie e sem IP. `npm run funil` mostra o funil por canal.
+- **Fim da cota**: em Vagas, quem mandou os 20 do dia vê o Automático (50 por dia, R$ 10) e "Indicar um amigo", em vez de só "volte às 21h".
+- **Indique e ganhe** (`/app/indicar`, no menu do nome): link pessoal com WhatsApp, LinkedIn e Telegram. No primeiro envio real pelo Gmail do amigo, os dois ganham +10 envios por dia por 7 dias, somando até 60 dias.
+- Política de Privacidade e Termos atualizados.
+
 ## 2026-08 — Saída do Render: infraestrutura própria, inglês e correção do matching
 
 ### Hospedagem (Render → Oracle Cloud)

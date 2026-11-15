@@ -11,6 +11,7 @@ import { invalidateMatches, bloqueadaPeloUsuario } from './jobsQuery.js';
 import { jaContatado, enderecos } from './mesmoRecrutador.js';
 import { enderecosSemDominio } from './emailDominio.js';
 import { emailDeContatoValido, ehErroDeDestinatario } from './emailContato.js';
+import { premiarIndicacao } from './indicacao.js';
 
 class ApplyError extends Error {
     constructor(message, status = 400) { super(message); this.status = status; }
@@ -96,6 +97,10 @@ export async function applyToJob(userId, jobId, editado = null) {
     // A vaga saiu do conjunto "ainda não candidatadas": derruba o memo do
     // getMatches, senão ela reapareceria como disponível por até o TTL.
     invalidateMatches(userId);
+
+    // Primeiro envio de quem veio por indicação: os dois ganham o bônus. Só consulta
+    // o banco nessa situação; erro aqui nunca derruba o envio que já saiu.
+    if (user.IndicadoPor && !user.IndicacaoPremiadaEm) premiarIndicacao(userId).catch((e) => console.warn('indicação:', e.message));
 
     return { applicationId: created.Id, matchScore: match.score };
 }

@@ -9,6 +9,7 @@ import { garantirRoboDasVagas } from './services/vagasAnunciadas.js';
 import { tickVagasGithub } from './services/vagasGithub.js';
 import { planOf } from './config/plans.js';
 import { countSentToday } from './services/usage.js';
+import { limiteComBonus } from './services/indicacaoLogic.js';
 import { tickCampaigns } from './services/campaigns.js';
 import { apifyExhaustedUntil, apifyPoolState } from './services/apifyPool.js';
 import { runMaintenance } from './services/maintenance.js';
@@ -30,8 +31,8 @@ async function handleSend([job]) {
     if (!row || row.Status !== 'queued') return; // lote cancelado/substituído ou já processado
 
     // Teto diário do plano (envios reais de hoje)
-    const [user] = await sql`select "Plan" from "Users" where "Id" = ${userId}`;
-    const limit = planOf(user?.Plan).dailyLimit;
+    const [user] = await sql`select "Plan", "BonusEnviosAte" from "Users" where "Id" = ${userId}`;
+    const limit = limiteComBonus(planOf(user?.Plan).dailyLimit, user?.BonusEnviosAte);
     const count = await countSentToday(userId);
     if (count >= limit) {
         await sql`update "SendQueue" set "Status" = 'skipped', "Error" = 'limite do dia atingido: a contagem zera às 21h, horário de Brasília', "SentAt" = now() where "Id" = ${queueId}`;

@@ -6,6 +6,7 @@ import { resolveTemplate } from '../routes/templates.js';
 import { getMatches, invalidateMatches } from './jobsQuery.js';
 import { planOf, avisoDoLimite } from '../config/plans.js';
 import { decideCompose } from './composeLogic.js';
+import { limiteComBonus } from './indicacaoLogic.js';
 import { emailDeContatoValido } from './emailContato.js';
 
 // =========================
@@ -41,7 +42,7 @@ export async function composeForJob(userId, jobId, planName) {
     const [jaFeita] = await sql`
         select "Id" from "Applications" where "UserId" = ${userId} and "JobId" = ${jobId}`;
 
-    const limite = planOf(planName).dailyLimit;
+    const limite = limiteComBonus(planOf(planName).dailyLimit, user.BonusEnviosAte);
     const [{ count: usadosHoje }] = await sql`
         select count(*)::int as count from "Applications"
         where "UserId" = ${userId} and "SentAt"::date = current_date`;

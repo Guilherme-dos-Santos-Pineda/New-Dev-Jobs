@@ -27,6 +27,8 @@ import publicRoutes from './routes/public.js';
 import retornoRoutes from './routes/retorno.js';
 import analiseCvRoutes from './routes/analiseCv.js';
 import cvVersoesRoutes from './routes/cvVersoes.js';
+import indicacaoRoutes from './routes/indicacao.js';
+import { iniciarGravacaoDeVisitas, gravarVisitas } from './services/indicacao.js';
 import { getBoss } from './lib/boss.js';
 import { startWorker } from './worker.js';
 
@@ -104,6 +106,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/retorno', retornoRoutes);
 app.use('/api/curriculo/analise', analiseCvRoutes);
 app.use('/api/curriculo/versoes', cvVersoesRoutes);
+app.use('/api/indicacao', indicacaoRoutes);
 
 // 404 para rotas /api desconhecidas
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota não encontrada' }));
@@ -125,6 +128,7 @@ let stopWorker = null;
 
 const server = app.listen(PORT, async () => {
     console.log(`🚀 newdevjobs API rodando em http://localhost:${PORT}`);
+    iniciarGravacaoDeVisitas();
 
     if (RUN_WORKER) {
         // startWorker já inicia o pg-boss (migrations + filas) internamente.
@@ -147,6 +151,7 @@ const server = app.listen(PORT, async () => {
 const shutdown = async (sig) => {
     console.log(`\n${sig} recebido — encerrando…`);
     server.close();
+    await gravarVisitas().catch(() => {});
     if (stopWorker) await stopWorker();
     process.exit(0);
 };

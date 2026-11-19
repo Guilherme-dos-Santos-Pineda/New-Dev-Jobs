@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useCachedResource } from '../lib/useCachedResource.js';
 import { useT } from '../lib/i18n.jsx';
+import { useToast } from '../components/Toast.jsx';
 import { scoreClass, fmtDate } from '../utils.js';
 
 const PAGE_SIZE = 12;
@@ -12,7 +13,11 @@ const STATUS = {
     failed: { label: 'Falhou', icon: 'ti-alert-triangle', tom: 'danger' },
     skipped: { label: 'Pulado', icon: 'ti-player-skip-forward', tom: 'neutro' },
     queued: { label: 'Na fila', icon: 'ti-clock', tom: 'neutro' },
+    manual: { label: 'Aberto no Gmail', icon: 'ti-external-link', tom: 'neutro' },
 };
+
+// Filtro simples de Enviadas (19/11/2026): status e busca por vaga, empresa ou email.
+const FILTROS = [['', 'Todas'], ['enviado', 'Enviadas'], ['manual', 'Abertas no Gmail'], ['falhou', 'Falharam'], ['pulado', 'Puladas']];
 
 // =========================
 // Candidaturas
@@ -26,7 +31,13 @@ const STATUS = {
 export default function Applications() {
     const { t } = useT();
     const [page, setPage] = useState(1);
-    const { data, loading } = useCachedResource(`applications:${page}`, () => api.getApplications({ page, pageSize: PAGE_SIZE }));
+    const [status, setStatus] = useState('');
+    const [busca, setBusca] = useState('');
+    const [q, setQ] = useState('');
+    // Espera a pessoa parar de digitar: uma consulta por busca, não por letra.
+    useEffect(() => { const id = setTimeout(() => { setQ(busca.trim()); setPage(1); }, 400); return () => clearTimeout(id); }, [busca]);
+    const { data, loading, refresh: reload } = useCachedResource(`applications:${page}:${status}:${q}`, () => api.getApplications({ page, pageSize: PAGE_SIZE, status, q }));
+    const filtrando = !!(status || q);
     const apps = data?.applications || [];
     const total = data?.total ?? apps.length;
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -45,8 +56,27 @@ export default function Applications() {
                 )}
             </div>
 
+            <div className="card vl-filtros" style={{ marginBottom: 12 }}>
+                <div className="vl-busca">
+                    <i className="ti ti-search" />
+                    <input className="input" value={busca} onChange={(e) => setBusca(e.target.value)}
+                        placeholder={t('Buscar por vaga, empresa ou email')} aria-label={t('Buscar por vaga, empresa ou email')} />
+                </div>
+                <div className="chips" role="group" aria-label={t('Status')} style={{ marginTop: 10 }}>
+                    {FILTROS.map(([v, l]) => (
+                        <button key={v || 'todas'} type="button" className={`chip toggle ${status === v ? 'on' : ''}`}
+                            onClick={() => { setStatus(v); setPage(1); }}>{t(l)}</button>
+                    ))}
+                </div>
+            </div>
+
             {loading ? (
                 <div className="lista">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="skeleton" style={{ height: 68, borderRadius: 'var(--radius)' }} />)}</div>
+            ) : apps.length === 0 && filtrando ? (
+                <div className="card empty">
+                    <i className="ti ti-filter-off" />
+                    {t('Nada com esse filtro.')}
+                </div>
             ) : apps.length === 0 ? (
                 <div className="card empty">
                     <i className="ti ti-send" />
@@ -88,7 +118,7 @@ export default function Applications() {
                 </div>
             )}
 
-            {open && <DetalheCandidatura a={open} onClose={() => setOpen(null)} t={t} />}
+            {open && <DetalheCandidatura a={open} onClose={() => setOpen(null)} t={t} onAvisou={() => reload?.()} />}
         </div>
     );
 }
@@ -96,9 +126,29 @@ export default function Applications() {
 // Os mesmos campos, sempre na mesma ordem, com rótulo em cima. É o formato que
 // você apontou como bonito, e ele funciona porque o rótulo responde "o que é
 // isso" antes de a pessoa precisar deduzir pelo conteúdo.
-function DetalheCandidatura({ a, onClose, t }) {
+function DetalheCandidatura({ a, onClose, t, onAvisou }) {
     const st = STATUS[a.status] || STATUS.sent;
+    const toast = useToast();
     const [copiado, setCopiado] = useState(false);
+    const [voltou, setVoltou] = useState(!!a.emailVoltou);
+    const [confirmando, setConfirmando] = useState(false);
+    const trava = useRef(false);
+    // Só para envio pelo Gmail: é quem recebe o "endereço não encontrado".
+    const podeAvisar = a.status === 'sent' && !!a.to;
+    async function avisarVoltou() {
+        if (trava.current) return;
+        trava.current = true;
+        try {
+            const r = await api.emailVoltou(a.id);
+            setVoltou(true);
+            setConfirmando(false);
+            toast.show(r.bloqueados?.length
+                ? t('Obrigado! Esse email saiu da lista de todo mundo.')
+                : t('Obrigado! Quando mais alguém avisar, esse email sai da lista de todo mundo.'));
+            onAvisou?.();
+        } catch (e) { toast.show(e.message, 'error'); }
+        finally { trava.current = false; }
+    }
     async function copiarLink() {
         try {
             await navigator.clipboard.writeText(a.postUrl);
@@ -161,6 +211,22 @@ function DetalheCandidatura({ a, onClose, t }) {
                             <i className="ti ti-search" /> {t('Procurar o post no LinkedIn')}
                         </a>
                         <span className="muted" style={{ fontSize: 12.5, alignSelf: 'center' }}>{t('O link do post desta vaga não foi guardado.')}</span>
+                    </div>
+                )}
+
+                {podeAvisar && (
+                    <div className="det-secao det-voltou">
+                        {voltou ? (
+                            <span className="muted" style={{ fontSize: 13 }}><i className="ti ti-mail-off" /> {t('Você avisou que este email voltou. Valeu!')}</span>
+                        ) : confirmando ? (<>
+                            <span style={{ fontSize: 13 }}>{t('Você recebeu no seu Gmail um aviso de que este endereço não existe ("Endereço não encontrado")?')}</span>
+                            <div className="row" style={{ gap: 8, marginTop: 8 }}>
+                                <button className="btn sm danger" onClick={avisarVoltou}>{t('Sim, o email voltou')}</button>
+                                <button className="btn sm ghost" onClick={() => setConfirmando(false)}>{t('Cancelar')}</button>
+                            </div>
+                        </>) : (
+                            <button className="link-sutil" onClick={() => setConfirmando(true)}><i className="ti ti-mail-off" /> {t('Esse email voltou (endereço não existe)')}</button>
+                        )}
                     </div>
                 )}
 

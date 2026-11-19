@@ -25,7 +25,7 @@ const TERMO = {
     mobile: 'mobile', data: 'dados', devops: 'infraestrutura', qa: 'QA', design: 'UX',
     po: 'product owner', erp: 'SAP', suporte: 'suporte TI',
     adm: 'administrativo', financeiro: 'financeiro', rh: 'RH', engenharia: 'engenharia',
-    vendas: 'vendas', marketing: 'marketing', operacoes: 'logística', juridico: 'jurídico',
+    vendas: 'vendas', marketing: 'marketing', operacoes: 'logística', compras: 'compras', juridico: 'jurídico',
 };
 const NIVEL = { estagio: 'estágio', junior: 'júnior', pleno: 'pleno', senior: 'sênior' };
 const ORDEM = ['estagio', 'junior', 'pleno', 'senior', 'lead', 'manager'];

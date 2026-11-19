@@ -748,6 +748,23 @@ const EN = {
     "Quando ele mandar o primeiro currículo pelo Gmail conectado, vocês dois ganham +{n} envios por dia por {d} dias.": "When they send their first résumé through their connected Gmail, you both get +{n} sends a day for {d} days.",
     "Cada amigo soma mais {d} dias, até {teto} dias de bônus.": "Each friend adds {d} more days, up to {teto} days of bonus.",
     "Vale para conta nova. A mesma pessoa com duas contas não conta.": "Only new accounts count. The same person with two accounts doesn't.",
+    // Enviadas com filtro, email que voltou, busca em Vagas (19/11/2026)
+    "Buscar por cargo ou empresa": "Search by role or company",
+    "Nenhuma vaga sua com \"{q}\".": "None of your jobs match \"{q}\".",
+    "Só vagas que dizem a modalidade": "Only jobs that state the work model",
+    "Vaga que não diz se é remota, híbrida ou presencial fica de fora. Você recebe menos vagas, sem surpresa.": "Jobs that don't say remote, hybrid or on-site are left out. Fewer jobs, no surprises.",
+    "Vaga que não diz a modalidade continua aparecendo (muitas não dizem).": "Jobs that don't state the work model still show up (many don't).",
+    "Abertas no Gmail": "Opened in Gmail",
+    "Falharam": "Failed",
+    "Puladas": "Skipped",
+    "Buscar por vaga, empresa ou email": "Search by job, company or email",
+    "Nada com esse filtro.": "Nothing matches this filter.",
+    "Obrigado! Esse email saiu da lista de todo mundo.": "Thanks! That email was removed for everyone.",
+    "Obrigado! Quando mais alguém avisar, esse email sai da lista de todo mundo.": "Thanks! Once someone else reports it too, that email is removed for everyone.",
+    "Você avisou que este email voltou. Valeu!": "You reported that this email bounced. Thanks!",
+    "Você recebeu no seu Gmail um aviso de que este endereço não existe (\"Endereço não encontrado\")?": "Did Gmail tell you this address does not exist (\"Address not found\")?",
+    "Sim, o email voltou": "Yes, it bounced",
+    "Esse email voltou (endereço não existe)": "This email bounced (address does not exist)",
 };
 const DICT = { pt: {}, en: EN };
 

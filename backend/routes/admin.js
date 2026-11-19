@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import sql from '../lib/sql.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { painelEmailsVoltaram, bloquearEmail, desbloquearEmail } from '../services/emailVoltou.js';
 import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
@@ -432,6 +433,22 @@ router.post('/robo-plano/:userId/rodar', requireAdmin, (req, res) => {
 });
 
 // GET /api/admin/github: o leitor das vagas do GitHub (services/vagasGithub.js).
+// Emails que voltaram (services/emailVoltou.js): os bloqueados e os avisos que ainda
+// não bastaram. Bloquear e desbloquear à mão, por endereço.
+router.get('/emails-voltaram', requireAdmin, async (_req, res) => {
+    try { res.json(await painelEmailsVoltaram()); }
+    catch (e) { console.error('admin emails voltaram:', e.message); res.status(500).json({ error: 'Não deu para carregar agora.' }); }
+});
+router.post('/emails-voltaram/bloquear', requireAdmin, async (req, res) => {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Email inválido.' });
+    await bloquearEmail(email, 'admin');
+    res.json({ ok: true });
+});
+router.post('/emails-voltaram/desbloquear', requireAdmin, async (req, res) => {
+    res.json({ ok: await desbloquearEmail(String(req.body?.email || '').trim()) });
+});
+
 router.get('/github', requireAdmin, async (_req, res) => {
     try {
         res.json(await painelGithub());

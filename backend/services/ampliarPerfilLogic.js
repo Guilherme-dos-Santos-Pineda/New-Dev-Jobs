@@ -18,13 +18,13 @@ const VIZINHAS = {
     devops: ['suporte', 'backend'], qa: ['suporte', 'dev'], design: ['frontend', 'po'], po: ['qa', 'data'],
     suporte: ['devops', 'qa'], erp: ['suporte', 'data'],
     adm: ['financeiro', 'rh'], financeiro: ['adm', 'rh'], rh: ['adm', 'financeiro'], vendas: ['marketing', 'adm'],
-    marketing: ['vendas', 'adm'], operacoes: ['adm', 'engenharia'], engenharia: ['operacoes'], juridico: ['adm'],
+    marketing: ['vendas', 'adm'], operacoes: ['compras', 'adm'], compras: ['operacoes', 'adm'], engenharia: ['operacoes'], juridico: ['adm'],
 };
 const NOME_AREA = {
     frontend: 'front-end', backend: 'back-end', fullstack: 'full stack', dev: 'desenvolvimento (geral)', mobile: 'mobile',
     data: 'dados', devops: 'DevOps/infra', qa: 'QA', design: 'design', po: 'produto', suporte: 'suporte', erp: 'ERP/SAP',
     adm: 'administrativo', financeiro: 'financeiro', rh: 'RH', vendas: 'vendas', marketing: 'marketing',
-    operacoes: 'operações', engenharia: 'engenharia', juridico: 'jurídico',
+    operacoes: 'operações', compras: 'compras e suprimentos', engenharia: 'engenharia', juridico: 'jurídico',
 };
 
 const lista = (v) => {
@@ -59,6 +59,9 @@ export function variantesDoPerfil(perfil) {
         out.push({ id: 'exigidas', texto: `Deixar de exigir ${e(exigidas.map((w) => `"${w}"`))}`, patch: { RequiredKeywords: [] } });
     }
     const mods = lista(perfil?.Modalities);
+    if (mods.length && perfil?.StrictModality) {
+        out.push({ id: 'semModalidade', texto: 'Aceitar vaga que não diz a modalidade', patch: { StrictModality: false } });
+    }
     if (mods.length && !mods.includes('hibrido')) {
         out.push({ id: 'hibrido', texto: 'Aceitar vaga híbrida também', patch: { Modalities: [...mods, 'hibrido'] } });
     }

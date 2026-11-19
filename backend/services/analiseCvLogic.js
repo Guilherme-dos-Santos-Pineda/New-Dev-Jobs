@@ -24,7 +24,7 @@ const AREA_LEGIVEL = {
     frontend: 'front-end', backend: 'back-end', fullstack: 'full stack', dev: 'desenvolvimento de software',
     mobile: 'mobile', data: 'dados', devops: 'DevOps, infraestrutura e segurança', qa: 'QA e testes',
     design: 'design UX/UI', po: 'produto e projetos', suporte: 'suporte de TI', erp: 'ERP/SAP',
-    adm: 'administrativo', financeiro: 'financeiro e contábil', rh: 'RH e recrutamento', engenharia: 'engenharia, indústria e manutenção', vendas: 'vendas', marketing: 'marketing', operacoes: 'operações e logística', juridico: 'jurídico',
+    adm: 'administrativo', financeiro: 'financeiro e contábil', rh: 'RH e recrutamento', engenharia: 'engenharia, indústria e manutenção', vendas: 'vendas', marketing: 'marketing', operacoes: 'operações e logística', compras: 'compras e suprimentos', juridico: 'jurídico',
 };
 const NIVEL_LEGIVEL = { estagio: 'estágio', junior: 'júnior', pleno: 'pleno', senior: 'sênior', lead: 'liderança' };
 

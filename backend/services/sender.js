@@ -12,6 +12,7 @@ import { jaContatado, enderecos } from './mesmoRecrutador.js';
 import { enderecosSemDominio } from './emailDominio.js';
 import { emailDeContatoValido, ehErroDeDestinatario } from './emailContato.js';
 import { premiarIndicacao } from './indicacao.js';
+import { emailsBloqueados } from './emailVoltou.js';
 
 class ApplyError extends Error {
     constructor(message, status = 400) { super(message); this.status = status; }
@@ -59,6 +60,10 @@ export async function applyToJob(userId, jobId, editado = null) {
     if ((await enderecosSemDominio(destinos)).length === destinos.length) {
         throw new ApplyError('O email desta vaga não existe (o domínio não recebe email).', 422);
     }
+    // Endereço que voltou para quem já mandou (emailVoltou.js): sai da lista; sem nenhum, não envia.
+    const bloqueados = await emailsBloqueados();
+    const para = destinos.filter((e) => !bloqueados.has(e));
+    if (!para.length) throw new ApplyError('O email desta vaga não existe mais: voltou para quem já enviou.', 422);
 
     const match = computeMatch(profile, job);
     const lang = idiomaDaVaga(job);
@@ -73,7 +78,7 @@ export async function applyToJob(userId, jobId, editado = null) {
 
     try {
         await sendApplicationEmail({
-            userId, from: remetente(user), to: job.Email,
+            userId, from: remetente(user), to: para.length === destinos.length ? job.Email : para.join(', '),
             subject: rendered.subject, html: rendered.html, text: rendered.text,
             attachmentContent: cvBuffer, filename: nomeDoArquivo,
         });

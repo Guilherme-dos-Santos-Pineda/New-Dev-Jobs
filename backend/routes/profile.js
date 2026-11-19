@@ -24,7 +24,7 @@ const EMPTY_PROFILE = {
     Skills: [], Seniority: null, Modality: null, SalaryMin: null, SalaryMax: null,
     Headline: null, Phone: null, Whatsapp: null, Linkedin: null, Github: null, Portfolio: null,
     RequiredKeywords: [], BlockedWords: [], BlockedDomains: [], Levels: [], Modalities: [], Areas: [],
-    StrictLevel: false, PostingDays: null, Region: 'br', States: [], Cities: [], ShowPcd: false, Contracts: [], Regions: [],
+    StrictLevel: false, PostingDays: null, Region: 'br', States: [], Cities: [], ShowPcd: false, StrictModality: false, Contracts: [], Regions: [],
 };
 
 let temColunaContratos = false;
@@ -57,12 +57,12 @@ async function upsertProfile(userId, f) {
     await sql`
         insert into "Profiles" ("UserId", "Skills", "Seniority", "Modality", "SalaryMin", "SalaryMax", "Headline",
             "Phone", "Whatsapp", "Linkedin", "Github", "Portfolio",
-            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "Areas", "StrictLevel", "PostingDays", "Region", "States", "Cities", "ShowPcd", "UpdatedAt")
+            "RequiredKeywords", "BlockedWords", "BlockedDomains", "Levels", "Modalities", "Areas", "StrictLevel", "PostingDays", "Region", "States", "Cities", "ShowPcd", "StrictModality", "UpdatedAt")
         values (${userId}, ${sql.json(f.Skills)}, ${f.Seniority}, ${f.Modality}, ${f.SalaryMin}, ${f.SalaryMax}, ${f.Headline},
             ${f.Phone}, ${f.Whatsapp}, ${f.Linkedin}, ${f.Github}, ${f.Portfolio},
             ${sql.json(f.RequiredKeywords)}, ${sql.json(f.BlockedWords)}, ${sql.json(f.BlockedDomains)},
             ${sql.json(f.Levels)}, ${sql.json(f.Modalities)}, ${sql.json(f.Areas || [])}, ${f.StrictLevel}, ${f.PostingDays}, ${f.Region || 'br'},
-            ${sql.json(f.States)}, ${sql.json(f.Cities)}, ${f.ShowPcd}, now())
+            ${sql.json(f.States)}, ${sql.json(f.Cities)}, ${f.ShowPcd}, ${f.StrictModality}, now())
         on conflict ("UserId") do update set
             "Skills" = excluded."Skills", "Seniority" = excluded."Seniority", "Modality" = excluded."Modality",
             "SalaryMin" = excluded."SalaryMin", "SalaryMax" = excluded."SalaryMax", "Headline" = excluded."Headline",
@@ -71,7 +71,7 @@ async function upsertProfile(userId, f) {
             "RequiredKeywords" = excluded."RequiredKeywords", "BlockedWords" = excluded."BlockedWords",
             "BlockedDomains" = excluded."BlockedDomains", "Levels" = excluded."Levels", "Modalities" = excluded."Modalities",
             "Areas" = excluded."Areas", "StrictLevel" = excluded."StrictLevel", "PostingDays" = excluded."PostingDays", "Region" = excluded."Region",
-            "States" = excluded."States", "Cities" = excluded."Cities", "ShowPcd" = excluded."ShowPcd", "UpdatedAt" = now()`;
+            "States" = excluded."States", "Cities" = excluded."Cities", "ShowPcd" = excluded."ShowPcd", "StrictModality" = excluded."StrictModality", "UpdatedAt" = now()`;
 
     await gravaContratos(userId, f.Contracts || []);
     await gravaRegioes(userId, f.Regions || []);
@@ -111,6 +111,7 @@ function publicProfile(p) {
         states: parseArr(p.States),
         cities: parseArr(p.Cities),
         showPcd: !!p.ShowPcd,
+        strictModality: !!p.StrictModality,
         contracts: parseArr(p.Contracts),
         // Sem a coluna (migration 0022) a tela esconde o campo.
         contratoLigado: p.Contracts !== undefined,
@@ -166,6 +167,7 @@ router.put('/', requireAuth, async (req, res) => {
         States: toArr(b.states).map((x) => x.toUpperCase()).filter((x) => ALLOWED_STATES.includes(x)),
         Cities: [...new Set(toArr(b.cities).map((x) => x.replace(/[<>]/g, '').slice(0, 60)))].slice(0, 20),
         ShowPcd: !!b.showPcd,
+        StrictModality: !!b.strictModality,
         Contracts: filterAllowed(b.contracts, ALLOWED_CONTRACTS),
         Regions: filterAllowed(b.regions, ALLOWED_REGIONS),
     });

@@ -21,7 +21,7 @@ const EMPTY = {
     skills: [], seniorities: [], modalities: [], areas: [], salaryMin: '', salaryMax: '', headline: '',
     phone: '', whatsapp: '', linkedin: '', github: '', portfolio: '',
     requiredKeywords: [], blockedWords: [], blockedDomains: [], strictLevel: false, postingDays: '', region: 'br', contracts: [], regions: [],
-    states: [], cities: [], showPcd: false,
+    states: [], cities: [], showPcd: false, strictModality: false,
 };
 
 export default function Profile() {
@@ -81,7 +81,7 @@ export default function Profile() {
             requiredKeywords: p.requiredKeywords || [], blockedWords: p.blockedWords || [],
             blockedDomains: p.blockedDomains || [],
             strictLevel: !!p.strictLevel, postingDays: p.postingDays ?? '', region: p.region || 'br',
-            states: p.states || [], cities: p.cities || [], showPcd: !!p.showPcd,
+            states: p.states || [], cities: p.cities || [], showPcd: !!p.showPcd, strictModality: !!p.strictModality,
             contracts: p.contracts || [], contratoLigado: !!p.contratoLigado,
             regions: p.regions || [], regiaoLigada: !!p.regiaoLigada,
         };
@@ -250,6 +250,19 @@ export default function Profile() {
                                             onClick={() => toggleIn('modalities', o.value)}>{o.label}</span>
                                     ))}
                                 </div>
+                                {form.modalities.length > 0 && (
+                                    <label className="row" style={{ alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 400, marginTop: 8 }}>
+                                        <input type="checkbox" checked={form.strictModality} onChange={(e) => set('strictModality', e.target.checked)} />
+                                        {t('Só vagas que dizem a modalidade')}
+                                    </label>
+                                )}
+                                {form.modalities.length > 0 && (
+                                    <div className="hint" style={{ marginTop: 4 }}>
+                                        {form.strictModality
+                                            ? t('Vaga que não diz se é remota, híbrida ou presencial fica de fora. Você recebe menos vagas, sem surpresa.')
+                                            : t('Vaga que não diz a modalidade continua aparecendo (muitas não dizem).')}
+                                    </div>
+                                )}
                             </div>
                             {form.contratoLigado && (
                                 <div className="field">

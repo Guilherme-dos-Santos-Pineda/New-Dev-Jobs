@@ -1,4 +1,5 @@
 import sql from '../lib/sql.js';
+import { vagasComEmailBloqueado } from './emailVoltou.js';
 import { computeMatch } from './matching.js';
 import { detectArea, detectLevel, detectModality, jobIsBR, areaDaVaga, nivelDaVaga, areaForaDeTI, contratoDaVaga, vagaEmEspanhol, regioesDaVaga } from './classify.js';
 import { idsComDislike } from './jobFeedback.js';
@@ -129,6 +130,9 @@ export function passesFilters(job, profile, { semEmail = false } = {}) {
     if (modalidades.length) {
         const daVaga = detectModality(job);
         if (daVaga && !daVaga.some((m) => modalidades.includes(m))) return false;
+        // "Só vagas que dizem a modalidade" (19/11/2026): quem marcou só remoto e não
+        // quer surpresa abre mão das que não dizem nada.
+        if (!daVaga && profile.StrictModality) return false;
     }
 
     if (foraDoLocal(job, profile)) return false;
@@ -289,7 +293,8 @@ async function computeMatches(userId) {
     const vagas = await vagasDoFeed();
     const candidaturas = await sql`select "JobId" from "Applications" where "UserId" = ${userId}`;
     // Já enviada ou com 👎: sai do feed desta pessoa.
-    const resolvidas = new Set([...candidaturas.map((r) => String(r.JobId)), ...await idsComDislike(userId)]);
+    // Email que voltou e foi bloqueado (emailVoltou.js) também sai, para todo mundo.
+    const resolvidas = new Set([...candidaturas.map((r) => String(r.JobId)), ...await idsComDislike(userId), ...await vagasComEmailBloqueado(vagas)]);
 
     const noneApplied = new Set(); // as candidatadas já saíram acima
     const ordenadas = candidatasDoPerfil(vagas, profile, resolvidas)

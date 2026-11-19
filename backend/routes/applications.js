@@ -10,6 +10,8 @@ import { getMatches, invalidateMatches } from '../services/jobsQuery.js';
 import { emailEditado } from '../services/emailEditado.js';
 import { idiomaDaVaga } from '../services/classify.js';
 import { linkDoPost, buscaDoPost } from '../services/linkDoPost.js';
+import { avisarEmailVoltou } from '../services/emailVoltou.js';
+import { config } from '../config.js';
 
 const router = Router();
 
@@ -26,22 +28,51 @@ function shapeApp(a) {
         buscaUrl: linkDoPost(a.PostId) ? null : buscaDoPost(a.JobTitle, a.Company),
         // Qual currículo foi: a versão da IA (plano com IA) ou, sem ela, o do perfil.
         cvVersao: a.CvVersaoNome || null,
+        emailVoltou: !!a.EmailVoltou,
     };
 }
 
-// GET /api/applications?page=&pageSize=
+// Filtro de Enviadas (19/11/2026): status e texto (vaga, empresa ou email).
+const STATUS_FILTRO = { enviado: ['sent'], manual: ['manual'], falhou: ['failed'], pulado: ['skipped'] };
+
+// GET /api/applications?page=&pageSize=&q=&status=
 router.get('/', requireAuth, async (req, res) => {
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(60, Math.max(6, Number(req.query.pageSize) || 24));
-    const [{ total }] = await sql`select count(*)::int as total from "Applications" where "UserId" = ${req.user.Id}`;
+    const status = STATUS_FILTRO[String(req.query.status || '')] || null;
+    // ilike: maiúscula não importa (acento importa). Curinga digitado não vale.
+    const q = String(req.query.q || '').trim().slice(0, 80).replace(/[%_\\]/g, '');
+    const filtro = sql`
+        a."UserId" = ${req.user.Id}
+        ${status ? sql`and a."Status" = any(${status}::text[])` : sql``}
+        ${q ? sql`and (coalesce(j."JobTitle",'') || ' ' || coalesce(j."Company",'') || ' ' || coalesce(j."Email",'')) ilike ${'%' + q + '%'}` : sql``}`;
+    const [{ total }] = await sql`
+        select count(*)::int as total from "Applications" a join "Jobs" j on j."Id" = a."JobId" where ${filtro}`;
     const rows = await sql`
-        select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description", j."LinkedinId" as "PostId", p."Url" as "UrlDoPost"
+        select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description", j."LinkedinId" as "PostId", p."Url" as "UrlDoPost",
+               exists (select 1 from "EmailsVoltaram" v where v."ApplicationId" = a."Id") as "EmailVoltou"
         from "Applications" a join "Jobs" j on j."Id" = a."JobId"
         left join "ScrapedPosts" p on p."LinkedinId" = j."LinkedinId" and j."LinkedinId" like 'github:%'
-        where a."UserId" = ${req.user.Id}
+        where ${filtro}
         order by a."CreatedAt" desc, a."Id" desc
         limit ${pageSize} offset ${(page - 1) * pageSize}`;
     res.json({ applications: rows.map(shapeApp), total, page, pageSize });
+});
+
+// POST /api/applications/:id/email-voltou: o email desta candidatura voltou
+// ("endereço não encontrado"). Regras contra abuso em services/emailVoltouLogic.js.
+router.post('/:id/email-voltou', requireAuth, async (req, res) => {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Candidatura inválida.' });
+    try {
+        const admin = config.isAdminEmail(req.user.Email) || req.user.Role === 'admin';
+        const r = await avisarEmailVoltou(req.user, id, { admin });
+        if (r.erro) return res.status(400).json({ error: r.erro });
+        res.json(r);
+    } catch (e) {
+        console.error('email voltou:', e.message);
+        res.status(500).json({ error: 'Não deu para registrar agora.' });
+    }
 });
 
 // POST /api/applications/preview  { jobId, lang?, subject?, body? }

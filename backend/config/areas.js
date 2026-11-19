@@ -56,7 +56,9 @@ const VIZINHAS = {
 // 'financeiro', 'rh' e 'engenharia' entraram em 11/11/2026: 'adm' era administrativo,
 // financeiro e RH juntos (quem queria financeiro recebia recepcionista), e engenharia e
 // manutenção eram ~300 vagas em 60 dias indo para o lixo.
-export const AREAS_FORA_DE_TI = ['adm', 'financeiro', 'rh', 'vendas', 'marketing', 'operacoes', 'juridico', 'engenharia'];
+// 'compras' (compras e suprimentos) saiu de 'operacoes' em 19/11/2026, a pedido de usuário:
+// 46 vagas em 60 dias, todas com email, misturadas com logística e produção.
+export const AREAS_FORA_DE_TI = ['adm', 'financeiro', 'rh', 'compras', 'vendas', 'marketing', 'operacoes', 'juridico', 'engenharia'];
 
 export function expandirAreas(escolhidas) {
     const lista = Array.isArray(escolhidas) ? escolhidas.filter(Boolean).map(String) : [];

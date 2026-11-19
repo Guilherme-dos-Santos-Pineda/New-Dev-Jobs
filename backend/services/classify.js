@@ -246,7 +246,7 @@ export function detectModality(job) {
     // Sem campo: o texto do anúncio. Híbrido antes de remoto, senão "híbrido com
     // 2 dias remotos" seria lido como remoto puro.
     if (/h[íi]brid|hybrid/.test(texto)) return ['hibrido'];
-    if (/100% remoto|totalmente remoto|home ?office|trabalho remoto|fully remote|remote[- ]first|\bremoto\b|\bremote\b/.test(texto)) return ['remoto'];
+    if (/100% remot[oa]|totalmente remot[oa]|home ?office|trabalho remoto|fully remote|remote[- ]first|\bremot[oa]s?\b|\bremote\b/.test(texto)) return ['remoto'];
     if (/presencial|no local da empresa|on[- ]?site/.test(texto)) return ['presencial'];
 
     // Nada escrito sobre modalidade, mas a vaga tem cidade ou bairro ("Guarulhos/SP",
@@ -281,7 +281,7 @@ export { parseArr };
 // defasadas. Sem isso, ajustar o classificador exigiria lembrar de varrer a tabela
 // à mão — e o esquecimento seria silencioso: a vaga velha ficaria com a regra
 // velha para sempre.
-export const CLASSIFY_VERSION = 11;
+export const CLASSIFY_VERSION = 12; // 12: "vaga remota" (feminino) é remoto, 19/11/2026
 
 const BR_HINT = /brasil|brazil|s[ãa]o paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|bras[íi]lia|fortaleza|recife|salvador|campinas|florian[óo]polis/i;
 
@@ -448,6 +448,9 @@ const AREAS_DO_TITULO = [
     // Administrativo de RH" é RH e "Assistente Administrativo Financeiro" é financeiro.
     ['rh', /recursos humanos|\brh\b|\bhr\b|recrutador|recrutamento|talent|human resources|\bpeople\b|departamento pessoal|\bdp\b|payroll|folha de pagamento|benef[íi]cios|\bdho\b|desenvolvimento (?:organizacional|humano)|treinamento|remunera[çc]|headhunter|business partner/],
     ['financeiro', /financeir|fp&a|faturamento|contas a (?:pagar|receber)|cont[áa]bil|contador|contabilidade|contable|fiscal|tribut|controladoria|controller|tesour|cr[ée]dito|cobran[çc]a|auditor|custos|controles internos|\bsox\b|investiment|banc[áa]ri/],
+    // Compras e suprimentos (19/11/2026): antes de administrativo ("Assistente Administrativo de
+    // Compras") e de engenharia ("Engenheiro de Suprimentos"); antes era parte de operações.
+    ['compras', /compras|comprador|suprimentos|procurement|sourcing|\bbuyer\b|purchas|supply chain|\bsupply\b/],
     ['adm', /administrativ|administra[çc][ãa]o|escrit[óo]rio|contratos|facilities|secret[áa]ri|recep[çc]|licita[çc]|back ?office/],
     // Antes de operações: "Engenheiro de Produção" e "Planejamento de Manutenção" são daqui.
     ['engenharia', ENGENHARIA],

@@ -177,6 +177,9 @@ async function atualizar() {
         select "Id", "Source", "LinkedinId", "Url", "Author", left("Content", 3000) as "Content", "PostedAt", "CreatedAt"
         from "ScrapedPosts"
         where "Id" > ${maiorId} and coalesce("Status", '') <> 'rejected' and "Content" !~* ${EMAIL_SQL}
+          -- Autor bloqueado no admin (recrutador rejected) não aparece: era o caso do agregador
+          -- DEVagas (19/11/2026), que repostava a mesma vaga com link encurtado e confundia.
+          and not exists (select 1 from "Recruiters" r where r."Status" = 'rejected' and r."LinkedinUrl" = "ScrapedPosts"."AuthorUrl")
           and (("Source" = ${FONTE} and "CreatedAt" > now() - make_interval(days => ${DIAS_DE_VAGA_ANUNCIADA}))
                or ("Source" is distinct from ${FONTE} and "CreatedAt" > now() - make_interval(days => ${DIAS_DE_VAGA})
                    and "Content" ~* ${LINK_SQL}))

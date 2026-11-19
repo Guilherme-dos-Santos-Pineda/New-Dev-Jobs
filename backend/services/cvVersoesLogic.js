@@ -13,7 +13,7 @@ export const AREA_LEGIVEL = {
     frontend: 'Front-end', backend: 'Back-end', fullstack: 'Full-stack', dev: 'Desenvolvimento',
     mobile: 'Mobile', data: 'Dados', devops: 'DevOps e infraestrutura', qa: 'QA e testes',
     design: 'Design UX/UI', po: 'Produto e projetos', suporte: 'Suporte de TI', erp: 'ERP/SAP',
-    adm: 'Administrativo', financeiro: 'Financeiro', rh: 'RH', engenharia: 'Engenharia', vendas: 'Vendas', marketing: 'Marketing', operacoes: 'Operações', juridico: 'Jurídico',
+    adm: 'Administrativo', financeiro: 'Financeiro', rh: 'RH', engenharia: 'Engenharia', vendas: 'Vendas', marketing: 'Marketing', operacoes: 'Operações', compras: 'Compras', juridico: 'Jurídico',
 };
 
 /**

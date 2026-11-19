@@ -60,6 +60,7 @@ const TERMO_DA_AREA = {
     vendas: 'vendas',
     marketing: 'marketing',
     operacoes: 'logística',
+    compras: 'compras',
     juridico: 'advogado',
 };
 

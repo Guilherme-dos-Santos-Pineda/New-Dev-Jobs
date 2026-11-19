@@ -119,6 +119,7 @@ export const api = {
     getCatalogo: () => request('GET', '/billing/catalogo'),
     conviteAutomatico: () => request('GET', '/billing/convite'),
     indicacao: () => request('GET', '/indicacao'),
+    emailVoltou: (applicationId) => request('POST', `/applications/${applicationId}/email-voltou`),
     enviarOrigem: (data) => request('POST', '/indicacao/origem', data),
     confirmarPagamento: (sessionId) => request('POST', '/billing/confirmar', { sessionId }),
     autoEnvio: (ativo) => request('PUT', '/auth/auto-envio', { ativo }),

@@ -87,7 +87,8 @@ export const AREA_OPTIONS = [
     { value: 'rh', label: 'RH / Recrutamento', icone: 'ti-users', desc: 'Recrutamento, DP, benefícios, treinamento' },
     { value: 'vendas', label: 'Vendas / Atendimento', icone: 'ti-message-circle', desc: 'Comercial, inside sales, customer success' },
     { value: 'marketing', label: 'Marketing / Comunicação', icone: 'ti-speakerphone', desc: 'Social media, conteúdo, tráfego, comunicação' },
-    { value: 'operacoes', label: 'Operações / Logística', icone: 'ti-truck', desc: 'Logística, compras, produção, qualidade' },
+    { value: 'compras', label: 'Compras / Suprimentos', icone: 'ti-shopping-cart', desc: 'Comprador, analista de compras, suprimentos, supply chain' },
+    { value: 'operacoes', label: 'Operações / Logística', icone: 'ti-truck', desc: 'Logística, produção, qualidade, estoque' },
     { value: 'juridico', label: 'Jurídico', icone: 'ti-scale', desc: 'Advocacia, assistente jurídico, estágio em direito' },
     { value: 'engenharia', label: 'Engenharia / Indústria / Manutenção', icone: 'ti-tool', desc: 'Engenharia, obras, manutenção, técnicos, offshore' },
 ];

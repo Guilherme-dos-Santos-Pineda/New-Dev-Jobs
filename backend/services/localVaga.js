@@ -83,8 +83,9 @@ export function foraDoLocal(job, profile) {
 // sobre a VAGA. Medido na base: "também é destinada a PcD" é o contrário de
 // exclusiva, e "pipeline exclusivo PcD" é outro processo. "Afirmativa" fica de
 // fora porque os posts de curadoria marcam um item entre dez, e as outras nove
-// vagas sairiam do feed junto.
-const EXCLUSIVA_PCD = /\b(?:vagas?|oportunidades?|processo(?:\s+seletivo)?)\s+(?:exclusiv[ao]s?|somente|apenas|destinad[ao]s?)\s+(?:(?:para|pra|a|à|às|aos)\s+)?(?:pcds?\b|pessoas?\s+com\s+defici[êe]ncia|profissiona(?:l|is)\s+com\s+defici[êe]ncia)/i;
+// vagas sairiam do feed junto. Mas "Vaga Afirmativa: Exclusiva para profissionais com
+// deficiência" é exclusiva (relato de 16/11/2026: chegou para 14 pessoas sem a opção).
+const EXCLUSIVA_PCD = /\b(?:vagas?|oportunidades?|processo(?:\s+seletivo)?)\s+(?:afirmativ[ao]s?\s*[:\-–]?\s*(?:\(\s*pcds?\s*\)\s*[:\-–]?\s*)?)?(?:exclusiv[ao]s?|somente|apenas|destinad[ao]s?)\s+(?:(?:para|pra|a|à|às|aos)\s+)?(?:pcds?\b|pessoas?\s+com\s+defici[êe]ncia|profissiona(?:l|is)\s+com\s+defici[êe]ncia)/i;
 
 /** O post diz que a vaga é só para pessoas com deficiência? */
 export function vagaExclusivaPcd(job) {

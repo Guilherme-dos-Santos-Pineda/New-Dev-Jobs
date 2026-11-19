@@ -2,6 +2,15 @@
 
 Registro das alterações relevantes. Datas no formato AAAA-MM-DD.
 
+## 2026-11-19 — Relatos do grupo
+
+- **"Esse email voltou"** em Enviadas: com 2 pessoas (ou o admin) o endereço sai do feed de todos e o envio recusa. Só avisa quem mandou pelo Gmail, até 5 por dia. O endereço da Randstad que voltou para 14 pessoas já está bloqueado.
+- **PCD**: "Vaga Afirmativa: Exclusiva para profissionais com deficiência" agora é reconhecida como exclusiva.
+- **"Só vagas que dizem a modalidade"**: opção no perfil para quem não quer vaga sem modalidade escrita. "Vaga remota" passou a contar como remoto.
+- **Compras e suprimentos** virou área própria (antes estava em operações).
+- **Busca por cargo ou empresa** em Vagas e **filtro em Enviadas** (texto e status).
+- O agregador DEVagas foi bloqueado: some de Vagas por link e deixa de gastar crédito do robô.
+
 ## 2026-11-15 — De onde vem quem cria conta, e o que fazer quando a cota acaba
 
 - **Origem por canal**: a landing e o app guardam a primeira visita (utm, site anterior, link de indicação) e a conta nova grava o canal (migration `0030`). Visitas contadas por dia e canal, sem cookie e sem IP. `npm run funil` mostra o funil por canal.

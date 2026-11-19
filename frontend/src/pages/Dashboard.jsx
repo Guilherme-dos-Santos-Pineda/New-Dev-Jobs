@@ -63,6 +63,7 @@ export default function Dashboard() {
     const [aberta, setAberta] = useState(null);
     const [textoCompleto, setTextoCompleto] = useState({});
     const [mostrar, setMostrar] = useState(POR_PAGINA);
+    const [busca, setBusca] = useState('');
     const [ocupado, setOcupado] = useState(null);
     const [fila, setFila] = useState(null);
     // "Quero ver o que vai ser enviado" (02/11/2026): o email pronto de UMA vaga,
@@ -223,7 +224,11 @@ export default function Dashboard() {
     }
 
     const nome = user?.name?.split(' ')[0] || '';
-    const visiveis = (lista || []).slice(0, mostrar);
+    // Busca por cargo ou empresa (pedido de usuário, 16/11/2026), sem acento, na lista já carregada.
+    const semAcento = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const termo = semAcento(busca.trim());
+    const filtrada = termo ? (lista || []).filter((v) => semAcento(`${v.title} ${v.company}`).includes(termo)) : (lista || []);
+    const visiveis = filtrada.slice(0, mostrar);
 
     return (
         <div className="page vagas-hoje">
@@ -331,7 +336,15 @@ export default function Dashboard() {
                         <Link to="/app/perfil" className="btn sm">{t('Ajustar o que eu procuro')}</Link>
                     </div>
                 ) : (<>
-                    <div className="card lista-card vh-lista">
+                    <div className="vl-busca" style={{ margin: '10px 0' }}>
+                        <i className="ti ti-search" />
+                        <input className="input" value={busca} onChange={(e) => { setBusca(e.target.value); setMostrar(POR_PAGINA); }}
+                            placeholder={t('Buscar por cargo ou empresa')} aria-label={t('Buscar por cargo ou empresa')} />
+                    </div>
+                    {termo && !filtrada.length && (
+                        <div className="card empty" style={{ padding: 22 }}>{t('Nenhuma vaga sua com "{q}".', { q: busca.trim() })}</div>
+                    )}
+                    {filtrada.length > 0 && <div className="card lista-card vh-lista">
                         {visiveis.map((v) => {
                             const st = estado[v.id];
                             if (st === 'removido') {
@@ -406,8 +419,8 @@ export default function Dashboard() {
                                 </div>
                             );
                         })}
-                    </div>
-                    {lista.length > mostrar && (
+                    </div>}
+                    {filtrada.length > mostrar && (
                         <button className="btn ghost block" style={{ marginTop: 12 }} onClick={() => setMostrar((n) => n + POR_PAGINA)}>
                             {t('Mostrar mais vagas')}
                         </button>

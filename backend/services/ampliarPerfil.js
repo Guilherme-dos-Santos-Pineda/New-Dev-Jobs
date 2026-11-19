@@ -68,6 +68,7 @@ export async function aplicarSugestao(user, id) {
     if (p.Modalities) await sql`update "Profiles" set "Modalities" = ${sql.json(p.Modalities)}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
     if (p.PostingDays != null) await sql`update "Profiles" set "PostingDays" = ${p.PostingDays}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
     if (p.Region) await sql`update "Profiles" set "Region" = ${p.Region}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
+    if (p.StrictModality === false) await sql`update "Profiles" set "StrictModality" = false, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
     if (p.RequiredKeywords) await sql`update "Profiles" set "RequiredKeywords" = ${sql.json(p.RequiredKeywords)}, "UpdatedAt" = now() where "UserId" = ${user.Id}`;
     invalidateMatches(user.Id);
     esquecerVagasPorLink(user.Id);

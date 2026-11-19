@@ -100,6 +100,8 @@ test('PCD: reconhece as formas reais de vaga exclusiva', () => {
         'Vaga exclusiva PcD',
         'Vaga destinada a pessoas com deficiência',
         'Processo apenas para PCDs',
+        '♿ Vaga Afirmativa: Exclusiva para profissionais com deficiência (elegível pela Lei de Cotas)',
+        'Vaga afirmativa (PcD): exclusiva para pessoas com deficiência',
     ]) assert.equal(vagaExclusivaPcd({ Description: d }), true, d);
 });
 

@@ -60,6 +60,10 @@ test('canal: utm vence, depois indicação, depois o site de onde veio', () => {
     assert.equal(canalDaOrigem({ referrer: 'https://newdevjobs.xyz/docs.html' }), 'direto');
     assert.equal(canalDaOrigem({}), 'direto');
     assert.equal(canalDaOrigem({ referrer: 'https://blog.qualquer.dev/post' }), 'blog.qualquer.dev');
+    // App no Android: o referrer é o pacote (visto em produção: com.reddit.frontpage).
+    assert.equal(canalDaOrigem({ referrer: 'android-app://com.reddit.frontpage/' }), 'reddit');
+    assert.equal(canalDaOrigem({ referrer: 'android-app://com.linkedin.android/' }), 'linkedin');
+    assert.equal(canalDaOrigem({ referrer: 'android-app://com.google.android.gm/' }), 'email');
 });
 
 test('origem gravada: só campos conhecidos, curtos, e o referrer vira só o host', () => {

@@ -18,6 +18,7 @@ import AdminBugs from '../components/AdminBugs.jsx';
 import AdminAnaliseCv from '../components/AdminAnaliseCv.jsx';
 import AdminRoboPlano from '../components/AdminRoboPlano.jsx';
 import AdminGithub from '../components/AdminGithub.jsx';
+import AdminIndicacoes from '../components/AdminIndicacoes.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 
@@ -98,6 +99,7 @@ export default function Admin() {
                     ['stats', 'Estatísticas', 'ti-chart-bar'],
                     ['report', 'Relatório', 'ti-report-analytics'],
                     ['campanhas', 'Campanhas', 'ti-mail-forward'],
+                    ['indicacoes', 'Indicações e origem', 'ti-gift'],
                     ['divulgacao', 'Divulgação', 'ti-brand-linkedin'],
                     ['backups', 'Perfis apagados', 'ti-archive'],
                 ].map(([id, label, icon]) => (
@@ -119,6 +121,7 @@ export default function Admin() {
             {tab === 'stats' && <AdminStats />}
             {tab === 'report' && <AdminReport />}
             {tab === 'campanhas' && <AdminCampaigns />}
+            {tab === 'indicacoes' && <AdminIndicacoes />}
             {tab === 'divulgacao' && <AdminPromoPost />}
             {tab === 'backups' && <AdminProfileBackups />}
 

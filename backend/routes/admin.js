@@ -3,6 +3,7 @@ import { z } from 'zod';
 import sql from '../lib/sql.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { painelEmailsVoltaram, bloquearEmail, desbloquearEmail } from '../services/emailVoltou.js';
+import { painelIndicacoesAdmin } from '../services/indicacao.js';
 import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
@@ -433,6 +434,12 @@ router.post('/robo-plano/:userId/rodar', requireAdmin, (req, res) => {
 });
 
 // GET /api/admin/github: o leitor das vagas do GitHub (services/vagasGithub.js).
+// Indique e ganhe e origem das contas (services/indicacao.js).
+router.get('/indicacoes', requireAdmin, async (_req, res) => {
+    try { res.json(await painelIndicacoesAdmin()); }
+    catch (e) { console.error('admin indicações:', e.message); res.status(500).json({ error: 'Não deu para carregar as indicações agora.' }); }
+});
+
 // Emails que voltaram (services/emailVoltou.js): os bloqueados e os avisos que ainda
 // não bastaram. Bloquear e desbloquear à mão, por endereço.
 router.get('/emails-voltaram', requireAdmin, async (_req, res) => {

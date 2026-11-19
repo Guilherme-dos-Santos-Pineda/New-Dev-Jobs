@@ -157,6 +157,7 @@ export const api = {
     analiseCvAntiga: (id) => request('GET', `/curriculo/analise/${encodeURIComponent(id)}`),
     adminRoboPlano: () => request('GET', '/admin/robo-plano'),
     adminGithub: () => request('GET', '/admin/github'),
+    adminIndicacoes: () => request('GET', '/admin/indicacoes'),
     adminRodarGithub: () => request('POST', '/admin/github/rodar'),
     adminRodarRobo: (userId) => request('POST', `/admin/robo-plano/${encodeURIComponent(userId)}/rodar`),
     versoesCv: () => request('GET', '/curriculo/versoes'),

@@ -144,3 +144,54 @@ export function iniciarGravacaoDeVisitas() {
     timer = setInterval(() => { gravarVisitas().catch(() => {}); }, 5 * 60 * 1000);
     timer.unref?.();
 }
+
+// =========================
+// Admin › Indicações: quem indica, em que pé está cada indicado, de onde vêm as contas
+// =========================
+// Consultas SEQUENCIAIS (regra do pool). "Suspeito" = mesmo Gmail ou mesmo email nas
+// duas contas: o prêmio já não sai (premioVale), mas a tela mostra para o admin ver.
+export async function painelIndicacoesAdmin() {
+    const [resumo] = await sql`
+        select count(*) filter (where "IndicadoPor" is not null)::int as indicados,
+               count(*) filter (where "IndicacaoPremiadaEm" is not null)::int as premiados,
+               count(*) filter (where "IndicadoPor" is not null and "IndicacaoPremiadaEm" is null)::int as aguardando,
+               count(distinct "IndicadoPor")::int as "quemIndicou",
+               count(*) filter (where "BonusEnviosAte" > now())::int as "comBonus",
+               count(*) filter (where "CodigoIndicacao" is not null)::int as "geraramLink"
+        from "Users"`;
+    const [vis] = await sql`
+        select coalesce(sum("Visitas"), 0)::int as n from "VisitasDiarias"
+        where "Canal" = 'indicacao' and "Dia" > current_date - 30`;
+
+    const quemIndica = await sql`
+        select q."Id" as id, q."Name" as nome, q."Email" as email, q."CodigoIndicacao" as codigo,
+               q."BonusEnviosAte" as "bonusAte", q."Plan" as plano,
+               count(i."Id")::int as indicados,
+               count(i."Id") filter (where i."IndicacaoPremiadaEm" is not null)::int as premiados,
+               max(i."CreatedAt") as "ultima"
+        from "Users" q join "Users" i on i."IndicadoPor" = q."Id"
+        group by q."Id" order by indicados desc, ultima desc limit 100`;
+
+    const indicados = await sql`
+        select i."Id" as id, i."Name" as nome, i."Email" as email, i."CreatedAt" as "criadoEm",
+               i."GoogleConnected" as gmail, i."IndicacaoPremiadaEm" as "premiadoEm", i."Plan" as plano,
+               q."Name" as "quemNome", q."Email" as "quemEmail",
+               (lower(coalesce(i."GoogleEmail", '')) <> '' and lower(i."GoogleEmail") = lower(coalesce(q."GoogleEmail", ''))) as "mesmoGmail",
+               (select count(*)::int from "Applications" a where a."UserId" = i."Id") as envios,
+               exists (select 1 from "Profiles" p where p."UserId" = i."Id") as perfil
+        from "Users" i join "Users" q on q."Id" = i."IndicadoPor"
+        order by i."CreatedAt" desc limit 200`;
+
+    // Origem das contas desde que passou a ser gravada (15/11/2026), por canal.
+    const origens = await sql`
+        select coalesce(u."Origem"->>'canal', 'sem origem') as canal, count(*)::int as contas,
+               count(*) filter (where exists (select 1 from "Applications" a where a."UserId" = u."Id"))::int as enviaram,
+               count(*) filter (where u."Plan" <> 'free' and u."StripeCustomerId" is not null)::int as pagaram
+        from "Users" u where u."CreatedAt" >= '2026-11-15'
+        group by 1 order by contas desc limit 30`;
+    const visitas = await sql`
+        select "Canal" as canal, sum("Visitas")::int as n from "VisitasDiarias"
+        where "Dia" > current_date - 30 group by 1 order by n desc limit 30`;
+
+    return { resumo: { ...resumo, visitasPorLink: vis.n }, quemIndica, indicados, origens, visitas };
+}

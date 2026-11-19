@@ -92,6 +92,13 @@ const HOSTS = [
     [/(^|\.)(chatgpt\.com|openai\.com|perplexity\.ai)$/, 'ia'],
 ];
 
+// Pacotes de app (Android): o referrer é o id do app, não um site.
+const APPS = [
+    [/reddit/, 'reddit'], [/linkedin/, 'linkedin'], [/whatsapp/, 'whatsapp'], [/telegram/, 'telegram'],
+    [/instagram|facebook|katana/, 'meta'], [/twitter/, 'x'], [/googlequicksearchbox|chrome/, 'google'],
+    [/android\.gm$/, 'email'], [/discord/, 'discord'],
+];
+
 export function limparCanal(v) {
     const s = String(v || '').toLowerCase().trim().replace(/[^a-z0-9._-]/g, '').slice(0, 40);
     return s || null;
@@ -111,6 +118,11 @@ export function canalDaOrigem({ utm_source, ref, referrer } = {}, meuHost = 'new
     if (normalizarCodigo(ref)) return 'indicacao';
     const host = hostDe(referrer);
     if (!host || host === meuHost || host.endsWith(`.${meuHost}`)) return 'direto';
+    // App no Android manda o pacote como referrer (android-app://com.reddit.frontpage).
+    // Antes dos sites: "com.google.android.gm" é o Gmail, não a busca do Google.
+    if (/^android-app:/i.test(String(referrer))) {
+        for (const [re, nome] of APPS) if (re.test(host)) return nome;
+    }
     for (const [re, nome] of HOSTS) if (re.test(host)) return nome;
     return limparCanal(host) || 'outro';
 }

@@ -33,21 +33,38 @@ function shapeApp(a) {
 }
 
 // Filtro de Enviadas (19/11/2026): status e texto (vaga, empresa ou email).
-const STATUS_FILTRO = { enviado: ['sent'], manual: ['manual'], falhou: ['failed'], pulado: ['skipped'] };
+// Só existem dois status aqui: 'sent' (pelo Gmail) e 'manual' ("enviar você mesmo").
+// Falha e envio pulado ficam na fila (SendQueue), nunca viram candidatura: os chips
+// "Falharam" e "Puladas" da primeira versão viviam vazios (relato do dono, 19/11/2026).
+const FILTROS = {
+    semana: sql`and a."SentAt" > now() - interval '7 days'`,
+    gmail: sql`and a."Status" = 'sent'`,
+    manual: sql`and a."Status" = 'manual'`,
+    ia: sql`and a."CvVersaoId" is not null`,
+    voltou: sql`and exists (select 1 from "EmailsVoltaram" v where v."ApplicationId" = a."Id")`,
+};
 
 // GET /api/applications?page=&pageSize=&q=&status=
 router.get('/', requireAuth, async (req, res) => {
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(60, Math.max(6, Number(req.query.pageSize) || 24));
-    const status = STATUS_FILTRO[String(req.query.status || '')] || null;
+    const status = FILTROS[String(req.query.status || '')] || null;
     // ilike: maiúscula não importa (acento importa). Curinga digitado não vale.
     const q = String(req.query.q || '').trim().slice(0, 80).replace(/[%_\\]/g, '');
-    const filtro = sql`
+    const busca = sql`
         a."UserId" = ${req.user.Id}
-        ${status ? sql`and a."Status" = any(${status}::text[])` : sql``}
         ${q ? sql`and (coalesce(j."JobTitle",'') || ' ' || coalesce(j."Company",'') || ' ' || coalesce(j."Email",'')) ilike ${'%' + q + '%'}` : sql``}`;
-    const [{ total }] = await sql`
-        select count(*)::int as total from "Applications" a join "Jobs" j on j."Id" = a."JobId" where ${filtro}`;
+    const filtro = sql`${busca} ${status || sql``}`;
+    // Contagem de cada chip numa consulta só (com a busca aplicada): chip vazio some da tela.
+    const [c] = await sql`
+        select count(*)::int as todas,
+               count(*) filter (where a."SentAt" > now() - interval '7 days')::int as semana,
+               count(*) filter (where a."Status" = 'sent')::int as gmail,
+               count(*) filter (where a."Status" = 'manual')::int as manual,
+               count(*) filter (where a."CvVersaoId" is not null)::int as ia,
+               count(*) filter (where exists (select 1 from "EmailsVoltaram" v where v."ApplicationId" = a."Id"))::int as voltou
+        from "Applications" a join "Jobs" j on j."Id" = a."JobId" where ${busca}`;
+    const total = status ? c[String(req.query.status)] : c.todas;
     const rows = await sql`
         select a.*, j."Company", j."JobTitle", j."Email" as "JobEmail", j."Description", j."LinkedinId" as "PostId", p."Url" as "UrlDoPost",
                exists (select 1 from "EmailsVoltaram" v where v."ApplicationId" = a."Id") as "EmailVoltou"
@@ -56,7 +73,7 @@ router.get('/', requireAuth, async (req, res) => {
         where ${filtro}
         order by a."CreatedAt" desc, a."Id" desc
         limit ${pageSize} offset ${(page - 1) * pageSize}`;
-    res.json({ applications: rows.map(shapeApp), total, page, pageSize });
+    res.json({ applications: rows.map(shapeApp), total, page, pageSize, contagens: c });
 });
 
 // POST /api/applications/:id/email-voltou: o email desta candidatura voltou

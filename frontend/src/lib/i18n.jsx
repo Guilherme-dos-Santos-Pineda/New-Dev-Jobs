@@ -755,8 +755,6 @@ const EN = {
     "Vaga que não diz se é remota, híbrida ou presencial fica de fora. Você recebe menos vagas, sem surpresa.": "Jobs that don't say remote, hybrid or on-site are left out. Fewer jobs, no surprises.",
     "Vaga que não diz a modalidade continua aparecendo (muitas não dizem).": "Jobs that don't state the work model still show up (many don't).",
     "Abertas no Gmail": "Opened in Gmail",
-    "Falharam": "Failed",
-    "Puladas": "Skipped",
     "Buscar por vaga, empresa ou email": "Search by job, company or email",
     "Nada com esse filtro.": "Nothing matches this filter.",
     "Obrigado! Esse email saiu da lista de todo mundo.": "Thanks! That email was removed for everyone.",
@@ -765,6 +763,9 @@ const EN = {
     "Você recebeu no seu Gmail um aviso de que este endereço não existe (\"Endereço não encontrado\")?": "Did Gmail tell you this address does not exist (\"Address not found\")?",
     "Sim, o email voltou": "Yes, it bounced",
     "Esse email voltou (endereço não existe)": "This email bounced (address does not exist)",
+    "Pelo Gmail": "Through Gmail",
+    "Com currículo da IA": "With AI résumé",
+    "Email voltou": "Email bounced",
 };
 const DICT = { pt: {}, en: EN };
 

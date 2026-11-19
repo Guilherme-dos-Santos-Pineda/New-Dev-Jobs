@@ -16,8 +16,9 @@ const STATUS = {
     manual: { label: 'Aberto no Gmail', icon: 'ti-external-link', tom: 'neutro' },
 };
 
-// Filtro simples de Enviadas (19/11/2026): status e busca por vaga, empresa ou email.
-const FILTROS = [['', 'Todas'], ['enviado', 'Enviadas'], ['manual', 'Abertas no Gmail'], ['falhou', 'Falharam'], ['pulado', 'Puladas']];
+// Filtro simples de Enviadas (19/11/2026): busca por vaga, empresa ou email e um
+// recorte. Cada chip mostra quantas tem; chip com zero não aparece.
+const FILTROS = [['', 'Todas'], ['semana', 'Últimos 7 dias'], ['gmail', 'Pelo Gmail'], ['manual', 'Abertas no Gmail'], ['ia', 'Com currículo da IA'], ['voltou', 'Email voltou']];
 
 // =========================
 // Candidaturas
@@ -63,9 +64,11 @@ export default function Applications() {
                         placeholder={t('Buscar por vaga, empresa ou email')} aria-label={t('Buscar por vaga, empresa ou email')} />
                 </div>
                 <div className="chips" role="group" aria-label={t('Status')} style={{ marginTop: 10 }}>
-                    {FILTROS.map(([v, l]) => (
+                    {FILTROS.filter(([v]) => !v || v === status || (data?.contagens?.[v] ?? 0) > 0).map(([v, l]) => (
                         <button key={v || 'todas'} type="button" className={`chip toggle ${status === v ? 'on' : ''}`}
-                            onClick={() => { setStatus(v); setPage(1); }}>{t(l)}</button>
+                            onClick={() => { setStatus(v); setPage(1); }}>
+                            {t(l)}{data?.contagens && <span className="chip-n">{data.contagens[v || 'todas'] ?? 0}</span>}
+                        </button>
                     ))}
                 </div>
             </div>

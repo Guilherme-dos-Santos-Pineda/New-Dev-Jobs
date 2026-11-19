@@ -2267,6 +2267,8 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 
 /* Enviadas: link do post em cima, com "copiar" ao lado (pages/Applications.jsx) */
 .det-post { display: flex; flex-wrap: wrap; gap: 8px; }
+/* "Esse email voltou": botão com cara de link (sem isto o navegador pinta o fundo de branco). */
+.det-voltou button.link-sutil { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 
 /* ===== Currículo com IA: abas e passo a passo (pages/Curriculo.jsx, VersoesCurriculo.jsx) ===== */
 .ia-abas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 4px 0 16px; }

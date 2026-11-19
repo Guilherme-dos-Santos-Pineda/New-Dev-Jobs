@@ -16,6 +16,7 @@ import CommunityBanner from '../components/CommunityBanner.jsx';
 import PedidoFeedback from '../components/PedidoFeedback.jsx';
 import ConviteAutomatico from '../components/ConviteAutomatico.jsx';
 import AvisoPoucaVaga from '../components/AvisoPoucaVaga.jsx';
+import OfertaPlano, { diaDoFim } from '../components/OfertaPlano.jsx';
 import AutoEnvio from '../components/AutoEnvio.jsx';
 import { PLANOS_PAGOS_ATIVOS } from '../lib/flags.js';
 
@@ -279,13 +280,15 @@ export default function Dashboard() {
                             <div className="vh-hero-titulo"><i className="ti ti-circle-check" /> {t('Você já mandou os {n} currículos de hoje.', { n: limite })}</div>
                             <div className="vh-hero-sub">{t('A contagem zera às 21h, horário de Brasília. As vagas continuam aqui.')}</div>
                             <div className="vh-hero-sub">
-                                {semAutomatico
+                                {semAutomatico && user?.promocao
+                                    ? t('Quer mandar mais? Na {nome}, o Automático vale {dias} dias por R$ 10 (até {fim}): 50 envios por dia e o currículo saindo sozinho às 9h. Ou indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.', { nome: user.promocao.nome, dias: 30 + user.promocao.diasExtra, fim: diaDoFim(user.promocao) })
+                                    : semAutomatico
                                     ? t('Quer mandar mais? Com o Automático são 50 por dia, por R$ 10 em 30 dias. Ou indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.')
                                     : t('Quer mandar mais? Indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.')}
                             </div>
                         </div>
                         <div className="vh-limite-acoes">
-                            {semAutomatico && <Link className="btn primary vh-hero-btn" to="/app/assinatura"><i className="ti ti-crown" /> {t('Automático: 50 por dia')}</Link>}
+                            {semAutomatico && <Link className="btn primary vh-hero-btn" to="/app/assinatura"><i className="ti ti-crown" /> {user?.promocao ? t('Automático: {dias} dias por R$ 10', { dias: 30 + user.promocao.diasExtra }) : t('Automático: 50 por dia')}</Link>}
                             <Link className={`btn ${semAutomatico ? '' : 'primary '}vh-hero-btn`} to="/app/indicar"><i className="ti ti-gift" /> {t('Indicar um amigo')}</Link>
                         </div>
                     </>) : !conectado ? (<>
@@ -330,7 +333,9 @@ export default function Dashboard() {
                 <PerguntaRetorno />
                 <PedidoFeedback />
                 <AvisoPoucaVaga onMudou={() => carregar()} />
-                <ConviteAutomatico />
+                <OfertaPlano />
+                {/* Na promoção a OfertaPlano já convida: dois cartões de venda seguidos é demais. */}
+                {!user?.promocao && <ConviteAutomatico />}
                 <CommunityBanner variant="button" style={{ marginBottom: 14 }} />
                 <CartaoVagasLink />
                 <CartaoAnaliseCv />

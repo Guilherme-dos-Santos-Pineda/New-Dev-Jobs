@@ -24,7 +24,8 @@
     "funil": "node backend/scripts/funil.mjs",
     "campanha:nunca-enviou": "node backend/scripts/campanha-nunca-enviou.mjs",
     "lint": "npm run lint --prefix frontend && npm run lint:backend",
-    "lint:backend": "node frontend/node_modules/eslint/bin/eslint.js -c eslint.backend.config.mjs backend"
+    "lint:backend": "node frontend/node_modules/eslint/bin/eslint.js -c eslint.backend.config.mjs backend",
+    "campanha:black-friday": "node backend/scripts/campanha-black-friday.mjs"
   },
   "keywords": [],
   "type": "module",

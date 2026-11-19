@@ -7,6 +7,7 @@ import { getAuthUrl, consumeState, exchangeCodeAndStore, disconnect } from '../s
 import { planUsage } from '../services/usage.js';
 import { planOf } from '../config/plans.js';
 import { compraLiberada } from '../config/planosPagos.js';
+import { promocaoAtiva } from '../config/promocao.js';
 import { proximoEnvio } from '../services/autoEnvio.js';
 import { assertCanSend } from '../services/sender.js';
 
@@ -35,6 +36,8 @@ export async function publicUser(user) {
         autoEnvio: !!user.AutoEnvio,
         autoEnvioProximo: user.AutoEnvio ? proximoEnvio(user.AutoEnvioUltimo) : null,
         podeComprar: compraLiberada(user.Email),
+        // Promoção em vigor (config/promocao.js): só para quem pode comprar.
+        promocao: compraLiberada(user.Email) ? promocaoAtiva() : null,
         usage: { usedToday: usage.usedToday, remainingToday: usage.remainingToday, dailyLimit: usage.dailyLimit, bonusAte: usage.bonusAte },
         isAdmin: config.isAdminEmail(user.Email) || user.Role === 'admin',
         hasProfile: !!profile,

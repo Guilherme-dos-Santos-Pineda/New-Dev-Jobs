@@ -218,3 +218,35 @@ test('concessão recusa dias invalidos', () => {
         assert.equal(decideConcessaoDePlano({ plano: 'pro', dias, planosValidos: validos }).ok, false, `deveria recusar ${dias}`);
     }
 });
+
+// =========================
+// Promoção (Black Friday 2026): 30 + 30 dias por R$ 10
+// =========================
+test('promoção: vale só dentro da janela, nos dois limites', async () => {
+    const { promocaoAtiva, PROMOCAO } = await import('../config/promocao.js');
+    assert.equal(promocaoAtiva(Date.parse('2026-11-18T23:59:59-03:00')), null);
+    assert.equal(promocaoAtiva(Date.parse(PROMOCAO.inicio))?.diasExtra, 30);
+    assert.equal(promocaoAtiva(Date.parse('2026-11-25T12:00:00-03:00'))?.id, 'black-friday-2026');
+    assert.ok(promocaoAtiva(Date.parse(PROMOCAO.fim)));
+    assert.equal(promocaoAtiva(Date.parse('2026-12-01T00:00:00-03:00')), null);
+});
+
+test('promoção: a compra aberta na janela libera 60 dias, fora dela 30', async () => {
+    const { diasDaCompra, diasDaSessao, decideCheckoutSession, itemDeCheckout } = await import('../services/billingLogic.js');
+    assert.equal(diasDaCompra({ diasExtra: 30 }), 60);
+    assert.equal(diasDaCompra(null), 30);
+    const sessao = (dias) => ({ mode: 'payment', payment_status: 'paid', client_reference_id: 'u1', metadata: { plan: 'starter', ...(dias ? { dias } : {}) } });
+    assert.equal(decideCheckoutSession(sessao('60')).days, 60, 'Pix pago depois do fim continua com os 60 gravados');
+    assert.equal(decideCheckoutSession(sessao(null)).days, 30, 'sessão antiga, sem metadata, segue 30');
+    assert.equal(diasDaSessao({ metadata: { dias: '3650' } }), 30, 'número fora da lista vira 30');
+    assert.equal(diasDaSessao({ metadata: { dias: 'abc' } }), 30);
+    assert.match(itemDeCheckout({ label: 'Automático', price: 10 }, 60).price_data.product_data.name, /60 dias/);
+    assert.equal(itemDeCheckout({ label: 'Automático', price: 10 }, 60).price_data.unit_amount, 1000, 'o preço não muda');
+});
+
+test('o que o plano pago anuncia existe no código', async () => {
+    const fs = await import('node:fs');
+    const ler = (f) => fs.readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.ok(PLANS.starter.features.some((f) => /15 dias/.test(f)));
+    assert.match(ler('../services/mesmoRecrutador.js'), /export function diasEntreEnvios/);
+});

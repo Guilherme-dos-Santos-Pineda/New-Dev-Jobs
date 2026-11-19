@@ -8,7 +8,8 @@ import { PLANS, planOf } from '../config/plans.js';
 import { PLANOS_PAGOS_ATIVOS, compraLiberada } from '../config/planosPagos.js';
 import { planUsage } from '../services/usage.js';
 import { stripe, stripeConfigured, planFromPriceId } from '../services/stripeClient.js';
-import { deveConvidar, itemDeCheckout, mapCharge, computeExpiry, decideCheckoutSession } from '../services/billingLogic.js';
+import { deveConvidar, itemDeCheckout, mapCharge, computeExpiry, decideCheckoutSession, diasDaCompra } from '../services/billingLogic.js';
+import { promocaoAtiva } from '../config/promocao.js';
 import { itemDoCheckoutIa } from '../services/iaLogic.js';
 import { concederIa, iaJuntoDoPlano } from '../services/iaPlano.js';
 
@@ -31,6 +32,8 @@ const catalogo = (liberado) => ({
         price: p.price, period: p.period, popular: p.popular, desc: p.desc, features: p.features,
         purchasable: id !== 'free',
     })),
+    // Promoção em vigor (config/promocao.js): a tela mostra os dias a mais.
+    promocao: liberado ? promocaoAtiva() : null,
 });
 
 router.get('/plans', (_req, res) => res.json(catalogo(PLANOS_PAGOS_ATIVOS)));
@@ -64,11 +67,14 @@ router.post('/checkout', requireAuth, validate(checkoutSchema), async (req, res)
     if (!stripeConfigured) return res.status(503).json({ error: 'Pagamentos indisponíveis no momento.' });
 
     try {
-        // Pagamento único: libera 30 dias, sem renovação automática.
-        const meta = { userId: req.user.Id, plan: req.body.plan };
+        // Pagamento único: libera 30 dias (60 na promoção), sem renovação automática.
+        // Os dias vão no metadata: Pix pago depois do fim da promoção continua valendo.
+        const promocao = promocaoAtiva();
+        const dias = diasDaCompra(promocao);
+        const meta = { userId: req.user.Id, plan: req.body.plan, dias: String(dias), ...(promocao ? { promo: promocao.id } : {}) };
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
-            line_items: [itemDeCheckout(PLANS[req.body.plan])],
+            line_items: [itemDeCheckout(PLANS[req.body.plan], dias)],
             client_reference_id: req.user.Id,
             customer_email: req.user.Email,
             metadata: meta,

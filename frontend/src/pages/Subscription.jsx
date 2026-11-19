@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { diaDoFim } from '../components/OfertaPlano.jsx';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
@@ -56,6 +57,9 @@ export default function Subscription() {
 
     const plans = plansData?.plans || [];
     const stripeEnabled = plansData?.stripeEnabled;
+    // Promoção em vigor (backend/config/promocao.js): mesmo preço, mais dias.
+    const promo = plansData?.promocao || null;
+    const diasDaCompra = 30 + (promo?.diasExtra || 0);
     const invoices = histData?.invoices || [];
     const subscription = subData?.subscription || null;
     const current = user?.plan || 'free';
@@ -158,6 +162,12 @@ export default function Subscription() {
                 <p>{t('Gerencie seu plano e veja todo o histórico de pagamentos.')}</p>
             </div>
 
+            {promo && stripeEnabled && (
+                <div className="notice oferta-plano" style={{ marginBottom: 14 }}>
+                    <i className="ti ti-discount" />
+                    {t('{nome}: comprando ou renovando o Automático até {fim}, são {dias} dias pelo mesmo R$ 10. Os dias somam aos que você já tem.', { nome: promo.nome, fim: diaDoFim(promo), dias: diasDaCompra })}
+                </div>
+            )}
             {pagou && <div className="notice"><i className="ti ti-circle-check" />{t('Pagamento confirmado, obrigado! Falta um passo: ligue o envio automático aqui embaixo.')}</div>}
             <AutoEnvio style={{ marginBottom: 18 }} />
 
@@ -195,7 +205,7 @@ export default function Subscription() {
                     <div className="spacer" />
                     {planExpiresAt && stripeEnabled && currentPurchasable && (
                         <button className="btn primary" disabled={!!busy} onClick={() => upgrade(current)}>
-                            <i className="ti ti-refresh" /> {busy === current ? t('Redirecionando…') : t('Renovar {plan}', { plan: currentPlan?.label || current })}
+                            <i className="ti ti-refresh" /> {busy === current ? t('Redirecionando…') : promo ? t('Renovar com {dias} dias', { dias: diasDaCompra }) : t('Renovar {plan}', { plan: currentPlan?.label || current })}
                         </button>
                     )}
                 </div>
@@ -356,7 +366,7 @@ export default function Subscription() {
                                     <span className="plan-price-v">{p.price ? `R$${p.price}` : 'R$0'}</span>
                                     <span className="plan-price-p">{p.period}</span>
                                 </div>
-                                {p.price > 0 && <div className="plan-note"><i className="ti ti-calendar-check" /> {t('pagamento único · acesso por 30 dias')}</div>}
+                                {p.price > 0 && <div className="plan-note"><i className="ti ti-calendar-check" /> {promo ? t('pagamento único · {dias} dias na {nome}', { dias: diasDaCompra, nome: promo.nome }) : t('pagamento único · acesso por 30 dias')}</div>}
                                 <ul className="plan-feat-list">
                                     {(p.features || []).map((f) => <li key={f}><i className="ti ti-check" />{f}</li>)}
                                 </ul>

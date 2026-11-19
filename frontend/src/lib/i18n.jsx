@@ -769,6 +769,21 @@ const EN = {
     "Ordenar": "Sort",
     "Mais recentes": "Newest",
     "Mais compatíveis": "Best match",
+    // Promoção e renovação (19/11/2026)
+    "{nome}: o Automático por {dias} dias, pelo preço de 30": "{nome}: Automatic for {dias} days, for the price of 30",
+    "R$ 10, pagamento único, até {fim}. Seu currículo sai sozinho todo dia às 9h, até 50 envios por dia, um robô busca vagas novas pelo seu perfil e a IA monta um currículo para cada tipo de vaga.": "R$ 10, one-time payment, until {fim}. Your résumé goes out on its own every day at 9am, up to 50 sends a day, a bot finds new jobs for your profile and the AI builds a résumé for each type of job.",
+    "Quero os {dias} dias": "I want the {dias} days",
+    "{nome}: renove e ganhe {dias} dias": "{nome}: renew and get {dias} days",
+    "Seu Automático acaba em {n} dias. Renovando até {fim}, são {dias} dias pelo mesmo R$ 10, somados aos que faltam.": "Your Automatic ends in {n} days. Renew by {fim} and get {dias} days for the same R$ 10, added to what you have left.",
+    "Renovar com {dias} dias": "Renew with {dias} days",
+    "Seu Automático acaba hoje": "Your Automatic ends today",
+    "Seu Automático acaba em {n} dias": "Your Automatic ends in {n} days",
+    "O pagamento é único e não renova sozinho. Renovando agora, os 30 dias somam aos que faltam e o envio das 9h não para.": "It's a one-time payment and doesn't renew on its own. Renew now: the 30 days are added to what you have left and the 9am sending doesn't stop.",
+    "Renovar": "Renew",
+    "Quer mandar mais? Na {nome}, o Automático vale {dias} dias por R$ 10 (até {fim}): 50 envios por dia e o currículo saindo sozinho às 9h. Ou indique um amigo: vocês dois ganham +10 envios por dia por 7 dias.": "Want to send more? During {nome}, Automatic gives you {dias} days for R$ 10 (until {fim}): 50 sends a day and your résumé going out on its own at 9am. Or refer a friend: you both get +10 sends a day for 7 days.",
+    "Automático: {dias} dias por R$ 10": "Automatic: {dias} days for R$ 10",
+    "{nome}: comprando ou renovando o Automático até {fim}, são {dias} dias pelo mesmo R$ 10. Os dias somam aos que você já tem.": "{nome}: buy or renew Automatic by {fim} and get {dias} days for the same R$ 10. The days add to what you already have.",
+    "pagamento único · {dias} dias na {nome}": "one-time payment · {dias} days during {nome}",
 };
 const DICT = { pt: {}, en: EN };
 

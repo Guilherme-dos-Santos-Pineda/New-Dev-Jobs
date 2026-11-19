@@ -5,6 +5,22 @@
 // =========================================================================
 
 export const PLAN_DAYS = 30;
+// Dias que uma compra pode liberar: 30, ou 60 na promoção (config/promocao.js). O
+// valor vem do metadata da sessão, que só o nosso servidor escreve; mesmo assim,
+// qualquer outro número vira 30.
+export const DIAS_PERMITIDOS = [30, 60];
+
+/** Quantos dias esta compra libera, a partir do metadata gravado no checkout. */
+export function diasDaSessao(session = {}) {
+    const n = Number(session.metadata?.dias);
+    return DIAS_PERMITIDOS.includes(n) ? n : PLAN_DAYS;
+}
+
+/** Os dias da compra que está sendo aberta agora: 30, mais os da promoção se valer. */
+export function diasDaCompra(promocao) {
+    const n = PLAN_DAYS + (promocao?.diasExtra || 0);
+    return DIAS_PERMITIDOS.includes(n) ? n : PLAN_DAYS;
+}
 const DAY_MS = 86400000;
 
 // Modo do Stripe Checkout a partir do objeto de preço: recorrente → assinatura;
@@ -44,13 +60,13 @@ export function deveConvidar({ enviados, autoSend }) {
  * O item do checkout, com o valor vindo de plans.js. Sem preço criado na Stripe
  * nem env na VM: o que a tela anuncia é o que a Stripe cobra.
  */
-export function itemDeCheckout(plano) {
+export function itemDeCheckout(plano, dias = PLAN_DAYS) {
     return {
         quantity: 1,
         price_data: {
             currency: 'brl',
             unit_amount: Math.round(plano.price * 100),
-            product_data: { name: `New Dev Jobs ${plano.label} (30 dias)` },
+            product_data: { name: `New Dev Jobs ${plano.label} (${dias} dias)` },
         },
     };
 }
@@ -96,7 +112,7 @@ export function decideCheckoutSession(session = {}) {
     }
     if (session.mode === 'payment') {
         if (session.payment_status === 'paid' && userId && plan) {
-            return { action: 'grant', userId, plan, days: PLAN_DAYS };
+            return { action: 'grant', userId, plan, days: diasDaSessao(session) };
         }
         return { action: 'ignore', userId, plan };
     }

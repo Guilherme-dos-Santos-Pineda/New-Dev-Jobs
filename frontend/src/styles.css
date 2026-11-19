@@ -1982,6 +1982,8 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
 .vh-hero-titulo { font-size: 18px; font-weight: 600; line-height: 1.35; letter-spacing: -0.2px; display: flex; align-items: center; gap: 8px; }
 .vh-hero-sub { font-size: 13.5px; color: var(--color-text-secondary); margin-top: 5px; line-height: 1.5; }
 .vh-hero-btn { padding: 13px 22px; font-size: 15px; flex-shrink: 0; }
+/* Oferta do plano (promoção e renovação): a borda separa do resto dos cartões. */
+.oferta-plano { border-color: var(--color-accent); }
 .vh-ordem { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
 .vh-ordem .chip i { margin-right: 4px; }
 .vh-limite-acoes { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }

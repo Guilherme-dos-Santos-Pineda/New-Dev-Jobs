@@ -64,6 +64,14 @@ export default function Dashboard() {
     const [textoCompleto, setTextoCompleto] = useState({});
     const [mostrar, setMostrar] = useState(POR_PAGINA);
     const [busca, setBusca] = useState('');
+    // Ordem da lista (pedido de usuário, 19/11/2026: "1,5 mil vagas, queria as mais aderentes
+    // primeiro"). O padrão continua recente primeiro; a escolha fica neste aparelho.
+    const [ordem, setOrdem] = useState(() => { try { return localStorage.getItem('vagasOrdem') || 'recentes'; } catch { return 'recentes'; } });
+    function mudarOrdem(o) {
+        setOrdem(o);
+        setMostrar(POR_PAGINA);
+        try { localStorage.setItem('vagasOrdem', o); } catch { /* sem armazenamento: vale só agora */ }
+    }
     const [ocupado, setOcupado] = useState(null);
     const [fila, setFila] = useState(null);
     // "Quero ver o que vai ser enviado" (02/11/2026): o email pronto de UMA vaga,
@@ -227,7 +235,11 @@ export default function Dashboard() {
     // Busca por cargo ou empresa (pedido de usuário, 16/11/2026), sem acento, na lista já carregada.
     const semAcento = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const termo = semAcento(busca.trim());
-    const filtrada = termo ? (lista || []).filter((v) => semAcento(`${v.title} ${v.company}`).includes(termo)) : (lista || []);
+    const achadas = termo ? (lista || []).filter((v) => semAcento(`${v.title} ${v.company}`).includes(termo)) : (lista || []);
+    // "Mais compatíveis": a lista congelada só muda de ordem, as marcas de enviado continuam.
+    const filtrada = ordem === 'compativeis'
+        ? achadas.slice().sort((a, b) => b.matchScore - a.matchScore || new Date(b.createdAt) - new Date(a.createdAt))
+        : achadas;
     const visiveis = filtrada.slice(0, mostrar);
 
     return (
@@ -336,10 +348,21 @@ export default function Dashboard() {
                         <Link to="/app/perfil" className="btn sm">{t('Ajustar o que eu procuro')}</Link>
                     </div>
                 ) : (<>
-                    <div className="vl-busca" style={{ margin: '10px 0' }}>
+                    <div className="vl-busca" style={{ margin: '10px 0 8px' }}>
                         <i className="ti ti-search" />
                         <input className="input" value={busca} onChange={(e) => { setBusca(e.target.value); setMostrar(POR_PAGINA); }}
                             placeholder={t('Buscar por cargo ou empresa')} aria-label={t('Buscar por cargo ou empresa')} />
+                    </div>
+                    <div className="vh-ordem">
+                        <span className="muted">{t('{n} vagas', { n: filtrada.length.toLocaleString('pt-BR') })}</span>
+                        <div className="chips" role="group" aria-label={t('Ordenar')}>
+                            <button type="button" className={`chip toggle ${ordem === 'recentes' ? 'on' : ''}`} onClick={() => mudarOrdem('recentes')}>
+                                <i className="ti ti-clock" /> {t('Mais recentes')}
+                            </button>
+                            <button type="button" className={`chip toggle ${ordem === 'compativeis' ? 'on' : ''}`} onClick={() => mudarOrdem('compativeis')}>
+                                <i className="ti ti-sort-descending" /> {t('Mais compatíveis')}
+                            </button>
+                        </div>
                     </div>
                     {termo && !filtrada.length && (
                         <div className="card empty" style={{ padding: 22 }}>{t('Nenhuma vaga sua com "{q}".', { q: busca.trim() })}</div>

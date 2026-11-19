@@ -766,6 +766,9 @@ const EN = {
     "Pelo Gmail": "Through Gmail",
     "Com currículo da IA": "With AI résumé",
     "Email voltou": "Email bounced",
+    "Ordenar": "Sort",
+    "Mais recentes": "Newest",
+    "Mais compatíveis": "Best match",
 };
 const DICT = { pt: {}, en: EN };
 

@@ -1975,6 +1975,8 @@ a, .input, .select, textarea.input { transition: color 0.14s ease, border-color 
    Vagas para você (tela inicial)
    ============================================ */
 .link-sutil { color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px; font-weight: 500; }
+/* Botão com cara de link: sem o fundo e a borda padrão do navegador (o "Agora não" saía num quadrado branco). */
+button.link-sutil { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-weight: 500; }
 
 /* O cartão da ação principal: é o que a pessoa procura ao abrir o app. */
 .vh-hero { display: flex; align-items: center; gap: 20px; padding: 22px 24px; border: 1px solid var(--color-accent); }

@@ -15,6 +15,7 @@ import { apifyExhaustedUntil, apifyPoolState } from './services/apifyPool.js';
 import { runMaintenance } from './services/maintenance.js';
 import { tickAutoEnvio } from './services/autoEnvio.js';
 import { tickRobosPessoais } from './services/roboPessoal.js';
+import { tickNotificacoes } from './services/push.js';
 
 // =========================
 // Worker de envio (processo separado: `npm run worker`)
@@ -234,6 +235,7 @@ function startScheduler(boss) {
         tickAutoEnvio().catch((e) => console.error('tickAutoEnvio falhou:', e.message));
         tickRobosPessoais().catch((e) => console.error('tickRobosPessoais falhou:', e.message));
         tickVagasGithub().catch((e) => console.error('tickVagasGithub falhou:', e.message));
+        tickNotificacoes().catch((e) => console.error('tickNotificacoes falhou:', e.message));
     };
     tick(); // dispara uma vez no boot (pega os vencidos enquanto o worker esteve fora)
     const agendador = setInterval(tick, 60000);

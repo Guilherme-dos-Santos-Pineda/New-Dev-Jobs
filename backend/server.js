@@ -28,6 +28,7 @@ import retornoRoutes from './routes/retorno.js';
 import analiseCvRoutes from './routes/analiseCv.js';
 import cvVersoesRoutes from './routes/cvVersoes.js';
 import indicacaoRoutes from './routes/indicacao.js';
+import pushRoutes from './routes/push.js';
 import { iniciarGravacaoDeVisitas, gravarVisitas } from './services/indicacao.js';
 import { getBoss } from './lib/boss.js';
 import { startWorker } from './worker.js';
@@ -107,6 +108,7 @@ app.use('/api/retorno', retornoRoutes);
 app.use('/api/curriculo/analise', analiseCvRoutes);
 app.use('/api/curriculo/versoes', cvVersoesRoutes);
 app.use('/api/indicacao', indicacaoRoutes);
+app.use('/api/push', pushRoutes);
 
 // 404 para rotas /api desconhecidas
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota não encontrada' }));

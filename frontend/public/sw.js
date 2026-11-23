@@ -1,7 +1,7 @@
 // Service worker do app instalável (PWA). Servido em /app/sw.js, então o escopo
 // é /app/: a landing e o /api nunca passam por aqui.
 //
-// O que ele faz, e só isso:
+// O que ele faz, e só isso (mais as notificações, no fim do arquivo):
 //   - Navegação (abrir/recarregar uma tela): REDE PRIMEIRO. Cada deploy chega na
 //     hora; a cópia guardada do index.html só é usada sem internet, para o app
 //     abrir mostrando a própria tela em vez do dinossauro do Chrome.
@@ -61,6 +61,32 @@ async function asset(request) {
     }
     return resp;
 }
+
+// Notificação no celular (backend/services/push.js manda { title, body, url }).
+self.addEventListener('push', (event) => {
+    let d = {};
+    try { d = event.data ? event.data.json() : {}; } catch { d = { body: event.data && event.data.text() }; }
+    event.waitUntil(self.registration.showNotification(d.title || 'New Dev Jobs', {
+        body: d.body || '',
+        icon: '/app/icon-192.png',
+        badge: '/app/icon-192.png',
+        data: { url: d.url || '/app' },
+        // Mesmo tipo substitui o anterior em vez de empilhar.
+        tag: d.title || 'ndj',
+    }));
+});
+
+// Tocar no aviso: abre a tela dele, reaproveitando uma aba do app se houver.
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = new URL(event.notification.data?.url || '/app', self.location.origin).href;
+    event.waitUntil((async () => {
+        const abas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        const aba = abas.find((c) => c.url.startsWith(self.location.origin));
+        if (aba) { await aba.focus(); return aba.navigate(url).catch(() => self.clients.openWindow(url)); }
+        return self.clients.openWindow(url);
+    })());
+});
 
 self.addEventListener('fetch', (event) => {
     const { request } = event;

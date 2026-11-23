@@ -1,4 +1,6 @@
 import sql from '../lib/sql.js';
+import { avisar } from './push.js';
+import { avisoIndicacao } from './pushLogic.js';
 import {
     gerarCodigo, normalizarCodigo, podeIndicar, premioVale, origemParaGravar, limparCanal,
     BONUS_ENVIOS, DIAS_POR_INDICACAO, TETO_DIAS, HORAS_PARA_INDICAR,
@@ -102,6 +104,10 @@ export async function premiarIndicacao(userId) {
             where "Id" = any(${[userId, quem.Id]}::uuid[])`;
         console.log(`🎁 indicação premiada: ${quem.Id} indicou ${userId}`);
         return true;
+    }).then(async (premiou) => {
+        // Aviso no celular para os dois (push.js): nunca lança.
+        if (premiou) for (const id of [userId, quem.Id]) await avisar(id, 'indicacao', avisoIndicacao());
+        return premiou;
     });
 }
 

@@ -1,4 +1,6 @@
 import sql from '../lib/sql.js';
+import { avisar } from './push.js';
+import { avisoEnvio } from './pushLogic.js';
 import { planOf } from '../config/plans.js';
 import { planUsage } from './usage.js';
 import { getMatches } from './jobsQuery.js';
@@ -107,6 +109,8 @@ export async function tickAutoEnvio(agora = Date.now()) {
             try {
                 const n = await enviarDoDia(u);
                 console.log(`🤖 envio automático: user ${u.Id}, ${n} vaga(s)`);
+                // Aviso no celular (push.js): nunca lança, não atrapalha o envio.
+                await avisar(u.Id, 'envio', avisoEnvio(n));
             } catch (e) {
                 console.warn(`envio automático não saiu para user ${u.Id}: ${e.message}`);
             }

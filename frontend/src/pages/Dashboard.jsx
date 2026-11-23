@@ -17,6 +17,7 @@ import PedidoFeedback from '../components/PedidoFeedback.jsx';
 import ConviteAutomatico from '../components/ConviteAutomatico.jsx';
 import AvisoPoucaVaga from '../components/AvisoPoucaVaga.jsx';
 import OfertaPlano, { diaDoFim } from '../components/OfertaPlano.jsx';
+import Notificacoes from '../components/Notificacoes.jsx';
 import AutoEnvio from '../components/AutoEnvio.jsx';
 import { PLANOS_PAGOS_ATIVOS } from '../lib/flags.js';
 
@@ -334,6 +335,7 @@ export default function Dashboard() {
                 <PedidoFeedback />
                 <AvisoPoucaVaga onMudou={() => carregar()} />
                 <OfertaPlano />
+                <Notificacoes modo="convite" />
                 {/* Na promoção a OfertaPlano já convida: dois cartões de venda seguidos é demais. */}
                 {!user?.promocao && <ConviteAutomatico />}
                 <CommunityBanner variant="button" style={{ marginBottom: 14 }} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Notificacoes from '../components/Notificacoes.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { FILTRO_DATA_ATIVO } from '../lib/flags.js';
@@ -343,6 +344,7 @@ export default function Profile() {
                     </div>
                     <EmailSettings parte="conta" />
                     <AutoEnvio />
+                    <Notificacoes />
                     <div className="mais-opcoes">
                         <div className="mais-titulo">{t('Mais opções')} <span>{t('não precisa mexer para começar')}</span></div>
                     <div className={`mais-item ${section === 'skills' ? 'aberto' : ''}`}>

@@ -55,3 +55,6 @@ frontend/_preview/
 
 # Cópia em disco do feed e das vagas por link (lib/snapshotDisco.js)
 .cache/
+
+# Contatos de usuários para o dono falar com eles (PII: telefone e email)
+privado/

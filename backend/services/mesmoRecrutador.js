@@ -34,18 +34,54 @@ export function enderecos(campo) {
     return String(campo || '').toLowerCase().split(/[\s,;]+/).filter((e) => e.includes('@'));
 }
 
+// =========================
+// A mesma vaga com outro email (25/11/2026)
+// =========================
+// Relato de pagante: "enviou para a mesma vaga duas vezes". "Auditor Técnico" da
+// Decision entrou como duas vagas, postadas por dois recrutadores da empresa com
+// endereços diferentes do mesmo domínio, e as duas saíram no mesmo dia. Comparando
+// só o endereço, eram recrutadores diferentes. Medido: 67 de 4878 envios em 7 dias
+// (1,4%, 31 pessoas) foram para o mesmo cargo no mesmo domínio dentro de 15 dias.
+// Agora cargo igual + domínio de empresa igual é a mesma vaga, com a mesma janela.
+// Domínio de email pessoal (gmail etc.) não conta: ali cada endereço é uma pessoa.
+const DOMINIOS_PESSOAIS = new Set([
+    'gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.com.br', 'outlook.com', 'outlook.com.br', 'live.com',
+    'msn.com', 'yahoo.com', 'yahoo.com.br', 'icloud.com', 'me.com', 'bol.com.br', 'uol.com.br', 'terra.com.br',
+    'ig.com.br', 'proton.me', 'protonmail.com', 'aol.com', 'zoho.com',
+]);
+
+/** Cargo comparável: sem acento, sem marca de gênero "(a)", sem pontuação. */
+export function cargoComparavel(titulo) {
+    return String(titulo || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+        .replace(/\((?:a|o|as|os|e)\)/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/** Chaves "mesma vaga" (domínio de empresa + cargo) de uma vaga. Título vazio não gera chave. */
+export function chavesDaVaga(titulo, campoEmail) {
+    const cargo = cargoComparavel(titulo);
+    if (cargo.length < 3) return [];
+    const dominios = new Set(enderecos(campoEmail).map((e) => e.split('@')[1]).filter((d) => d && !DOMINIOS_PESSOAIS.has(d)));
+    return [...dominios].map((d) => `vaga:${d}|${cargo}`);
+}
+
+/** Tudo que identifica o destino desta vaga: os endereços e as chaves de "mesma vaga". */
+export function marcasDaVaga(titulo, campoEmail) {
+    return [...enderecos(campoEmail), ...chavesDaVaga(titulo, campoEmail)];
+}
+
 /**
  * Deixa uma vaga por recrutador, na ordem recebida (a primeira vence), e tira
  * as de quem já foi contatado. Duas vagas são do mesmo recrutador se dividem
- * QUALQUER endereço.
+ * QUALQUER endereço, ou se têm o mesmo cargo no mesmo domínio de empresa.
+ * `contatados` traz endereços e chaves (contatadosRecentes).
  */
 export function umaPorRecrutador(vagas, contatados = []) {
     const vistos = new Set(contatados);
     const saida = [];
     for (const v of vagas) {
-        const ends = enderecos(v.email ?? v.Email);
-        if (ends.some((e) => vistos.has(e))) continue;
-        for (const e of ends) vistos.add(e);
+        const marcas = marcasDaVaga(v.title ?? v.JobTitle, v.email ?? v.Email);
+        if (marcas.some((e) => vistos.has(e))) continue;
+        for (const e of marcas) vistos.add(e);
         saida.push(v);
     }
     return saida;
@@ -77,30 +113,37 @@ export function contatadosRecentes(userId) {
 async function buscarContatados(userId) {
     const dias = await diasDoUsuario(userId);
     const rows = await sql`
-        select j."Email" from "Applications" a
+        select j."Email", j."JobTitle" from "Applications" a
         join "Jobs" j on j."Id" = a."JobId"
         where a."UserId" = ${userId} and j."Email" is not null
           and a."SentAt" > now() - make_interval(days => ${dias})`;
-    return [...new Set(rows.flatMap((r) => enderecos(r.Email)))];
+    return [...new Set(rows.flatMap((r) => marcasDaVaga(r.JobTitle, r.Email)))];
 }
 
 /**
- * O usuário já mandou para algum endereço desta vaga nos últimos 30 dias (15 no
- * plano pago)? Pergunta ao banco só por estes endereços, sem guarda: é a
- * autoridade final antes do envio, e devolve no máximo poucas linhas.
+ * O usuário já mandou para algum endereço desta vaga, ou para o mesmo cargo no
+ * mesmo domínio de empresa, nos últimos 30 dias (15 no plano pago)? Pergunta ao
+ * banco só por estes endereços e domínios, sem guarda: é a autoridade final antes
+ * do envio, e devolve poucas linhas.
  */
-export async function jaContatado(userId, campoEmail) {
+export async function jaContatado(userId, campoEmail, titulo = '') {
     const ends = enderecos(campoEmail);
     if (!ends.length) return false;
+    const chaves = chavesDaVaga(titulo, campoEmail);
     const dias = await diasDoUsuario(userId);
-    const padroes = ends.map((e) => `%${e.replace(/[%_\\]/g, (c) => `\\${c}`)}%`);
+    const escapar = (x) => x.replace(/[%_\\]/g, (c) => `\\${c}`);
+    const padroes = [
+        ...ends.map((e) => `%${escapar(e)}%`),
+        ...chaves.map((k) => `%@${escapar(k.slice(5, k.indexOf('|')))}%`),
+    ];
     const rows = await sql`
-        select j."Email" from "Applications" a
+        select j."Email", j."JobTitle" from "Applications" a
         join "Jobs" j on j."Id" = a."JobId"
         where a."UserId" = ${userId} and a."SentAt" > now() - make_interval(days => ${dias})
           and lower(j."Email") like any(${padroes}::text[])
-        limit 20`;
-    // O like acha "ba@x.com" ao procurar "a@x.com": a confirmação é por endereço inteiro.
-    const ja = new Set(rows.flatMap((r) => enderecos(r.Email)));
-    return ends.some((e) => ja.has(e));
+        limit 50`;
+    // O like acha "ba@x.com" ao procurar "a@x.com": a confirmação é por endereço inteiro
+    // e por chave inteira (domínio + cargo).
+    const ja = new Set(rows.flatMap((r) => marcasDaVaga(r.JobTitle, r.Email)));
+    return [...ends, ...chaves].some((e) => ja.has(e));
 }

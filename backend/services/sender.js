@@ -54,7 +54,7 @@ export async function applyToJob(userId, jobId, editado = null) {
     if (bloqueadaPeloUsuario(job, profile)) return { skipped: true, motivo: 'bloqueada' };
     // Um currículo por recrutador a cada 30 dias (services/mesmoRecrutador.js).
     // `skipped`, não erro: no worker a linha vira "pulada", não "falhou".
-    if (await jaContatado(userId, job.Email)) return { skipped: true, motivo: 'recrutador' };
+    if (await jaContatado(userId, job.Email, job.JobTitle)) return { skipped: true, motivo: 'recrutador' };
     // Domínio que não existe vira bounce na caixa da pessoa (services/emailDominio.js).
     const destinos = enderecos(job.Email);
     if ((await enderecosSemDominio(destinos)).length === destinos.length) {

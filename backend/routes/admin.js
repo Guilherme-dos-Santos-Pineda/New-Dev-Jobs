@@ -6,6 +6,7 @@ import { painelEmailsVoltaram, bloquearEmail, desbloquearEmail } from '../servic
 import { painelIndicacoesAdmin } from '../services/indicacao.js';
 import { painelPagantes, mensagemComDica, marcarFalei } from '../services/contatoPagantes.js';
 import { criarVagaParceiro, listarVagasParceiros, encerrarVagaParceiro } from '../services/vagasParceiros.js';
+import { painelSeguranca } from '../services/seguranca.js';
 import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
@@ -456,6 +457,13 @@ router.post('/pagantes/:id/falei', requireAdmin, async (req, res) => {
 
 // Vagas de parceiros (services/vagasParceiros.js): a recrutadora manda a vaga com
 // link de candidatura, e ela aparece em Vagas por link para quem tem o perfil.
+// Segurança contra raspagem (services/seguranca.js): alertas de quem bateu num teto
+// e quem mais revelou email de recrutador pelo "enviar você mesmo".
+router.get('/seguranca', requireAdmin, async (_req, res) => {
+    try { res.json(await painelSeguranca()); }
+    catch (e) { console.error('admin segurança:', e.message); res.status(500).json({ error: 'Não deu para carregar agora.' }); }
+});
+
 router.get('/parceiros', requireAdmin, async (_req, res) => {
     try { res.json({ vagas: await listarVagasParceiros() }); }
     catch (e) { console.error('admin parceiros:', e.message); res.status(500).json({ error: 'Não deu para carregar agora.' }); }

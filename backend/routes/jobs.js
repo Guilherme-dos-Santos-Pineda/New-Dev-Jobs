@@ -8,8 +8,23 @@ import { invalidateMatches } from '../services/jobsQuery.js';
 import { feedbackDisponivel, votar, meusLikes, MOTIVOS } from '../services/jobFeedback.js';
 import { vagasPorLinkDe } from '../services/vagasPorLink.js';
 import { contarAbertura } from '../services/vagasParceiros.js';
+import rateLimit from 'express-rate-limit';
+import { contarDetalhe, contarRevelacao, registrarAlerta } from '../services/seguranca.js';
+import { podeVerVaga, emailDescartavel } from '../services/segurancaLogic.js';
 
 const router = Router();
+
+// Limite POR CONTA (o de server.js é por IP): a lista inteira do feed numa chamada
+// é o que alguém raspando pediria em laço, trocando o perfil. Uso real: o app pede
+// a lista algumas vezes por sessão. 120 a cada 15 min sobra para gente e corta robô.
+const porConta = rateLimit({
+    windowMs: 15 * 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false,
+    keyGenerator: (req) => `u:${req.user?.Id || 'anon'}`,
+    handler: (req, res) => {
+        registrarAlerta('lista de vagas demais', { userId: req.user?.Id, email: req.user?.Email, rota: req.path });
+        res.status(429).json({ error: 'Muitas requisições. Tente novamente em alguns minutos.' });
+    },
+});
 
 // Quanto da descrição viaja na LISTAGEM. Cabe no card expandido sem obrigar uma
 // segunda requisição na maioria dos casos, e corta o grosso do tráfego.
@@ -24,7 +39,7 @@ const PREVIEW_CHARS = 400;
 // vagas sem filtro, volta paginado.
 
 // GET /api/jobs/matches  — vagas candidatáveis (filtros + com email + não enviadas)
-router.get('/matches', requireAuth, async (req, res) => {
+router.get('/matches', requireAuth, porConta, async (req, res) => {
     const matches = await getMatches(req.user.Id);
     // Quantas vagas (com email, não enviadas) existem ignorando os filtros do perfil,
     // para explicar ao usuário quando os filtros estão escondendo vagas.
@@ -55,7 +70,7 @@ router.get('/matches', requireAuth, async (req, res) => {
 
 // GET /api/jobs/links — vagas sem email, com candidatura pelo link do post.
 // Fica ANTES de /:id, senão "links" seria lido como id de vaga.
-router.get('/links', requireAuth, async (req, res) => {
+router.get('/links', requireAuth, porConta, async (req, res) => {
     // Filtros da tela, por cima do perfil. Valores fora da lista são ignorados.
     const q = String(req.query.q || '').slice(0, 80);
     const mod = ['remoto', 'hibrido', 'presencial'].includes(req.query.mod) ? req.query.mod : '';
@@ -111,6 +126,16 @@ router.post('/:id/feedback', requireAuth, async (req, res) => {
 // recrutador e o corpo do email não passam a viver em log de servidor nem em
 // histórico de proxy só para abrir uma aba.
 router.post('/:id/compose', requireAuth, async (req, res) => {
+    // Único caminho que mostra o email do recrutador antes de enviar
+    // (services/segurancaLogic.js): conta de email temporário não usa, e um IP
+    // não revela mais que o teto do dia somando todas as contas.
+    if (emailDescartavel(req.user.Email)) {
+        registrarAlerta('email descartável tentou revelar contato', { userId: req.user.Id, email: req.user.Email });
+        return res.status(403).json({ error: 'Para usar o "enviar você mesmo", entre com um email pessoal (Gmail, Outlook...).' });
+    }
+    if (contarRevelacao(req.ip, req.user)) {
+        return res.status(429).json({ error: 'Muitos envios por esta rede hoje. Tente amanhã ou conecte o seu Gmail no perfil.' });
+    }
     try {
         const email = await composeForJob(req.user.Id, req.params.id, req.user.Plan);
         res.json(email);
@@ -121,11 +146,21 @@ router.post('/:id/compose', requireAuth, async (req, res) => {
 });
 
 // GET /api/jobs/:id
+// Só a vaga que a pessoa vê (feed) ou já enviou (segurancaLogic.podeVerVaga).
+// Até 25/11/2026 devolvia QUALQUER vaga da base pelo número: percorrendo de 1 a
+// 30 mil, dava para copiar título, empresa e descrição de tudo. Vaga de fora do
+// feed responde 404, igual à que não existe: não confirma que o número é válido.
 router.get('/:id', requireAuth, async (req, res) => {
+    if (!/^\d{1,12}$/.test(String(req.params.id))) return res.status(404).json({ error: 'Vaga não encontrada' });
+    if (contarDetalhe(req.user)) return res.status(429).json({ error: 'Muitas vagas abertas hoje. Tente amanhã.' });
+    const appliedRows = await sql`select "JobId" from "Applications" where "UserId" = ${req.user.Id}`;
+    const noFeed = (await getMatches(req.user.Id)).map((m) => m.id);
+    if (!podeVerVaga(req.params.id, { noFeed, enviadas: appliedRows.map((r) => r.JobId) })) {
+        return res.status(404).json({ error: 'Vaga não encontrada' });
+    }
     const [job] = await sql`select * from "Jobs" where "Id" = ${req.params.id}`;
     if (!job) return res.status(404).json({ error: 'Vaga não encontrada' });
     const [profile] = await sql`select * from "Profiles" where "UserId" = ${req.user.Id}`;
-    const appliedRows = await sql`select "JobId" from "Applications" where "UserId" = ${req.user.Id}`;
     const appliedSet = new Set(appliedRows.map((r) => r.JobId));
     // Segurança: NUNCA devolve o email de contato; no plano free também oculta a
     // descrição (o post traz o email no texto). Mesmo critério do /matches.

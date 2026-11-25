@@ -171,6 +171,22 @@ try {
         }
         console.log(`   ${c.perfil.nome.padEnd(24)} ${String(ms.length).padStart(4)} vagas · melhor ${ms[0]?.matchScore ?? '-'}% · ${(r.bytes / 1024).toFixed(0)} kB`);
     }
+    // Detalhe da vaga (25/11/2026): só a do feed abre. Antes qualquer número da base
+    // abria, e dava para copiar a base inteira percorrendo os ids.
+    {
+        const c = vivas.find((x) => (feeds[x.perfil.nome] || []).length);
+        if (c) {
+            const meuFeed = feeds[c.perfil.nome];
+            const ok = await api(c.token, 'GET', `/jobs/${meuFeed[0].id}`);
+            checa(ok.status === 200 && ok.data?.job && ok.data.job.email === undefined, 'detalhe de vaga DO FEED abre, sem email', `HTTP ${ok.status}`);
+            const ids = new Set(meuFeed.map((m) => String(m.id)));
+            const todos = Object.values(feeds).flat().map((m) => String(m.id));
+            const deFora = todos.find((id) => !ids.has(id)) || '1';
+            const fora = await api(c.token, 'GET', `/jobs/${deFora}`);
+            checa(fora.status === 404, 'SEGURANCA: detalhe de vaga FORA do feed responde 404', `HTTP ${fora.status} (vaga ${deFora})`);
+        }
+    }
+
     const tamanhos = new Set(Object.values(feeds).map((f) => f.length));
     checa(tamanhos.size > 1, 'perfis diferentes recebem feeds diferentes (o filtro esta funcionando)', `todos com ${[...tamanhos][0]} vagas`);
 

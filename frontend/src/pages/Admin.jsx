@@ -21,6 +21,7 @@ import AdminGithub from '../components/AdminGithub.jsx';
 import AdminIndicacoes from '../components/AdminIndicacoes.jsx';
 import AdminPagantes from '../components/AdminPagantes.jsx';
 import AdminParceiros from '../components/AdminParceiros.jsx';
+import AdminSeguranca from '../components/AdminSeguranca.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 
@@ -103,6 +104,7 @@ export default function Admin() {
                     ['campanhas', 'Campanhas', 'ti-mail-forward'],
                     ['pagantes', 'Falar com pagantes', 'ti-message-circle'],
                     ['parceiros', 'Vagas de parceiros', 'ti-heart-handshake'],
+                    ['seguranca', 'Segurança', 'ti-shield-lock'],
                     ['indicacoes', 'Indicações e origem', 'ti-gift'],
                     ['divulgacao', 'Divulgação', 'ti-brand-linkedin'],
                     ['backups', 'Perfis apagados', 'ti-archive'],
@@ -127,6 +129,7 @@ export default function Admin() {
             {tab === 'campanhas' && <AdminCampaigns />}
             {tab === 'pagantes' && <AdminPagantes />}
             {tab === 'parceiros' && <AdminParceiros />}
+            {tab === 'seguranca' && <AdminSeguranca />}
             {tab === 'indicacoes' && <AdminIndicacoes />}
             {tab === 'divulgacao' && <AdminPromoPost />}
             {tab === 'backups' && <AdminProfileBackups />}

@@ -165,6 +165,7 @@ export const api = {
     adminIndicacoes: () => request('GET', '/admin/indicacoes'),
     adminPagantes: () => request('GET', '/admin/pagantes'),
     adminParceiros: () => request('GET', '/admin/parceiros'),
+    adminSeguranca: () => request('GET', '/admin/seguranca'),
     adminParceiroCriar: (vaga) => request('POST', '/admin/parceiros', vaga),
     adminParceiroEncerrar: (id) => request('POST', '/admin/parceiros/' + encodeURIComponent(id) + '/encerrar'),
     vagaLinkAbriu: (id) => request('POST', '/jobs/links/' + encodeURIComponent(id) + '/abriu'),

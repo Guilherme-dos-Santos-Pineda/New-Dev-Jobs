@@ -1,6 +1,7 @@
 import sql from '../lib/sql.js';
 import { LIKE_EMAIL } from './emailContato.js';
 import { lerSnapshot, gravadorDeSnapshot } from '../lib/snapshotDisco.js';
+import { vagaDentroDaIdade } from '../config/idadeVaga.js';
 
 // =========================
 // Vagas do feed em memória
@@ -115,9 +116,20 @@ async function sincronizar() {
     return undefined;
 }
 
+// Post velho demais sai na leitura, não na carga (config/idadeVaga.js): a vaga
+// envelhece sem a impressão mudar. Refeito a cada sincronização ou a cada hora.
+let visiveis = { de: null, em: 0, lista: [] };
+function dentroDaIdade() {
+    if (visiveis.de !== corpus || Date.now() - visiveis.em > 3_600_000) {
+        const agora = Date.now();
+        visiveis = { de: corpus, em: agora, lista: corpus.filter((v) => vagaDentroDaIdade(v, agora)) };
+    }
+    return visiveis.lista;
+}
+
 /** Vagas que podem entrar em algum feed, mais recentes primeiro. Não altere o array. */
 export async function vagasDoFeed() {
-    if (Date.now() - conferidoEm < SYNC_MS) return corpus;
+    if (Date.now() - conferidoEm < SYNC_MS) return dentroDaIdade();
     // Uma conferência por vez: quem chega junto espera a mesma.
     emCurso ??= sincronizar()
         .then(() => { conferidoEm = Date.now(); })
@@ -129,5 +141,5 @@ export async function vagasDoFeed() {
         })
         .finally(() => { emCurso = null; });
     await emCurso;
-    return corpus;
+    return dentroDaIdade();
 }

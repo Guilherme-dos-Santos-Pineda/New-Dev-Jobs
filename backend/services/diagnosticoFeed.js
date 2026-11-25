@@ -4,6 +4,7 @@ import { expandirAreas, AREAS_FORA_DE_TI } from '../config/areas.js';
 import { LIKE_EMAIL } from './emailContato.js';
 import { FILTRO_DATA_ATIVO } from '../config/filtroData.js';
 import { niveisAceitos } from '../config/niveis.js';
+import { IDADE_MAXIMA_DIAS } from '../config/idadeVaga.js';
 import { semDislikeSql, feedbackDisponivel } from './jobFeedback.js';
 
 // =========================
@@ -43,6 +44,7 @@ async function contar(userId, extra) {
         select count(*)::int as n from "Jobs" j
         where j."Email" is not null and j."Email" like ${LIKE_EMAIL}
           and coalesce(j."Area", 'other') <> 'nontech'
+          and coalesce(j."PostedAt", j."CreatedAt") >= now() - make_interval(days => ${IDADE_MAXIMA_DIAS})
           and not exists (
               select 1 from "Applications" a
               where a."UserId" = ${userId} and a."JobId" = j."Id"
@@ -86,7 +88,7 @@ export async function diagnosticoDoFeed(userId) {
         return restam;
     };
 
-    await passo('vagas disponíveis', 'com email válido, fora de outras profissões, ainda não enviadas', sql``);
+    await passo('vagas disponíveis', 'com email válido, fora de outras profissões, post de até 6 meses, ainda não enviadas', sql``);
     // As áreas de fora de TI são decididas em JS (areaForaDeTI) e esta cascata é
     // SQL: ela não as conta. O total certo é o `noFeed` lá embaixo.
     const semForaDeTI = areas.some((a) => AREAS_FORA_DE_TI.includes(a)) ? ' (sem contar as vagas de fora de TI)' : '';

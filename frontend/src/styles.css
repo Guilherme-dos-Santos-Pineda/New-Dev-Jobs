@@ -2248,6 +2248,35 @@ button.link-sutil { background: none; border: 0; padding: 0; cursor: pointer; fo
 .cv-tec { color: #555; font-size: 12.5px; }
 .cv-lembrete { background: #fff3a8; color: #6b5200; padding: 0 2px; border-radius: 3px; }
 @media (max-width: 600px) { .cv-folha { padding: 20px 16px; } }
+
+/* Editar o currículo na própria folha (EditorCurriculo.jsx): cada campo é uma
+   caixa sem borda até passar o mouse ou focar, para continuar parecendo a folha. */
+.cv-ed-caixa {
+    display: block; width: 100%; resize: none; overflow: hidden; font: inherit; color: inherit; line-height: 1.5;
+    background: transparent; border: 1px dashed transparent; border-radius: 4px; padding: 2px 6px; margin: 0 0 4px;
+}
+.cv-ed-caixa:hover { border-color: #c9c9c9; }
+.cv-ed-caixa:focus { outline: none; border: 1px solid #7c5cff; background: #f7f5ff; }
+.cv-ed-caixa::placeholder { color: #a3a3a3; }
+.cv-folha-editando .cv-nome, .cv-folha-editando .cv-titulo, .cv-folha-editando .cv-contato { text-align: center; }
+/* `font: inherit` da caixa zera o tamanho de cada parte da folha: devolve aqui. */
+.cv-folha-editando .cv-nome { font-size: 22px; font-weight: 700; }
+.cv-folha-editando .cv-titulo { font-size: 14px; color: #444; }
+.cv-folha-editando .cv-contato, .cv-folha-editando .cv-tec { font-size: 12.5px; color: #555; }
+.cv-ed-linha { display: flex; gap: 6px; align-items: flex-start; }
+.cv-ed-linha .cv-ed-caixa { flex: 1; min-width: 0; }
+.cv-ed-forte { font-weight: 600; }
+.cv-ed-rotulo { font-weight: 600; flex: 0 0 30% !important; }
+.cv-ed-periodo { flex: 0 0 22% !important; color: #666; }
+.cv-ed-bloco { border-left: 2px solid #eee; padding-left: 8px; }
+.cv-ed-remover { border: 0; background: none; color: #b33; cursor: pointer; padding: 4px; opacity: .55; }
+.cv-ed-remover:hover { opacity: 1; }
+.cv-folha .cv-ed-add { color: #555; padding: 4px 8px; }
+.cv-ed-acoes { gap: 8px; margin-top: 12px; }
+@media (max-width: 600px) {
+    .cv-ed-linha { flex-wrap: wrap; }
+    .cv-ed-rotulo, .cv-ed-periodo { flex: 1 1 100% !important; }
+}
 @media print {
     @page { margin: 14mm; }
     body.imprimindo-cv * { visibility: hidden !important; }
@@ -2326,3 +2355,132 @@ button.link-sutil { background: none; border: 0; padding: 0; cursor: pointer; fo
 .vl-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
 .vl-total { font-size: 12.5px; display: flex; gap: 12px; align-items: center; }
 @media (max-width: 640px) { .vl-linha .select { max-width: none; flex: 1 1 45%; } }
+
+/* ============================================
+   Modo Neon (easter egg, lib/modoNeon.js)
+   ============================================
+   Noite de praia nos anos 80: céu roxo, pôr do sol listrado, grade no chão e
+   coqueiros. `:root.neon` (especificidade 0,2,0) vence `html.dark` e o bloco do
+   vidro, e vale com o tema claro ou escuro escolhido. O cenário fica ATRÁS do
+   conteúdo (z-index -1, pointer-events none) e os cartões são sólidos o bastante
+   para o texto continuar legível. */
+:root.neon {
+    color-scheme: dark;
+    --color-bg: #13072A;
+    --color-bg-secondary: #1B0B38;
+    --color-surface: #1F0D40;
+    --color-text: #FFEAFB;
+    --color-text-secondary: #CDA9EC;
+    --color-text-tertiary: #9576C0;
+    --color-border: #43207A;
+    --color-border-light: #341863;
+    --color-border-medium: #43207A;
+
+    --color-accent: #FF4FB0;
+    --color-accent-dark: #FF7AC6;
+    --color-accent-darker: #FF9BD4;
+    --color-accent-muted: #8E5FB8;
+    --color-accent-light: rgba(255, 79, 176, 0.14);
+    --color-on-accent: #1A0029;
+    --color-featured-bg: #24104A;
+    --color-featured-text: #FFEAFB;
+
+    --color-success: #3CF5C4;
+    --color-success-bg: rgba(60, 245, 196, 0.12);
+    --color-warn: #FFC15E;
+    --color-warn-bg: rgba(255, 193, 94, 0.12);
+    --color-danger: #FF6B8B;
+    --color-danger-bg: rgba(255, 107, 139, 0.12);
+
+    --grad-accent: linear-gradient(90deg, #FF4FB0, #FF9A4D);
+    --grad-cta: linear-gradient(90deg, #FF4FB0, #FF9A4D);
+    --grad-text: linear-gradient(90deg, #FF4FB0, #34E7FF);
+    --glow-accent: 0 0 18px rgba(255, 79, 176, 0.55);
+    --shadow-lg: 0 16px 44px -16px rgba(255, 79, 176, 0.45);
+    --radius-sm: 8px; --radius: 12px; --radius-lg: 16px; --radius-xl: 20px;
+
+    --panel-bg: #2A0E52; --panel-on: #FFEAFB; --panel-soft: #CDA9EC; --panel-edge: #FF4FB0;
+    --vidro-fundo: rgba(31, 13, 64, 0.62);
+    --vidro-borda: rgba(255, 79, 176, 0.35);
+    --vidro-brilho: rgba(255, 255, 255, 0.08);
+    --neon-ciano: #34E7FF;
+}
+
+/* Céu */
+:root.neon body,
+:root.neon .app-shell {
+    background:
+        radial-gradient(ellipse 80% 45% at 50% 100%, rgba(255, 120, 70, 0.32), transparent 70%),
+        linear-gradient(180deg, #0B0320 0%, #17073A 40%, #350C55 72%, #6B1A5E 100%) fixed;
+}
+:root.neon .app-main { background-image: none; }
+
+/* Sol listrado, grade e coqueiros: um só elemento fixo atrás de tudo. */
+:root.neon body::before,
+:root.neon body::after { content: ''; position: fixed; pointer-events: none; z-index: -1; }
+:root.neon body::before {
+    right: 6vw; bottom: 18vh; width: 34vmin; height: 34vmin; border-radius: 50%;
+    background: linear-gradient(180deg, #FFD36E 0%, #FF9A4D 40%, #FF4FB0 75%, #B5179E 100%);
+    -webkit-mask: repeating-linear-gradient(180deg, #000 0 10px, transparent 10px 13px) bottom / 100% 55% no-repeat,
+                  linear-gradient(#000, #000) top / 100% 45% no-repeat;
+            mask: repeating-linear-gradient(180deg, #000 0 10px, transparent 10px 13px) bottom / 100% 55% no-repeat,
+                  linear-gradient(#000, #000) top / 100% 45% no-repeat;
+    filter: drop-shadow(0 0 40px rgba(255, 79, 176, 0.6));
+    opacity: 0.55;
+}
+:root.neon body::after {
+    left: 0; right: 0; bottom: 0; height: 26vh;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Cg fill='%230B0320'%3E%3Cpath d='M58 160c2-40 4-80 14-118l5 1c-9 37-11 77-12 117z'/%3E%3Cpath d='M74 40c-14-10-34-12-52-4 18-2 34 2 46 10zM74 40c-6-16-22-26-42-28 16 6 28 16 36 30zM74 40c8-14 24-22 44-20-18 2-32 10-40 22zM74 40c14-6 32-4 44 8-14-6-30-6-42-2zM74 40c4 16-2 34-16 46 10-14 14-30 12-44zM74 40c12 8 18 24 16 40-4-14-10-26-18-36z'/%3E%3C/g%3E%3C/svg%3E") left 2vw bottom / auto 30vh no-repeat,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'%3E%3Cg fill='%230B0320'%3E%3Cpath d='M58 160c2-40 4-80 14-118l5 1c-9 37-11 77-12 117z'/%3E%3Cpath d='M74 40c-14-10-34-12-52-4 18-2 34 2 46 10zM74 40c-6-16-22-26-42-28 16 6 28 16 36 30zM74 40c8-14 24-22 44-20-18 2-32 10-40 22zM74 40c14-6 32-4 44 8-14-6-30-6-42-2zM74 40c4 16-2 34-16 46 10-14 14-30 12-44zM74 40c12 8 18 24 16 40-4-14-10-26-18-36z'/%3E%3C/g%3E%3C/svg%3E") right 1vw bottom / auto 22vh no-repeat,
+        linear-gradient(0deg, rgba(255, 79, 176, 0.5) 1px, transparent 1px) 0 0 / 100% 22px,
+        linear-gradient(90deg, rgba(52, 231, 255, 0.35) 1px, transparent 1px) 50% 0 / 48px 100%,
+        linear-gradient(180deg, transparent, rgba(11, 3, 32, 0.85));
+    -webkit-mask: linear-gradient(180deg, transparent, #000 45%);
+            mask: linear-gradient(180deg, transparent, #000 45%);
+    opacity: 0.7;
+}
+
+/* Superfícies: um pouco de transparência para o céu aparecer nas bordas. */
+:root.neon .sidebar { background: rgba(19, 7, 42, 0.82); border-right-color: rgba(255, 79, 176, 0.25); }
+:root.neon .card,
+:root.neon .modal { background: rgba(31, 13, 64, 0.9); border-color: var(--color-border-light); }
+:root.neon .card:hover { border-color: rgba(255, 79, 176, 0.45); }
+
+/* Tipografia: títulos com gradiente e brilho. */
+:root.neon h1, :root.neon h2, :root.neon .page-title {
+    font-family: 'Righteous', var(--font-disp);
+    letter-spacing: 0.02em;
+    background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 10px rgba(255, 79, 176, 0.35));
+}
+:root.neon .brand-word {
+    font-family: 'Monoton', 'Righteous', var(--font-disp); font-weight: 400; letter-spacing: 0.04em;
+    color: #FF7AC6; text-shadow: 0 0 6px #FF4FB0, 0 0 18px rgba(255, 79, 176, 0.7);
+}
+:root.neon .brand-word b { color: var(--neon-ciano); text-shadow: 0 0 6px var(--neon-ciano), 0 0 18px rgba(52, 231, 255, 0.7); font-weight: 400; }
+:root.neon .brand-mark-img { filter: hue-rotate(170deg) saturate(1.6) drop-shadow(0 0 8px rgba(255, 79, 176, 0.7)); }
+
+/* Botões e controles */
+:root.neon .btn { border-radius: 10px; }
+:root.neon .btn.primary {
+    background: var(--grad-cta); color: #1A0029; border: 0;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 0 22px rgba(255, 79, 176, 0.55);
+    text-shadow: none;
+}
+:root.neon .btn.primary:hover { filter: brightness(1.1) saturate(1.1); }
+:root.neon .btn:not(.primary):hover { box-shadow: 0 0 14px rgba(255, 79, 176, 0.35); }
+:root.neon .input, :root.neon .select, :root.neon textarea.input { border-radius: 10px; background: rgba(11, 3, 32, 0.6); }
+:root.neon .badge { box-shadow: 0 0 10px currentColor; }
+:root.neon .sidebar-nav a { border-radius: 10px; }
+:root.neon .sidebar-nav a.active { color: #FF7AC6; text-shadow: 0 0 8px rgba(255, 79, 176, 0.8); }
+:root.neon .sidebar-nav a.active::before { background: var(--neon-ciano); box-shadow: 0 0 10px var(--neon-ciano); }
+:root.neon ::selection { background: rgba(52, 231, 255, 0.35); }
+:root.neon :focus-visible { outline-color: var(--neon-ciano); }
+:root.neon .bottom-nav a.active { color: #FF7AC6; }
+
+/* Quem pede menos movimento não ganha brilho pulsando: só o cenário parado. */
+@media (prefers-reduced-motion: no-preference) {
+    :root.neon .brand-word { animation: neon-pisca 6s infinite; }
+    @keyframes neon-pisca { 0%, 92%, 100% { opacity: 1; } 93% { opacity: 0.45; } 94% { opacity: 1; } 96% { opacity: 0.6; } }
+}

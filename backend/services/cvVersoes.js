@@ -7,7 +7,7 @@ import { idiomaDaVaga, areaDaVaga, areaForaDeTI } from './classify.js';
 import { estadoIaDe, registrarUso } from './iaPlano.js';
 import { criarCacheLimitado } from '../lib/cacheLimitado.js';
 import { curriculoEmPdf, nomeDoAnexo } from './cvPdf.js';
-import { MIN_TEXTO_CV } from './analiseCvLogic.js';
+import { MIN_TEXTO_CV, formaDoCurriculo, curriculoTemConteudo } from './analiseCvLogic.js';
 import { controleGlobal, ajusteDe } from './analiseCv.js';
 import { gruposDoFeed, SISTEMA_VERSAO, mensagemVersao, lerVersao, AREA_LEGIVEL, escolherVersao } from './cvVersoesLogic.js';
 
@@ -170,6 +170,25 @@ export async function aprovarVersao(userId, id, { acesso = false } = {}) {
     if (!acesso) throw new VersaoError('A IA está desligada para a sua conta.', 403);
     const [v] = await sql`
         update "CvVersoes" set "Status" = 'aprovada', "AprovadaEm" = now()
+        where "Id" = ${id} and "UserId" = ${userId} returning *`;
+    if (!v) throw new VersaoError('Versão não encontrada.', 404);
+    return forma(v);
+}
+
+/**
+ * A pessoa editou o texto da versão (pedido de pagante, 25/11/2026: "editar
+ * direto no app"). A edição é DELA: não passa por conferirFatos, que existe para
+ * a IA não inventar, e ela pode acrescentar o que a IA não sabia. Versão aprovada
+ * continua aprovada, com AprovadaEm novo: é a chave do cache do PDF, senão os
+ * envios seguiriam com o texto antigo.
+ */
+export async function editarVersao(userId, id, curriculo, { acesso = false } = {}) {
+    if (!acesso) throw new VersaoError('A IA está desligada para a sua conta.', 403);
+    const cv = formaDoCurriculo(curriculo, { semVazios: true });
+    if (!curriculoTemConteudo(cv)) throw new VersaoError('O currículo ficou vazio. Escreva ao menos o resumo, uma experiência ou a formação.', 400);
+    const [v] = await sql`
+        update "CvVersoes" set "Curriculo" = ${sql.json(cv)},
+            "AprovadaEm" = case when "Status" = 'aprovada' then now() else "AprovadaEm" end
         where "Id" = ${id} and "UserId" = ${userId} returning *`;
     if (!v) throw new VersaoError('Versão não encontrada.', 404);
     return forma(v);

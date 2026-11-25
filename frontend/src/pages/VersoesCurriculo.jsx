@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { useT } from '../lib/i18n.jsx';
 import { FolhaDoCurriculo, CabecalhoIA } from './Curriculo.jsx';
+import EditorCurriculo from '../components/EditorCurriculo.jsx';
 
 // Um currículo por tipo de vaga (11/11/2026): a pessoa vê as vagas de um tipo AO
 // LADO do currículo que a IA adaptou para elas, lê o que mudou e aprova. Com o
@@ -12,6 +13,7 @@ export default function VersoesCurriculo() {
     const { t } = useT();
     const [dados, setDados] = useState(null);
     const [aberto, setAberto] = useState(null); // chave "area:lang"
+    const [editando, setEditando] = useState(null); // id da versão em edição
     const [ocupado, setOcupado] = useState('');
     const [erro, setErro] = useState('');
     const trava = useRef(false);
@@ -38,6 +40,8 @@ export default function VersoesCurriculo() {
         const r = await api.iaNosEnvios(!dados.ligado);
         setDados((d) => ({ ...d, ligado: r.ligado, nosEnvios: d.podeLigar && r.ligado }));
     });
+    // Editar o texto (25/11/2026). Aprovada continua aprovada: o servidor refaz o PDF.
+    const salvarEdicao = (g) => async (cv) => { trocarVersao(g, await api.editarVersaoCv(g.versao.id, cv)); setEditando(null); };
     const apagar = (g) => acao(`apagar:${chave(g)}`, async () => { await api.apagarVersaoCv(g.versao.id); trocarVersao(g, null); });
 
     if (!dados) return <div className="page"><div className="muted">{t('Carregando…')}</div></div>;
@@ -126,6 +130,12 @@ export default function VersoesCurriculo() {
                                         )}
                                     </div>
                                     <div className="cv-comparar-folha">
+                                        {editando === v.id ? (
+                                            <EditorCurriculo key={v.id} cv={v.curriculo} onSalvar={salvarEdicao(g)} onCancelar={() => setEditando(null)}
+                                                aviso={v.status === 'aprovada'
+                                                    ? t('Esta versão já vai nos envios: o que você salvar passa a ir no lugar dela. Nas listas, um item por linha.')
+                                                    : undefined} />
+                                        ) : (<>
                                         <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                                             {v.status !== 'aprovada' && (
                                                 <button className="btn primary sm" disabled={!!ocupado} onClick={() => aprovar(g)}>
@@ -135,9 +145,11 @@ export default function VersoesCurriculo() {
                                             <button className="btn sm" disabled={!!ocupado || dados.ia?.podeVersao === false} onClick={() => gerar(g)}>
                                                 {ocupado === `gerar:${k}` ? t('Adaptando… até 1 minuto') : t('Refazer')}
                                             </button>
+                                            <button className="btn sm" disabled={!!ocupado} onClick={() => setEditando(v.id)}><i className="ti ti-pencil" /> {t('Editar')}</button>
                                             <button className="btn ghost sm" disabled={!!ocupado} onClick={() => apagar(g)}>{t('Excluir')}</button>
                                         </div>
                                         <FolhaDoCurriculo cv={v.curriculo} />
+                                        </>)}
                                     </div>
                                 </div>
                             )}

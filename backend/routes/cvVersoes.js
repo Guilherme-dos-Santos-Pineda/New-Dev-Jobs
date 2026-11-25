@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { config } from '../config.js';
-import { painelDeVersoes, gerarVersao, aprovarVersao, apagarVersao, VersaoError, podeUsarVersoes, ligarIaNosEnvios } from '../services/cvVersoes.js';
+import { painelDeVersoes, gerarVersao, aprovarVersao, apagarVersao, editarVersao, VersaoError, podeUsarVersoes, ligarIaNosEnvios } from '../services/cvVersoes.js';
 
 const router = Router();
 const ehAdmin = (u) => config.isAdminEmail(u.Email) || u.Role === 'admin';
@@ -26,6 +26,8 @@ router.get('/', requireAuth, responder(async (req) => painelDeVersoes(req.user.I
 router.put('/nos-envios', requireAuth, responder((req) => ligarIaNosEnvios(req.user, req.body?.ligado === true)));
 router.post('/', requireAuth, responder(async (req) => gerarVersao(req.user.Id, { area: String(req.body?.area || ''), lang: req.body?.lang }, await acesso(req))));
 router.post('/:id/aprovar', requireAuth, responder(async (req) => aprovarVersao(req.user.Id, idDe(req), await acesso(req))));
+// A pessoa editou o texto da versão (aprovada continua aprovada, com o PDF refeito).
+router.put('/:id', requireAuth, responder(async (req) => editarVersao(req.user.Id, idDe(req), req.body?.curriculo, await acesso(req))));
 router.delete('/:id', requireAuth, responder(async (req) => apagarVersao(req.user.Id, idDe(req), await acesso(req))));
 
 export default router;

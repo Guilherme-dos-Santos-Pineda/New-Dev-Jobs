@@ -11,6 +11,7 @@ import { clearChunkReloadFlag } from './lib/lazyWithReload.js';
 import { capturarErros } from './lib/errorLog.js';
 import { registrarApp } from './lib/instalarApp.js';
 import { capturarOrigem } from './lib/origem.js';
+import { escutarSegredo } from './lib/modoNeon.js';
 
 // Libera a trava anti-loop do recarregamento de chunk SO depois que o app
 // realmente pintou. Limpar no topo do modulo (como era antes) anulava a trava: a
@@ -30,6 +31,9 @@ registrarApp();
 
 // Canal da primeira visita e código de indicação (?ref=), antes de qualquer redirect.
 capturarOrigem();
+
+// Easter egg: digitar "neon" liga o Modo Neon (lib/modoNeon.js).
+escutarSegredo();
 
 createRoot(document.getElementById('root')).render(
     <React.StrictMode>

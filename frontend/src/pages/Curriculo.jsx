@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { api } from '../api.js';
 import { useT } from '../lib/i18n.jsx';
 import { AvisoIA } from '../components/PlanoIA.jsx';
+import EditorCurriculo from '../components/EditorCurriculo.jsx';
 
 // Currículo com IA: uma seção própria no menu (11/11/2026, o dono achou confuso
 // a análise e as versões misturadas). Duas abas, cada uma dizendo em uma frase o
@@ -139,6 +140,7 @@ export default function Curriculo() {
     // A reescrita fica recolhida: a análise agradou quase todo mundo, a reescrita
     // nem tanto, e ela é um extra, não o resultado principal.
     const [verReescrita, setVerReescrita] = useState(false);
+    const [editando, setEditando] = useState(false);
     const trava = useRef(false);
 
     // A aba das versões só aparece para quem a API libera (plano com IA ou admin).
@@ -212,6 +214,15 @@ export default function Curriculo() {
             setCopiado(true);
             setTimeout(() => setCopiado(false), 2500);
         } catch { /* sem permissão de área de transferência: o botão só não confirma */ }
+    }
+
+    // Editar o currículo reescrito (25/11/2026): grava só o currículo da análise aberta.
+    async function salvarEdicao(cv) {
+        const atual = aberta || estado.ultima;
+        const salva = await api.salvarCurriculoAnalise(atual.id, cv);
+        if (aberta) setAberta(salva);
+        if (estado.ultima?.id === salva.id) setEstado((e) => ({ ...e, ultima: salva }));
+        setEditando(false);
     }
 
     if (!estado) return <div className="page"><div className="muted">{t('Carregando…')}</div></div>;
@@ -315,14 +326,19 @@ export default function Curriculo() {
                         <div className="cv-reescrito-topo">
                             <h2><i className="ti ti-file-text" /> {t('Sugestão de currículo reescrito')} <span className="badge info">{t('opcional')}</span></h2>
                             <div className="row">
-                                {verReescrita && <button className="btn sm" onClick={() => copiar(r.curriculo)}>{copiado ? t('Copiado') : t('Copiar texto')}</button>}
-                                {verReescrita && <button className="btn primary sm" onClick={baixarPdf}><i className="ti ti-download" /> {t('Baixar PDF')}</button>}
+                                {verReescrita && !editando && <button className="btn sm" onClick={() => setEditando(true)}><i className="ti ti-pencil" /> {t('Editar')}</button>}
+                                {verReescrita && !editando && <button className="btn sm" onClick={() => copiar(r.curriculo)}>{copiado ? t('Copiado') : t('Copiar texto')}</button>}
+                                {verReescrita && !editando && <button className="btn primary sm" onClick={baixarPdf}><i className="ti ti-download" /> {t('Baixar PDF')}</button>}
                                 {!verReescrita && <button className="btn sm" onClick={() => setVerReescrita(true)}>{t('Ver a sugestão')}</button>}
                             </div>
                         </div>
-                        {verReescrita ? (
+                        {verReescrita && editando ? (
+                            <EditorCurriculo key={r.id} cv={r.curriculo} onSalvar={salvarEdicao} onCancelar={() => setEditando(false)}
+                                aviso={temLembrete(r.curriculo) ? t('Troque os trechos entre colchetes pelos seus dados, ou apague. Nas listas, um item por linha.') : undefined} />
+                        ) : verReescrita ? (
                             <>
-                                {temLembrete(r.curriculo) && <div className="why"><i className="ti ti-info-circle" />{t('Os trechos entre colchetes são dados que só você sabe: preencha ou apague antes de usar.')}</div>}
+                                {temLembrete(r.curriculo) && <div className="why"><i className="ti ti-info-circle" />{t('Os trechos entre colchetes são dados que só você sabe: clique em Editar para preencher ou apagar antes de usar.')}</div>}
+                                {r.editado && <div className="muted" style={{ fontSize: 12.5, marginBottom: 8 }}><i className="ti ti-pencil" /> {t('Editado por você')}</div>}
                                 <FolhaDoCurriculo cv={r.curriculo} />
                             </>
                         ) : (

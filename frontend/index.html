@@ -21,6 +21,8 @@
         (function () {
             // Escuro é o padrão: só fica claro quem escolheu claro.
             if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+            // Easter egg (lib/modoNeon.js): aplicado aqui para não piscar no tema normal.
+            try { if (localStorage.getItem('modoNeon') === '1') document.documentElement.classList.add('neon'); } catch (e) { /* sem storage */ }
         })();
     </script>
 </head>

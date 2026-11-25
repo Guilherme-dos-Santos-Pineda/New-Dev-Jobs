@@ -7,6 +7,7 @@ import { estadoIaDe, registrarUso } from './iaPlano.js';
 import {
     SISTEMA, mensagemDoUsuario, lerResposta, palavrasDoFeed, analisesRestantes,
     MIN_TEXTO_CV, lerControle, acessoLiberado, LIMITE_MAXIMO, EXTRAS_MAXIMO,
+    formaDoCurriculo, curriculoTemConteudo,
 } from './analiseCvLogic.js';
 
 // =========================
@@ -134,6 +135,22 @@ export async function analiseDaPessoa(userId, id) {
         select "Id", "CreatedAt", "Result" from "CvAnalyses"
         where "Id" = ${id} and "UserId" = ${userId}`;
     return r ? { id: r.Id, criadaEm: r.CreatedAt, ...r.Result } : null;
+}
+
+/**
+ * A pessoa editou o currículo reescrito de uma análise dela (Editar, 25/11/2026).
+ * Grava só o `curriculo` dentro do Result, com a marca `editado`. A análise
+ * (nota, dicas) não muda. Não passa por conferirFatos: o texto agora é dela.
+ */
+export async function salvarCurriculoDaAnalise(userId, id, curriculo) {
+    if (!(await analiseDisponivel())) throw new AnaliseError('Esta ferramenta ainda não está disponível.', 404);
+    const cv = formaDoCurriculo(curriculo, { semVazios: true });
+    if (!curriculoTemConteudo(cv)) throw new AnaliseError('O currículo ficou vazio. Escreva ao menos o resumo, uma experiência ou a formação.', 400);
+    const [r] = await sql`
+        update "CvAnalyses" set "Result" = "Result" || ${sql.json({ curriculo: cv, editado: true })}
+        where "Id" = ${id} and "UserId" = ${userId} returning "Id", "CreatedAt", "Result"`;
+    if (!r) throw new AnaliseError('Análise não encontrada.', 404);
+    return { id: r.Id, criadaEm: r.CreatedAt, ...r.Result };
 }
 
 async function chamarOpenAI(mensagem) {

@@ -111,6 +111,32 @@ const objetos = (v, campos, maxItens = 15) => (Array.isArray(v) ? v.filter((x) =
     return o;
 }) : []);
 
+/**
+ * O currículo no formato que a tela e o PDF entendem, com os tamanhos cortados.
+ * Serve à resposta da IA e à edição da pessoa (Editar, 25/11/2026). Na edição,
+ * item que ficou vazio sai (`semVazios`): a pessoa apagou o texto, não quer a linha.
+ */
+export function formaDoCurriculo(cv, { semVazios = false } = {}) {
+    const c = cv && typeof cv === 'object' && !Array.isArray(cv) ? cv : {};
+    const lista = (v, campos, max) => {
+        const itens = objetos(v, campos, max);
+        return semVazios ? itens.filter((o) => Object.values(o).some((x) => (Array.isArray(x) ? x.length : x))) : itens;
+    };
+    return {
+        nome: texto(c.nome, 120), titulo: texto(c.titulo, 160), contato: texto(c.contato, 400),
+        resumoProfissional: texto(c.resumoProfissional, 1500),
+        habilidades: lista(c.habilidades, { categoria: 't', itens: 't' }),
+        experiencias: lista(c.experiencias, { cargo: 't', empresa: 't', periodo: 't', atividades: 'lista', tecnologias: 't' }),
+        projetos: lista(c.projetos, { nome: 't', descricao: 'lista', stack: 't' }),
+        formacao: lista(c.formacao, { curso: 't', instituicao: 't', periodo: 't' }),
+        certificacoes: textos(c.certificacoes, 15, 200),
+        idiomas: lista(c.idiomas, { idioma: 't', nivel: 't' }, 8),
+    };
+}
+
+/** Sem resumo, experiência nem formação não é currículo: a IA falhou ou a pessoa apagou tudo. */
+export const curriculoTemConteudo = (cv) => Boolean(cv?.resumoProfissional || cv?.experiencias?.length || cv?.formacao?.length);
+
 const semAcento = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** Lê a resposta da IA: tolera texto em volta, corta tamanhos e marca quais palavras-chave a pessoa já tem. */
@@ -122,18 +148,8 @@ export function lerResposta(conteudo, textoCv = '') {
     try { p = JSON.parse(achado[0]); } catch {
         try { p = JSON.parse(achado[0].replace(/[\u0000-\u001F\u007F]/g, ' ')); } catch { return null; }
     }
-    const cv = p.curriculoReescrito && typeof p.curriculoReescrito === 'object' ? p.curriculoReescrito : {};
-    const reescrito = {
-        nome: texto(cv.nome, 120), titulo: texto(cv.titulo, 160), contato: texto(cv.contato, 400),
-        resumoProfissional: texto(cv.resumoProfissional, 1500),
-        habilidades: objetos(cv.habilidades, { categoria: 't', itens: 't' }),
-        experiencias: objetos(cv.experiencias, { cargo: 't', empresa: 't', periodo: 't', atividades: 'lista', tecnologias: 't' }),
-        projetos: objetos(cv.projetos, { nome: 't', descricao: 'lista', stack: 't' }),
-        formacao: objetos(cv.formacao, { curso: 't', instituicao: 't', periodo: 't' }),
-        certificacoes: textos(cv.certificacoes, 15, 200),
-        idiomas: objetos(cv.idiomas, { idioma: 't', nivel: 't' }, 8),
-    };
-    if (!reescrito.resumoProfissional && !reescrito.experiencias.length && !reescrito.formacao.length) return null;
+    const reescrito = formaDoCurriculo(p.curriculoReescrito);
+    if (!curriculoTemConteudo(reescrito)) return null;
 
     const original = semAcento(textoCv);
     const score = Math.round(Number(p.scoreEmpregabilidade));

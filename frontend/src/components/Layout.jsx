@@ -11,6 +11,7 @@ import { useToast } from './Toast.jsx';
 import Logo from './Logo.jsx';
 import BugReportModal from './BugReportModal.jsx';
 import AvisoInstalar from './AvisoInstalar.jsx';
+import { toqueNaMarca } from '../lib/modoNeon.js';
 
 // Hover em um item do menu já aquece o chunk lazy da rota + os dados da tela.
 // Quando o usuário clica, a página normalmente já tem tudo em cache.
@@ -131,7 +132,17 @@ export default function Layout() {
     const { user, logout } = useAuth();
     const { t: tr } = useT();
     const navigate = useNavigate();
+    const toastNeon = useToast();
     const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar') === 'collapsed');
+
+    // Easter egg (lib/modoNeon.js): avisa que ligou e como desligar.
+    useEffect(() => {
+        const aviso = (e) => toastNeon.show(e.detail
+            ? tr('Modo Neon ligado 🌴 Digite "neon" de novo (ou toque 7 vezes na marca) para voltar.')
+            : tr('Modo Neon desligado.'), 'success');
+        window.addEventListener('modo-neon', aviso);
+        return () => window.removeEventListener('modo-neon', aviso);
+    }, [toastNeon.show, tr]);
 
     const toggleCollapsed = () => setCollapsed((c) => {
         const next = !c;
@@ -160,7 +171,7 @@ export default function Layout() {
             {/* Sidebar (desktop) */}
             <aside className="sidebar">
                 <div className="sidebar-head">
-                    <NavLink to="/app" end className="brand sidebar-brand"><Logo /></NavLink>
+                    <NavLink to="/app" end className="brand sidebar-brand" onClick={toqueNaMarca}><Logo /></NavLink>
                     <button className="sidebar-collapse" onClick={toggleCollapsed} title={collapsed ? 'Expandir' : 'Recolher'} aria-label="Recolher menu">
                         <i className={`ti ${collapsed ? 'ti-chevron-right' : 'ti-chevron-left'}`} />
                     </button>
@@ -182,7 +193,7 @@ export default function Layout() {
 
             {/* Top bar (mobile): só a marca e o menu do nome. */}
             <header className="mobile-bar">
-                <NavLink to="/app" end className="brand"><Logo /></NavLink>
+                <NavLink to="/app" end className="brand" onClick={toqueNaMarca}><Logo /></NavLink>
                 <div className="spacer" />
                 <MenuUsuario user={user} onBug={() => setBugAberto(true)} onSair={doLogout} compacto />
             </header>

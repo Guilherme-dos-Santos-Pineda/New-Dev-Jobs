@@ -130,7 +130,7 @@ export default function VagasLink() {
                         <div key={v.id} className={`vh-vaga ${abertas.has(v.id) ? 'feita' : ''}`}>
                             <div className="vh-linha">
                                 <button className="vh-info" onClick={() => setAberta(aberta === v.id ? null : v.id)} aria-expanded={aberta === v.id}>
-                                    <span className="vh-titulo">{v.title}</span>
+                                    <span className="vh-titulo">{v.title}{v.parceiro && <span className="badge ok" style={{ marginLeft: 8, fontSize: 11 }}><i className="ti ti-heart-handshake" /> {t('Direto da recrutadora')}</span>}</span>
                                     <span className="vh-sub">
                                         {v.company ? `${v.company} · ` : ''}{haQuanto(v.createdAt)}{' · '}
                                         <span className={`vh-match ${scoreClass(v.matchScore)}`}>{t('{n}% compatível', { n: v.matchScore })}</span>
@@ -138,7 +138,7 @@ export default function VagasLink() {
                                 </button>
                                 <span className="vh-acoes">
                                     {abertas.has(v.id) && <span className="badge ok"><i className="ti ti-check" /> {t('Aberta')}</span>}
-                                    <a className="btn sm" href={v.url} target="_blank" rel="noopener noreferrer" onClick={() => marcar(v.id)}>
+                                    <a className="btn sm" href={v.url} target="_blank" rel="noopener noreferrer" onClick={() => { marcar(v.id); if (v.parceiro) api.vagaLinkAbriu(v.id).catch(() => {}); }}>
                                         <i className="ti ti-external-link" /> {t('Abrir vaga')}
                                     </a>
                                 </span>

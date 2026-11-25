@@ -24,6 +24,9 @@ import { lerSnapshot, gravadorDeSnapshot } from '../lib/snapshotDisco.js';
 // o egress. Depois da primeira carga só vêm os posts novos.
 
 const DIAS_DE_VAGA = 30;
+// Vaga que a recrutadora mandou direto para nós (Admin › Vagas de parceiros,
+// vagasParceiros.js). O link é o formulário dela, não um post.
+export const PARCEIRO = 'parceiro';
 // Vaga anunciada envelhece mais rápido e chega às centenas por dia: duas semanas
 // bastam e seguram a memória e o egress de cada carga depois de um deploy.
 const DIAS_DE_VAGA_ANUNCIADA = 14;
@@ -60,20 +63,23 @@ export function vagaDoPost(post) {
     // A vaga anunciada (vagasAnunciadas.js) já é vaga e o link é o anúncio. Com
     // email no texto ela fica de fora pelo mesmo motivo do post: o link entregaria o contato.
     const anunciada = post.Source === FONTE;
+    const parceiro = post.Source === PARCEIRO;
+    const comLink = anunciada || parceiro;
     if (TEM_EMAIL.test(texto)) return null;
-    if (!anunciada && (!TEM_LINK.test(texto) || !ANUNCIA_VAGA.test(texto))) return null;
-    const url = anunciada ? post.Url : (linkDoPost(post.LinkedinId) || post.Url);
+    if (!comLink && (!TEM_LINK.test(texto) || !ANUNCIA_VAGA.test(texto))) return null;
+    const url = comLink ? post.Url : (linkDoPost(post.LinkedinId) || post.Url);
     if (!url) return null;
 
     const vaga = {
-        Id: `link-${post.Id}`, JobTitle: tituloDoPost(texto), Company: anunciada ? (post.Author || '') : '', Email: '', Description: texto,
-        Skills: extractSkills(texto), Location: anunciada ? (texto.match(/📍 Local: (.+)/)?.[1] ?? null) : null,
-        Modality: null, CreatedAt: post.PostedAt || post.CreatedAt, url, Anunciada: anunciada,
+        Id: `link-${post.Id}`, JobTitle: tituloDoPost(texto), Company: comLink ? (post.Author || '') : '', Email: '', Description: texto,
+        Skills: extractSkills(texto), Location: comLink ? (texto.match(/📍 Local: (.+)/)?.[1] ?? null) : null,
+        Modality: null, CreatedAt: post.PostedAt || post.CreatedAt, url, Anunciada: anunciada, Parceiro: parceiro, PostId: Number(post.Id),
     };
     const { area, level, mods, isBR } = classifyJob(vaga);
     Object.assign(vaga, { Area: area, Level: level, Mods: mods, IsBR: isBR });
     // Título vago não entra: sem texto de vaga e sem email não dá para saber o que é.
-    if (area === 'other' || (area === 'nontech' && !areaForaDeTI(vaga))) return null;
+    // A de parceiro tem título escrito pelo admin: vago ou não, ela entra.
+    if ((area === 'other' && !parceiro) || (area === 'nontech' && !areaForaDeTI(vaga))) return null;
     return vaga;
 }
 
@@ -101,14 +107,17 @@ export function vagasParaPerfil(vagas, perfil, agora = Date.now()) {
     const recentes = vagas.filter((v) => agora - new Date(v.CreatedAt).getTime() <= DIAS_DE_VAGA * DIA_MS);
     return candidatasDoPerfil(recentes, perfil, new Set(), { semEmail: true })
         .map((v) => ({ vaga: v, score: computeMatch(perfil, v).score }))
-        .sort((a, b) => faixaDeIdade(a.vaga.CreatedAt, agora) - faixaDeIdade(b.vaga.CreatedAt, agora) || b.score - a.score)
+        // Vaga de parceiro vem antes dentro da semana: é recente, confirmada e a recrutadora quer currículo.
+        .sort((a, b) => faixaDeIdade(a.vaga.CreatedAt, agora) - faixaDeIdade(b.vaga.CreatedAt, agora)
+            || Number(!!b.vaga.Parceiro) - Number(!!a.vaga.Parceiro) || b.score - a.score)
         .map(({ vaga, score }) => ({
             id: vaga.Id, title: vaga.JobTitle, company: vaga.Company || null, createdAt: vaga.CreatedAt, matchScore: score, url: vaga.url,
             description: semContato(vaga.Description)?.slice(0, PREVIEW_CHARS) ?? null,
             // Para os filtros da tela (filtrarVagasPorLink).
             area: vaga.Area === 'nontech' ? areaForaDeTI(vaga) : vaga.Area,
             mods: Array.isArray(vaga.Mods) ? vaga.Mods : [],
-            fonte: vaga.Anunciada ? 'anuncio' : 'post',
+            fonte: vaga.Anunciada ? 'anuncio' : vaga.Parceiro ? 'parceiro' : 'post',
+            parceiro: !!vaga.Parceiro,
         }));
 }
 
@@ -227,6 +236,17 @@ export async function vagasPorLinkDe(userId, filtros = {}) {
         vagas: filtradas.slice(0, TETO_DA_RESPOSTA).map(({ mods, fonte, ...v }) => ({ ...v, mods, fonte })),
         total: filtradas.length, semFiltro: lista.length, areas: areasDaLista(lista),
     };
+}
+
+/** Vaga de parceiro nova ou encerrada: a próxima leitura busca os posts novos e ninguém fica com a lista guardada. */
+export function tirarVagaPorLink(postId) {
+    vagas = vagas.filter((v) => v.Id !== `link-${postId}`);
+    memo.clear();
+    salvarNoDisco();
+}
+export function atualizarVagasPorLinkJa() {
+    checadoEm = 0;
+    memo.clear();
 }
 
 /** Perfil salvo muda o que a pessoa vê: a lista guardada cai junto. */

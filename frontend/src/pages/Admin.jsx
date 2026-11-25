@@ -20,6 +20,7 @@ import AdminRoboPlano from '../components/AdminRoboPlano.jsx';
 import AdminGithub from '../components/AdminGithub.jsx';
 import AdminIndicacoes from '../components/AdminIndicacoes.jsx';
 import AdminPagantes from '../components/AdminPagantes.jsx';
+import AdminParceiros from '../components/AdminParceiros.jsx';
 
 const nf = (n) => (n ?? 0).toLocaleString('pt-BR');
 
@@ -101,6 +102,7 @@ export default function Admin() {
                     ['report', 'Relatório', 'ti-report-analytics'],
                     ['campanhas', 'Campanhas', 'ti-mail-forward'],
                     ['pagantes', 'Falar com pagantes', 'ti-message-circle'],
+                    ['parceiros', 'Vagas de parceiros', 'ti-heart-handshake'],
                     ['indicacoes', 'Indicações e origem', 'ti-gift'],
                     ['divulgacao', 'Divulgação', 'ti-brand-linkedin'],
                     ['backups', 'Perfis apagados', 'ti-archive'],
@@ -124,6 +126,7 @@ export default function Admin() {
             {tab === 'report' && <AdminReport />}
             {tab === 'campanhas' && <AdminCampaigns />}
             {tab === 'pagantes' && <AdminPagantes />}
+            {tab === 'parceiros' && <AdminParceiros />}
             {tab === 'indicacoes' && <AdminIndicacoes />}
             {tab === 'divulgacao' && <AdminPromoPost />}
             {tab === 'backups' && <AdminProfileBackups />}

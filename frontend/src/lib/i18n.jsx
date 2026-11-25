@@ -808,6 +808,7 @@ const EN = {
     "As notificações estão bloqueadas neste navegador. Libere nas configurações do site para ativar.": "Notifications are blocked in this browser. Allow them in the site settings to turn them on.",
     "Receba no celular quando chegar vaga nova pro seu perfil.": "Get notified on your phone when new jobs match your profile.",
     "Ativar neste aparelho": "Turn on for this device",
+    "Direto da recrutadora": "Straight from the recruiter",
 };
 const DICT = { pt: {}, en: EN };
 

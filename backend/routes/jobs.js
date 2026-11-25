@@ -7,6 +7,7 @@ import { semContato } from '../services/highlights.js';
 import { invalidateMatches } from '../services/jobsQuery.js';
 import { feedbackDisponivel, votar, meusLikes, MOTIVOS } from '../services/jobFeedback.js';
 import { vagasPorLinkDe } from '../services/vagasPorLink.js';
+import { contarAbertura } from '../services/vagasParceiros.js';
 
 const router = Router();
 
@@ -62,6 +63,14 @@ router.get('/links', requireAuth, async (req, res) => {
     const area = /^[a-z]{2,15}$/.test(String(req.query.area || '')) ? req.query.area : '';
     const fonte = ['anuncio', 'post'].includes(req.query.fonte) ? req.query.fonte : '';
     res.json(await vagasPorLinkDe(req.user.Id, { q, mod, dias, area, fonte }));
+});
+
+// POST /api/jobs/links/:id/abriu: clique em "Abrir vaga" de uma vaga de parceiro
+// (vagasParceiros.js). Só conta; nunca falha para a pessoa.
+router.post('/links/:id/abriu', requireAuth, (req, res) => {
+    const id = String(req.params.id).replace(/^link-/, '');
+    contarAbertura(id, req.user.Id).catch((e) => console.warn('abertura de vaga de parceiro:', e.message));
+    res.json({ ok: true });
 });
 
 // GET /api/jobs/feedback/mine — os 👍 do usuário, e se o recurso está ligado

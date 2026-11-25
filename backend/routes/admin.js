@@ -5,6 +5,7 @@ import { requireAdmin } from '../middleware/auth.js';
 import { painelEmailsVoltaram, bloquearEmail, desbloquearEmail } from '../services/emailVoltou.js';
 import { painelIndicacoesAdmin } from '../services/indicacao.js';
 import { painelPagantes, mensagemComDica, marcarFalei } from '../services/contatoPagantes.js';
+import { criarVagaParceiro, listarVagasParceiros, encerrarVagaParceiro } from '../services/vagasParceiros.js';
 import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
@@ -451,6 +452,23 @@ router.get('/pagantes/:id/dica', requireAdmin, async (req, res) => {
 router.post('/pagantes/:id/falei', requireAdmin, async (req, res) => {
     try { res.json({ falei: await marcarFalei(req.params.id, !!req.body?.falei, req.user.Email) }); }
     catch (e) { console.error('admin pagantes falei:', e.message); res.status(500).json({ error: 'Não deu para marcar agora.' }); }
+});
+
+// Vagas de parceiros (services/vagasParceiros.js): a recrutadora manda a vaga com
+// link de candidatura, e ela aparece em Vagas por link para quem tem o perfil.
+router.get('/parceiros', requireAdmin, async (_req, res) => {
+    try { res.json({ vagas: await listarVagasParceiros() }); }
+    catch (e) { console.error('admin parceiros:', e.message); res.status(500).json({ error: 'Não deu para carregar agora.' }); }
+});
+router.post('/parceiros', requireAdmin, async (req, res) => {
+    try {
+        const r = await criarVagaParceiro(req.body || {}, req.user.Email);
+        return r.erro ? res.status(400).json({ error: r.erro }) : res.json(r);
+    } catch (e) { console.error('admin parceiros criar:', e.message); res.status(500).json({ error: 'Não deu para publicar agora.' }); }
+});
+router.post('/parceiros/:id/encerrar', requireAdmin, async (req, res) => {
+    try { res.json({ ok: await encerrarVagaParceiro(Number(req.params.id)) }); }
+    catch (e) { console.error('admin parceiros encerrar:', e.message); res.status(500).json({ error: 'Não deu para encerrar agora.' }); }
 });
 
 router.get('/indicacoes', requireAdmin, async (_req, res) => {

@@ -41,7 +41,7 @@ export async function dominioRecebeEmail(dominio, consultar = dns) {
         ok = !(a === false && aaaa === false);
     }
     cache.set(d, { ok, em: Date.now() });
-    if (cache.size > 5000) cache.delete(cache.keys().next().value);
+    if (cache.size > 10000) cache.delete(cache.keys().next().value);
     return ok;
 }
 

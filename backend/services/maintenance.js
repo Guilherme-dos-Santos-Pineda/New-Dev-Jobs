@@ -117,8 +117,10 @@ export async function fecharRunsPresas(horas = HORAS_ATE_RUN_PRESA) {
 }
 
 /**
- * Uma vez por dia: vaga dos últimos 30 dias cujo email todo é de domínio que não
- * existe perde o email e sai do feed. Num UPDATE só, porque cada mudança em
+ * Uma vez por dia: vaga cujo email todo é de domínio que não existe perde o email
+ * e sai do feed. TODAS as vagas, não só as recentes: o envio das 9h manda vaga
+ * antiga quando acabam as da semana, e até 25/11/2026 a janela era de 30 dias:
+ * a mesma vaga de junho falhava para cada pagante, todo dia (29 falhas em 48 h). Num UPDATE só, porque cada mudança em
  * "Jobs" recarrega o feed em memória (~12 MB de egress). O envio já barra antes
  * (applyToJob); isto tira a vaga da lista para ninguém tentar.
  */
@@ -128,8 +130,8 @@ export async function limparDominiosMortos(hoje = new Date().toISOString().slice
     dominiosConferidosEm = hoje;
     const vagas = await sql`
         select "Id", "Email" from "Jobs"
-        where "Email" like '%@%.%' and "CreatedAt" > now() - interval '30 days'
-        limit 5000`;
+        where "Email" like '%@%.%'
+        order by "Id" desc limit 30000`;
     const mortas = [];
     for (const v of vagas) {
         const lista = enderecos(v.Email);

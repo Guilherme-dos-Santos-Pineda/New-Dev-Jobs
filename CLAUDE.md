@@ -374,6 +374,9 @@ regra existente, não acrescente uma nova que a contradiga.
 - **"Não é TI" (`POST /api/admin/jobs/:id/remover`) é permanente e reversível ao mesmo tempo.** Grava `AiClassification = 'removida-admin'` (`REMOVIDA_PELO_ADMIN`), que `areaDaVaga` respeita em toda reclassificação, e põe o post de origem em `rejected`, que o scraper já pula (senão o mesmo post coletado de novo voltaria como vaga nova). Não apaga a linha: pode haver candidatura ligada. `restaurar` desfaz.
   - `areaDaVaga` é usada pelo SQL (via `classifyJob`) **e** pelo `passesFilters`. Se só um dos dois respeitasse a marca, os filtros divergiriam.
 
+## Admin: falar com pagantes (25/11/2026)
+- **Admin › Falar com pagantes** ([backend/services/contatoPagantes.js](backend/services/contatoPagantes.js), regra pura em `contatoPagantesLogic.js`): quem pagou e não usa (sem Gmail ou Automático desligado), quem pode estar sem vaga (o lote das 9h de hoje saiu com menos da metade do limite) e quem usa bem, cada um com a mensagem sugerida no jeito do dono, editável, e botões de WhatsApp (`wa.me`, telefone do perfil) e Gmail (compose do dono, não Campanhas: email pessoal com o nome responde mais). "Medir o perfil e pôr a dica" roda `sugestoesDePerfil` só no clique (é caro). "Já falei" fica em `AppSettings('contatoPagantes')`, então vale no celular. O admin não aparece na lista.
+
 ## Admin: por que esta pessoa vê poucas vagas
 - **`GET /api/admin/users/:id/feed`** devolve a CASCATA de filtros, não só o total, e a tela (Admin › Usuários › detalhe) mostra os degraus. O total sozinho já existia e não respondia nada: foi a cascata que mostrou que 82% do corte de um usuário real vinha de UM filtro (data de postagem), e não do classificador.
 - Os pedaços de SQL em `services/diagnosticoFeed.js` fazem os MESMOS cortes de `candidatasDoPerfil`, na mesma ordem. **Se divergirem, o diagnóstico mente** e manda o admin arrumar o lugar errado.

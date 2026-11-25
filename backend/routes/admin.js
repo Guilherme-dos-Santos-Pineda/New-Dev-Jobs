@@ -4,6 +4,7 @@ import sql from '../lib/sql.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { painelEmailsVoltaram, bloquearEmail, desbloquearEmail } from '../services/emailVoltou.js';
 import { painelIndicacoesAdmin } from '../services/indicacao.js';
+import { painelPagantes, mensagemComDica, marcarFalei } from '../services/contatoPagantes.js';
 import { validate } from '../middleware/validate.js';
 import { getBoss, SCRAPER_DISCOVERY, SCRAPER_MONITORING } from '../lib/boss.js';
 import { reprocessPost, materializeJobFromPost } from '../services/scraper.js';
@@ -435,6 +436,23 @@ router.post('/robo-plano/:userId/rodar', requireAdmin, (req, res) => {
 
 // GET /api/admin/github: o leitor das vagas do GitHub (services/vagasGithub.js).
 // Indique e ganhe e origem das contas (services/indicacao.js).
+// Falar com pagantes (services/contatoPagantes.js): quem pagou e não usa, quem
+// está sem vaga, e a mensagem pronta para WhatsApp ou Gmail.
+router.get('/pagantes', requireAdmin, async (_req, res) => {
+    try { res.json(await painelPagantes()); }
+    catch (e) { console.error('admin pagantes:', e.message); res.status(500).json({ error: 'Não deu para carregar os pagantes agora.' }); }
+});
+router.get('/pagantes/:id/dica', requireAdmin, async (req, res) => {
+    try {
+        const r = await mensagemComDica(req.params.id);
+        return r ? res.json(r) : res.status(404).json({ error: 'Usuário não encontrado.' });
+    } catch (e) { console.error('admin pagantes dica:', e.message); res.status(500).json({ error: 'Não deu para medir o perfil agora.' }); }
+});
+router.post('/pagantes/:id/falei', requireAdmin, async (req, res) => {
+    try { res.json({ falei: await marcarFalei(req.params.id, !!req.body?.falei, req.user.Email) }); }
+    catch (e) { console.error('admin pagantes falei:', e.message); res.status(500).json({ error: 'Não deu para marcar agora.' }); }
+});
+
 router.get('/indicacoes', requireAdmin, async (_req, res) => {
     try { res.json(await painelIndicacoesAdmin()); }
     catch (e) { console.error('admin indicações:', e.message); res.status(500).json({ error: 'Não deu para carregar as indicações agora.' }); }
